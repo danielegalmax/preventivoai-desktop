@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0D1B2A;
+  --color-brand-teal: #0E9F8E;
+  --color-brand-bg: #F7F8FA;
+  --color-ink: #0D1B2A;
+  --color-surface: #ffffff;
+  --color-field: #ffffff;
+  --color-edge: rgb(0 0 0 / 0.1);
+  --color-edge-faint: rgb(0 0 0 / 0.05);
+  --color-placeholder: #9ca3af;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-brand-bg: #0b1220;
+  --color-ink: #e8edf4;
+  --color-surface: #151f2e;
+  --color-field: #1a2535;
+  --color-edge: rgb(255 255 255 / 0.12);
+  --color-edge-faint: rgb(255 255 255 / 0.06);
+  --color-placeholder: #8b95a8;
+}
+
+body {
+  background-color: var(--color-brand-bg);
+  color: var(--color-ink);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea,
+select {
+  color: var(--color-ink);
+  background-color: var(--color-field);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"])::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
+  opacity: 1;
+}
+
+/* Dark mode: area contenuto (esclusa sidebar navy) */
+:root[data-theme="dark"] .theme-surface [class*="bg-white"]:not(.keep-white) {
+  background-color: var(--color-surface) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="text-brand-navy"] {
+  color: color-mix(in srgb, var(--color-ink) calc(var(--tw-text-opacity, 1) * 100%), transparent) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="border-black/10"] {
+  border-color: rgb(255 255 255 / 0.12) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="border-black/15"] {
+  border-color: rgb(255 255 255 / 0.14) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="border-black/5"] {
+  border-color: rgb(255 255 255 / 0.06) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="divide-black/5"] > :not(:last-child) {
+  border-color: rgb(255 255 255 / 0.08) !important;
+}
+
+:root[data-theme="dark"] .theme-surface [class*="hover:bg-brand-bg"]:hover {
+  background-color: color-mix(in srgb, var(--color-surface) 70%, var(--color-brand-bg)) !important;
+}
+
+:root[data-theme="dark"] .keep-white {
+  background-color: #ffffff !important;
+}
+
+@keyframes preventivo-focus-flicker {
+  0%, 100% {
+    background-color: rgb(236 253 245 / 0.95);
+    box-shadow: inset 0 0 0 2px rgb(14 159 142 / 0.65);
+  }
+  33% {
+    background-color: rgb(236 253 245 / 0.35);
+    box-shadow: inset 0 0 0 2px rgb(14 159 142 / 0.2);
+  }
+  66% {
+    background-color: rgb(236 253 245 / 1);
+    box-shadow: inset 0 0 0 2px rgb(14 159 142 / 0.85);
+  }
+}
+
+.preventivo-row-focus {
+  animation: preventivo-focus-flicker 1s ease-in-out 1;
+}
