@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERjE4RjVCNDlBN0EzQTMKUldTam82ZEpXNC94ZmVxTnAzVDhDY3EzZHdwVWpuZ3V5a2MvYmNHNkZOaEFuVUcyeGJwMnFoS0kK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERFMzk5RkFCNjJCRTQ0OEMKUldTTVJMNWlxNTg1M2locHpjSkUvazFxZHU4THdwOW1xeVdUQTQ4VWpPd3BkanNqM0FzSkNKaVUK",
       "endpoints": [
         "https://github.com/danielegalmax/preventivoai-desktop/releases/latest/download/latest.json"
       ],
