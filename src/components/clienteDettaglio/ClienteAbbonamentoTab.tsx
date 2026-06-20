@@ -1,5 +1,5 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { MESI_BREVI, MESI_FULL } from "../../lib/constants";
+import { MESI_FULL } from "../../lib/constants";
 import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
@@ -9,8 +9,7 @@ import { titoloHeaderPiano, analizzaStatoPiano, ordinaPianiPerStato } from "prev
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 import PianoStatoBadge from "./PianoStatoBadge";
 import PianoVuotoState from "./PianoVuotoState";
-import PreventivoMadreLink from "./PreventivoMadreLink";
-import RigaPiano from "./RigaPiano";
+import PianoEspanso from "./PianoEspanso";
 import MenuTrePuntini from "../MenuTrePuntini";
 
 type Props = {
@@ -35,10 +34,6 @@ type Props = {
   pianiSelezionati: string[];
   onToggleSelezionePiano: (abbonamentoId: string) => void;
 };
-
-function labelScadenza(rata: RataAbbonamento) {
-  return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
-}
 
 function ordinaRateCronologica(a: RataAbbonamento, b: RataAbbonamento) {
   return a.anno - b.anno || a.mese - b.mese;
@@ -92,15 +87,8 @@ function AbbonamentoPianoCard({
   pianoSelezionato,
   onToggleSelezionePiano,
 }: PianoCardProps) {
-  const [storicoAperto, setStoricoAperto] = useState(false);
   const [rataMiniAperta, setRataMiniAperta] = useState<string | null>(null);
 
-  const rataMeseCorrente = rate.find((r) => r.mese === meseCorrente && r.anno === annoCorrente);
-  const rateStoriche = rate.filter((r) => !(r.mese === meseCorrente && r.anno === annoCorrente));
-  const rateStoricheOrdinate = useMemo(
-    () => [...rateStoriche].sort((a, b) => b.anno - a.anno || b.mese - a.mese),
-    [rateStoriche],
-  );
   const analisi = useMemo(() => analizzaStatoPiano(abbonamento, rate), [abbonamento, rate]);
   const prossimaNonIncassata = useMemo(
     () => [...rate].sort(ordinaRateCronologica).find((r) => r.stato !== "incassato"),
@@ -111,19 +99,6 @@ function AbbonamentoPianoCard({
   async function eliminaRataDaDettaglio(rata: RataAbbonamento) {
     await onEliminaRata(rata);
     setRataMiniAperta((id) => (id === rata.id ? null : id));
-  }
-
-  function propsRigaCanone(rata: RataAbbonamento) {
-    return {
-      rata,
-      variante: "canone" as const,
-      invioReminderLoading,
-      mostraReminder: prossimaNonIncassata?.id === rata.id,
-      onReminder: () => void onSendReminder(rata),
-      onOpenPagamento,
-      onAzzeraPagamento,
-      onElimina: () => void eliminaRataDaDettaglio(rata),
-    };
   }
 
   return (
@@ -189,51 +164,26 @@ function AbbonamentoPianoCard({
       </div>
 
       {espanso && !selezionePianoAttiva ? (
-        <div className="space-y-3 pl-1">
-          <PreventivoMadreLink preventivo={preventivoMadre} onPress={onApriPreventivoMadre} />
-
-          {rataMeseCorrente ? (
-            <RigaPiano
-              {...propsRigaCanone(rataMeseCorrente)}
-              layout="hero"
-              evidenziaCorrente
-              aperta
-            />
-          ) : (
-            <button type="button" onClick={onOpenAddRata} className="w-full rounded-xl border border-black/10 bg-brand-bg py-2.5 text-sm font-medium text-brand-teal">
-              + Aggiungi canone {MESI_BREVI[meseCorrente - 1]} {annoCorrente}
-            </button>
-          )}
-
-          {rateStoricheOrdinate.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-              <button
-                type="button"
-                onClick={() => setStoricoAperto((v) => !v)}
-                className="flex w-full items-center justify-between bg-brand-bg px-3.5 py-3"
-              >
-                <span className="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">
-                  Storico canoni ({rateStoricheOrdinate.length})
-                </span>
-                <span className="text-[10px] text-brand-navy/40">{storicoAperto ? "▲" : "▼"}</span>
-              </button>
-              {storicoAperto ? rateStoricheOrdinate.map((rata) => (
-                <RigaPiano
-                  key={rata.id}
-                  {...propsRigaCanone(rata)}
-                  layout="completa"
-                  titoloCustom={labelScadenza(rata)}
-                  aperta={rataMiniAperta === rata.id}
-                  onToggle={() => setRataMiniAperta((id) => id === rata.id ? null : rata.id)}
-                />
-              )) : null}
-            </div>
-          ) : null}
-
-          <button type="button" onClick={onOpenAddRata} className="w-full py-2 text-sm font-medium text-brand-teal">
-            + Aggiungi canone (mese/anno)
-          </button>
-        </div>
+        <PianoEspanso
+          abbonamento={abbonamento}
+          rate={rate}
+          preventivoMadre={preventivoMadre}
+          analisi={analisi}
+          mode="byCalendario"
+          varianteRiga="canone"
+          meseCorrente={meseCorrente}
+          annoCorrente={annoCorrente}
+          onApriPreventivoMadre={onApriPreventivoMadre}
+          invioReminderLoading={invioReminderLoading}
+          rataMiniAperta={rataMiniAperta}
+          onToggleRataMini={(rataId) => setRataMiniAperta((id) => id === rataId ? null : rataId)}
+          prossimaNonIncassataId={prossimaNonIncassata?.id}
+          onOpenPagamento={onOpenPagamento}
+          onAzzeraPagamento={onAzzeraPagamento}
+          onReminder={(rata) => void onSendReminder(rata)}
+          onEliminaRata={(rata) => void eliminaRataDaDettaglio(rata)}
+          onAggiungiCanone={onOpenAddRata}
+        />
       ) : null}
     </div>
   );
