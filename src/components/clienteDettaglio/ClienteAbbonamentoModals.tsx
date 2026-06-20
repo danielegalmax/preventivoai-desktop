@@ -1,6 +1,6 @@
 import type { Preventivo, RataAbbonamento } from "../../lib/types";
 import { MESI_BREVI } from "../../lib/constants";
-import { formatImportoEuro } from "../../lib/importo";
+import { formatImportoEuro } from "preventivoai-shared";
 import { AnnoSelect, GiornoScadenzaSelect, MeseInizioSelect } from "../pickers/DatePartPickers";
 import PreventivoPicker from "./PreventivoPicker";
 

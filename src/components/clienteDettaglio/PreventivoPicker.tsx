@@ -1,5 +1,5 @@
 import type { Preventivo } from "../../lib/types";
-import { formatImportoEuro } from "../../lib/importo";
+import { formatImportoEuro } from "preventivoai-shared";
 
 type Props = {
   preventivi: Preventivo[];

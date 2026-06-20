@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
-import { importoDaTesto } from "./importo";
-import { erroreColonnaDeletedAt } from "./preventiviVisibili";
+import { importoDaTesto } from "preventivoai-shared";
+import { erroreColonnaDeletedAt } from "preventivoai-shared";
 
 export async function caricaClientiPerSelezione() {
   const { data: { user } } = await supabase.auth.getUser();

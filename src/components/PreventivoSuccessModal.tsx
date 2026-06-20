@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { apriPdfLocale, condividiPdf, isDesktopApp, mostraPdfInCartella } from "../lib/pdf";
+import { apriPdfDaBase64, apriPdfLocale, apriPdfOnline, condividiPdf, isDesktopApp, mostraPdfInCartella, ottieniUrlPdfPreventivo } from "../lib/pdf";
 import { caricaContattiCliente } from "../lib/firma";
 import { caricaHeaderProfilo } from "../lib/greeting";
-import { buildMessaggioCondividiPdf, caricaMessaggiCliente } from "../lib/messaggiCliente";
+import { buildMessaggioCondividiPdf } from "preventivoai-shared";
+import { caricaMessaggiCliente } from "../lib/messaggiCliente";
 import InviaFirmaModal from "./firma/InviaFirmaModal";
 
 export type PdfSuccessAzioni = {
@@ -71,9 +72,46 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
       setFeedback(extra || okMsg);
       window.setTimeout(() => setFeedback(""), 2500);
     } catch (err) {
-      setFeedback(err instanceof Error ? err.message : "Operazione non riuscita.");
+      const msg =
+        err instanceof Error ? err.message
+          : typeof err === "string" ? err
+            : err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message)
+              : "Operazione non riuscita.";
+      setFeedback(msg);
       window.setTimeout(() => setFeedback(""), 3000);
     }
+  }
+
+  async function urlPdfOnlineFresco(): Promise<string> {
+    if (invio?.preventivoId) {
+      try {
+        return await ottieniUrlPdfPreventivo(invio.preventivoId);
+      } catch {
+        if (azioni?.pdfUrl) return azioni.pdfUrl;
+        throw new Error("PDF online non disponibile.");
+      }
+    }
+    if (azioni?.pdfUrl) return azioni.pdfUrl;
+    throw new Error("PDF online non disponibile.");
+  }
+
+  async function apriPdfGenerato() {
+    if (haLocale && desktop) {
+      try {
+        await apriPdfLocale(azioni!.percorsoLocale!);
+        return;
+      } catch {
+        // fallback: base64 o URL online
+      }
+    }
+
+    if (azioni?.pdfBase64) {
+      await apriPdfDaBase64(azioni.pdfBase64, azioni.nomeFile || "preventivo.pdf");
+      return;
+    }
+
+    const url = await urlPdfOnlineFresco();
+    await apriPdfOnline(url);
   }
 
   async function apriInvioFirma() {
@@ -183,7 +221,7 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
                     }
                     await condividiPdf({
                       percorsoLocale: azioni?.percorsoLocale,
-                      pdfUrl: azioni?.pdfUrl,
+                      pdfUrl: azioni?.percorsoLocale ? undefined : await urlPdfOnlineFresco(),
                       pdfBase64: azioni?.pdfBase64,
                       nomeFile: azioni?.nomeFile,
                     });
@@ -224,15 +262,7 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
                 type="button"
                 onClick={() =>
                   void conFeedback(async () => {
-                    if (haLocale && desktop) await apriPdfLocale(azioni!.percorsoLocale!);
-                    else if (haOnline) {
-                      try {
-                        const { openUrl } = await import("@tauri-apps/plugin-opener");
-                        await openUrl(azioni!.pdfUrl!);
-                      } catch {
-                        window.open(azioni!.pdfUrl!, "_blank");
-                      }
-                    }
+                    await apriPdfGenerato();
                   }, "PDF aperto.")
                 }
                 className="w-full rounded-xl border border-black/10 py-2.5 text-sm font-semibold text-brand-navy hover:bg-brand-bg"

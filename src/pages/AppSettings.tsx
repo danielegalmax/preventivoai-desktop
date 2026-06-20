@@ -21,6 +21,10 @@ import {
   type RisultatoControlloAggiornamenti,
 } from "../lib/appSettings";
 
+const WEB_BASE_URL = "https://preventivoai-web.vercel.app";
+const WEB_TERMINI_URL = `${WEB_BASE_URL}/termini`;
+const WEB_PRIVACY_URL = `${WEB_BASE_URL}/privacy`;
+
 function clearLocalData() {
   localStorage.removeItem("preventivoai-nav-memory");
   localStorage.removeItem("preventivoai-nuovo-chat");
@@ -332,6 +336,30 @@ export default function AppSettings() {
           <p className="mt-2 whitespace-pre-wrap text-sm text-brand-navy/70">{updateResult.note}</p>
         )}
         {updateMsg && <p className="mt-2 text-sm text-brand-teal">{updateMsg}</p>}
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-6 shadow-sm">
+        <p className="text-sm font-semibold text-brand-navy">Documenti legali</p>
+        <div className="mt-3 space-y-2">
+          <a
+            href={WEB_TERMINI_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-xl border border-black/10 px-4 py-3 text-sm text-brand-navy hover:bg-brand-bg"
+          >
+            <span>Termini di servizio</span>
+            <span className="text-brand-navy/40">↗</span>
+          </a>
+          <a
+            href={WEB_PRIVACY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-xl border border-black/10 px-4 py-3 text-sm text-brand-navy hover:bg-brand-bg"
+          >
+            <span>Privacy Policy</span>
+            <span className="text-brand-navy/40">↗</span>
+          </a>
+        </div>
       </div>
 
       <div className="mt-3 rounded-2xl bg-white p-6 shadow-sm">

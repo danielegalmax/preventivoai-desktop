@@ -1,4 +1,4 @@
-import { formatImportoEuroVisuale } from "../lib/builder";
+import { formatImportoEuroVisuale } from "preventivoai-shared";
 
 type Props = {
   totale: number;

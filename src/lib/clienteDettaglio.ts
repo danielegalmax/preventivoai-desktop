@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { queryConFiltroCestino } from "./preventiviVisibili";
+import { queryConFiltroCestino } from "preventivoai-shared";
 import type { Cliente, Preventivo } from "./types";
 
 export async function caricaClienteDettaglio(clienteId: string) {

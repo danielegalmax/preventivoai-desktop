@@ -11,7 +11,7 @@ import SettingsNavLink, { SETTINGS_NAV_ICONS } from "../components/settings/Sett
 import SettingsIdentitaSection from "../components/settings/SettingsIdentitaSection";
 import BrandColorPicker from "../components/settings/BrandColorPicker";
 import { TONI } from "../lib/settingsConstants";
-import { MESSAGGI_CLIENTE_DEFAULT } from "../lib/messaggiCliente";
+import { MESSAGGI_CLIENTE_DEFAULT } from "preventivoai-shared";
 
 const FORM_VUOTO: SettingsForm = {
   nome_azienda: "",
@@ -208,6 +208,13 @@ export default function Impostazioni() {
           title="Metodi di pagamento"
           subtitle="Bonifico, PayPal, contanti, carta e Stripe"
           icon={SETTINGS_NAV_ICONS.pagamenti}
+        />
+
+        <SettingsNavLink
+          to="/impostazioni/fiscale"
+          title="Regime fiscale"
+          subtitle="Analisi fiscale e calcolo del netto nel builder"
+          icon={SETTINGS_NAV_ICONS.fiscale}
         />
 
         <SettingsNavLink

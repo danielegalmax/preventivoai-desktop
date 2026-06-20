@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
-import { calcolaTotaleVoci, formatImportoEuroVisuale, type VoceBuilder } from "../lib/builder";
+import { calcolaTotaleVoci, type VoceBuilder } from "../lib/builder";
+import { formatImportoEuroVisuale } from "preventivoai-shared";
 import type { ProfiloFiscale, RisultatoFiscale } from "../lib/types";
 import ToggleSwitch from "./ToggleSwitch";
 

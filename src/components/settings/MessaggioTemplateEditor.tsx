@@ -6,7 +6,7 @@ import {
   proteggiModificaMessaggio,
   serializzaMessaggioSegmenti,
   type TipoMessaggioCliente,
-} from "../../lib/messaggiCliente";
+} from "preventivoai-shared";
 
 type Props = {
   tipo: TipoMessaggioCliente;

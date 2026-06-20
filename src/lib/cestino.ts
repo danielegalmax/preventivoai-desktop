@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { caricaCronologiaPreventivo } from "./storico";
-import { erroreColonnaDeletedAt } from "./preventiviVisibili";
+import { erroreColonnaDeletedAt } from "preventivoai-shared";
 import type { Abbonamento, Preventivo } from "./types";
 
 export const CESTINO_GIORNI = 7;

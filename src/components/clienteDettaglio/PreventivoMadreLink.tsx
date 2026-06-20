@@ -1,4 +1,4 @@
-import { dataPreventivoMadre, titoloPreventivoMadre } from "../../lib/preventivoMadre";
+import { dataPreventivoMadre, titoloPreventivoMadre } from "preventivoai-shared";
 
 export type PreventivoMadreInfo = {
   id: string;

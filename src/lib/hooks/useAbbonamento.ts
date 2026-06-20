@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { spostaAbbonamentiInCestino } from "../cestino";
 import { MESI_BREVI } from "../constants";
-import { erroreColonnaDeletedAt } from "../preventiviVisibili";
+import { erroreColonnaDeletedAt } from "preventivoai-shared";
 import { supabase } from "../supabase";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
-import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "../importo";
-import { nomePianoDaPreventivo } from "../preventivoMadre";
+import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "preventivoai-shared";
+import { nomePianoDaPreventivo } from "preventivoai-shared";
 
 type UseAbbonamentoOpts = {
   soloTipo?: "canone" | "rate";

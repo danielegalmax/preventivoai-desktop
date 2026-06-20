@@ -5,7 +5,8 @@ import { useAuth } from "../app/useAuth";
 import { resetPassword, signInWithEmail, signUpWithEmail } from "../lib/auth";
 import { PLACEHOLDER } from "../lib/placeholders";
 
-const WEB_HOMEPAGE_URL = "https://preventivoai-web.vercel.app";
+const WEB_BASE_URL = "https://preventivoai-web.vercel.app";
+const WEB_TERMINI_URL = `${WEB_BASE_URL}/termini`;
 
 type AuthMode = "login" | "register";
 
@@ -77,8 +78,12 @@ export default function Login() {
     setInfo("Email inviata. Segui il link per reimpostare la password.");
   }
 
+  function apriTerminiWeb() {
+    window.open(WEB_TERMINI_URL, "_blank", "noopener,noreferrer");
+  }
+
   function apriHomepageWeb() {
-    window.open(WEB_HOMEPAGE_URL, "_blank", "noopener,noreferrer");
+    window.open(WEB_BASE_URL, "_blank", "noopener,noreferrer");
   }
 
   function handleGoogle() {
@@ -225,7 +230,7 @@ export default function Login() {
                   />
                   <span className="text-sm leading-relaxed text-brand-navy/65">
                     Accetto i{" "}
-                    <button type="button" onClick={apriHomepageWeb} className="font-semibold text-brand-teal hover:underline">
+                    <button type="button" onClick={apriTerminiWeb} className="font-semibold text-brand-teal hover:underline">
                       termini e condizioni
                     </button>
                     .{" "}

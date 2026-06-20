@@ -3,8 +3,7 @@ import type { FormEvent } from "react";
 import { creaServizio, aggiornaServizio } from "../lib/listino";
 import type { Servizio } from "../lib/types";
 import { PLACEHOLDER } from "../lib/placeholders";
-
-const UNITA_MISURA = ["cad", "ora", "giorno", "mq", "ml", "set", "progetto"];
+import { UNITA_MISURA } from "preventivoai-shared";
 
 interface Props {
   onClose: () => void;

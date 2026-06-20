@@ -1,5 +1,5 @@
 ﻿import { supabase } from "./supabase";
-import { queryConFiltroCestino } from "./preventiviVisibili";
+import { queryConFiltroCestino } from "preventivoai-shared";
 import type { Cliente } from "./types";
 
 export async function caricaClienti(): Promise<Cliente[]> {

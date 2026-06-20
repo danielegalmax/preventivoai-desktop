@@ -14,7 +14,7 @@ import { messaggioEliminaPiano } from "../lib/confermeElimina";
 import { useConfirmDialog } from "../lib/hooks/useConfirmDialog";
 import { useAnnullaSelezioneOnEscape } from "../lib/hooks/useAnnullaSelezioneOnEscape";
 import { useAbbonamento } from "../lib/hooks/useAbbonamento";
-import { parseImportoEuro } from "../lib/importo";
+import { parseImportoEuro } from "preventivoai-shared";
 import { supabase } from "../lib/supabase";
 import type { Cliente, Preventivo, RataAbbonamento } from "../lib/types";
 import PageContainer from "../components/PageContainer";

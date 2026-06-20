@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { caricaCollegamentiPianoPreventivi, type CollegamentiPianoMap } from "./collegamentiPiano";
 import { calcolaIncassatoTotale } from "./incassi";
 import { getNomeBreve } from "./greeting";
-import { queryConFiltroCestino } from "./preventiviVisibili";
+import { queryConFiltroCestino } from "preventivoai-shared";
 import type { Preventivo } from "./types";
 
 export type HomeInsightKind = "alert" | "success" | "info" | "action";

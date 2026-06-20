@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
-import { invalidaCacheMessaggiCliente, mergeMessaggiCliente, type MessaggiClienteTemplates } from "./messaggiCliente";
+import { mergeMessaggiCliente, type MessaggiClienteTemplates } from "preventivoai-shared";
+import { invalidaCacheMessaggiCliente } from "./messaggiCliente";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

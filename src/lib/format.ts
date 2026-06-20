@@ -1,4 +1,6 @@
-﻿export const statoStile: Record<string, string> = {
+﻿import { formatImportoEuroVisuale } from "preventivoai-shared";
+
+export const statoStile: Record<string, string> = {
   bozza: "bg-gray-100 text-gray-600",
   inviato: "bg-blue-100 text-blue-700",
   accettato: "bg-green-100 text-green-700",
@@ -7,7 +9,7 @@
 
 export function formatImporto(valore: number | null) {
   if (valore === null) return "-";
-  return valore.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+  return `${formatImportoEuroVisuale(valore)} €`;
 }
 
 export function formatData(valore: string) {

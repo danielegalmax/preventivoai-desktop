@@ -2,8 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   isDesktopApp,
   salvaPdfConPreferenze,
+  salvaPdfInCartella,
   sanitizzaNomeCartellaWindows,
 } from "./appSettings";
+import { sessionToken } from "./settings";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -86,7 +88,10 @@ export async function creaLinkPagamentoRata(rataId: string, clienteNome: string,
   return data.payment_url as string;
 }
 
-export async function salvaPDF(pdfBase64: string, token: string): Promise<string> {
+export async function salvaPDF(
+  pdfBase64: string,
+  token: string,
+): Promise<{ pdfUrl: string; storagePath?: string }> {
   const res = await fetch(`${BACKEND_URL}/api/salva-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -95,7 +100,22 @@ export async function salvaPDF(pdfBase64: string, token: string): Promise<string
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
   if (data.error) throw new Error(data.error);
-  return data.pdf_url;
+  if (!data.pdf_url) throw new Error("Upload PDF completato senza URL online.");
+  return {
+    pdfUrl: data.pdf_url as string,
+    storagePath: typeof data.storage_path === "string" ? data.storage_path : undefined,
+  };
+}
+
+export async function ottieniUrlPdfPreventivo(preventivoId: string, token?: string): Promise<string> {
+  const auth = token || (await sessionToken());
+  const res = await fetch(`${BACKEND_URL}/api/preventivi/${preventivoId}/pdf-url`, {
+    headers: { Authorization: `Bearer ${auth}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
+  if (!data.pdf_url) throw new Error("PDF non disponibile");
+  return data.pdf_url as string;
 }
 
 export function formatNomeFilePdf(nomeCliente: string | undefined, numeroPreventivo: string): string {
@@ -125,11 +145,67 @@ export async function scaricaPdfLocale(
 }
 
 export async function apriPdfLocale(percorso: string): Promise<void> {
+  if (isDesktopApp()) {
+    try {
+      await invoke("open_pdf_path", { path: percorso });
+      return;
+    } catch (err) {
+      throw new Error(messaggioErrore(err) || "Impossibile aprire il PDF locale.");
+    }
+  }
+
   const { openPath } = await import("@tauri-apps/plugin-opener");
-  await openPath(percorso);
+  try {
+    await openPath(percorso);
+  } catch (err) {
+    throw new Error(messaggioErrore(err) || "Impossibile aprire il PDF locale.");
+  }
+}
+
+/** Apre un PDF appena generato salvandolo temporaneamente (cache desktop o blob in browser). */
+export async function apriPdfDaBase64(pdfBase64: string, nomeFile: string): Promise<void> {
+  if (isDesktopApp()) {
+    const { appCacheDir } = await import("@tauri-apps/api/path");
+    const cache = await appCacheDir();
+    const percorso = await salvaPdfInCartella(cache, nomeFile, pdfBase64);
+    await apriPdfLocale(percorso);
+    return;
+  }
+
+  const bytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  URL.revokeObjectURL(url);
+}
+
+export async function apriPdfOnline(url: string): Promise<void> {
+  if (isDesktopApp()) {
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+      return;
+    } catch {
+      // fallback browser sotto
+    }
+  }
+  window.open(url, "_blank");
+}
+
+function messaggioErrore(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return "";
 }
 
 export async function mostraPdfInCartella(percorso: string): Promise<void> {
+  if (isDesktopApp()) {
+    await invoke("reveal_pdf_in_folder", { path: percorso });
+    return;
+  }
   const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
   await revealItemInDir(percorso);
 }

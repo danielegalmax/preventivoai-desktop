@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { calcolaTotaleTrasferte, formatImportoEuroVisuale, type TrasfertaBuilder } from "../lib/builder";
+import { calcolaTotaleTrasferte, type TrasfertaBuilder } from "../lib/builder";
+import { formatImportoEuroVisuale } from "preventivoai-shared";
 import ToggleSwitch from "./ToggleSwitch";
 import { PLACEHOLDER } from "../lib/placeholders";
 

@@ -1,8 +1,9 @@
-import { calcolaScadenzeRate, labelScadenzaRata } from "../lib/importo";
 import {
+  calcolaScadenzeRate,
+  labelScadenzaRata,
   giornoScadenzaValido,
   meseInizioValido,
-} from "../lib/giornoScadenza";
+} from "preventivoai-shared";
 import { GiornoScadenzaSelect, MeseInizioSelect } from "./pickers/DatePartPickers";
 import ToggleSwitch from "./ToggleSwitch";
 

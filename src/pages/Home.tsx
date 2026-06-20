@@ -91,7 +91,7 @@ export default function Home() {
         </div>
         <Link
           to="/nuovo"
-          className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-navy px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-navy/15 transition hover:bg-brand-navy/90"
+          className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-teal px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-teal/30 transition hover:bg-brand-teal/90"
         >
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10">
             <IconPlus className="h-3.5 w-3.5" />

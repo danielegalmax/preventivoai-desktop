@@ -5,7 +5,7 @@ import {
   anteprimaMessaggio,
   type MessaggiClienteTemplates,
   type ScenarioMessaggio,
-} from "../../lib/messaggiCliente";
+} from "preventivoai-shared";
 import MessaggioTemplateEditor from "./MessaggioTemplateEditor";
 import FirmaReminderPanel from "./FirmaReminderPanel";
 

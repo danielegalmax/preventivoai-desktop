@@ -1,6 +1,6 @@
 import { spostaPreventiviInCestino } from "./cestino";
 import { supabase } from "./supabase";
-import { queryConFiltroCestino } from "./preventiviVisibili";
+import { queryConFiltroCestino } from "preventivoai-shared";
 import { caricaCollegamentiPianoPreventivi } from "./collegamentiPiano";
 import type { Cliente, Preventivo } from "./types";
 

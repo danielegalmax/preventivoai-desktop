@@ -18,9 +18,9 @@ import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
 import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
 import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale } from "../lib/pdf";
-import { importoDaTesto } from "../lib/importo";
+import { importoDaTesto } from "preventivoai-shared";
 import { confermaPagamentoEsclusivo } from "../lib/confermaPagamentoEsclusivo";
-import { giornoScadenzaValido, meseCorrenteString, meseInizioValido } from "../lib/giornoScadenza";
+import { meseCorrenteString, validaPianiPagamento } from "preventivoai-shared";
 import {
   creaAbbonamentoDaPreventivo,
   creaPianoRateDaPreventivo,
@@ -52,6 +52,7 @@ import {
   collegaVociAlListino,
   parsePreventivoTesto,
   trovaMetodoPagamentoDaNome,
+  vociParsedConId,
 } from "../lib/parsePreventivoTesto";
 
 type Props = {
@@ -378,7 +379,7 @@ export default function Nuovo({ mode }: Props) {
     if (mode !== "manuale" || !testoModifica) return;
 
     const parsed = parsePreventivoTesto(testoModifica);
-    setVoci(collegaVociAlListino(parsed.voci, servizi));
+    setVoci(vociParsedConId(collegaVociAlListino(parsed.voci, servizi)));
     setNoteExtra(parsed.noteExtra);
     setIncludiIva(parsed.includiIva);
     setTrasferte(parsed.trasferte);
@@ -477,25 +478,6 @@ export default function Nuovo({ mode }: Props) {
       setAbbonamentoAttivo(false);
       setPagamentoRateAttivo(true);
     });
-  }
-
-  function validaPianiPagamento(): string | null {
-    if (pagamentoRateAttivo && !clienteCollegato()) {
-      return "Associa un cliente al preventivo per il pagamento a rate.";
-    }
-    if (abbonamentoAttivo && !clienteCollegato()) {
-      return "Associa un cliente al preventivo per l'abbonamento mensile.";
-    }
-    if (pagamentoRateAttivo) {
-      const num = parseInt(rateNumero, 10);
-      if (!(num >= 2 && giornoScadenzaValido(rateGiornoScadenza) && meseInizioValido(rateMeseInizio))) {
-        return "Inserisci numero di rate (minimo 2), giorno scadenza (1-31) e mese inizio (1-12).";
-      }
-    }
-    if (abbonamentoAttivo && !(giornoScadenzaValido(abGiorno) && meseInizioValido(abMeseInizio))) {
-      return "Inserisci giorno scadenza (1-31) e mese inizio (1-12) per l'abbonamento.";
-    }
-    return null;
   }
 
   async function preparaTestoPerPdf(testo: string): Promise<string> {
@@ -791,7 +773,16 @@ export default function Nuovo({ mode }: Props) {
       setErrore("Aggiungi almeno una voce con un nome.");
       return;
     }
-    const errPiani = validaPianiPagamento();
+    const errPiani = validaPianiPagamento({
+      pagamentoRateAttivo,
+      abbonamentoAttivo,
+      clienteCollegato: clienteCollegato(),
+      rateNumero,
+      rateGiornoScadenza,
+      rateMeseInizio,
+      abGiorno,
+      abMeseInizio,
+    });
     if (errPiani) {
       setErrore(errPiani);
       return;
@@ -842,7 +833,16 @@ export default function Nuovo({ mode }: Props) {
 
   async function generaPdf() {
     if (!token || !preventivo) return;
-    const errPiani = validaPianiPagamento();
+    const errPiani = validaPianiPagamento({
+      pagamentoRateAttivo,
+      abbonamentoAttivo,
+      clienteCollegato: clienteCollegato(),
+      rateNumero,
+      rateGiornoScadenza,
+      rateMeseInizio,
+      abGiorno,
+      abMeseInizio,
+    });
     if (errPiani) {
       setErrore(errPiani);
       return;
@@ -861,8 +861,11 @@ export default function Nuovo({ mode }: Props) {
       });
 
       let urlCaricato = "";
+      let storagePathCaricato = "";
       try {
-        urlCaricato = await salvaPDF(data.pdf_base64, token);
+        const upload = await salvaPDF(data.pdf_base64, token);
+        urlCaricato = upload.pdfUrl;
+        storagePathCaricato = upload.storagePath || "";
       } catch (err) {
         console.warn("Upload PDF fallito:", err);
       }
@@ -886,7 +889,7 @@ export default function Nuovo({ mode }: Props) {
           titolo,
           template,
           versione: data.versione,
-          pdfUrl: urlCaricato || undefined,
+          pdfUrl: storagePathCaricato || urlCaricato || undefined,
         });
         if (error) throw new Error(error.message);
         idPerPiani = preventivoSalvatoId;
@@ -898,7 +901,7 @@ export default function Nuovo({ mode }: Props) {
           titolo,
           template,
           versione: data.versione,
-          pdfUrl: urlCaricato || undefined,
+          pdfUrl: storagePathCaricato || urlCaricato || undefined,
           preventivoPadreId: inModifica ? versionePadreId : undefined,
         });
         if (error) throw new Error(error.message);

@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Preventivo } from "./types";
+import { ottieniUrlPdfPreventivo } from "./pdf";
 
 export const STATI_PREVENTIVO = ["bozza", "inviato", "accettato", "rifiutato"] as const;
 
@@ -10,16 +11,21 @@ export function statoPreventivoIcon(stato: string) {
   return "❌";
 }
 
-export async function apriPdfPreventivo(preventivo: Pick<Preventivo, "pdf_url">) {
+export async function apriPdfPreventivo(preventivo: Pick<Preventivo, "id" | "pdf_url">) {
   if (!preventivo.pdf_url) {
     window.alert("PDF non ancora generato per questo preventivo.");
     return;
   }
   try {
-    const { openUrl } = await import("@tauri-apps/plugin-opener");
-    await openUrl(preventivo.pdf_url);
+    const url = await ottieniUrlPdfPreventivo(preventivo.id);
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+    } catch {
+      window.open(url, "_blank");
+    }
   } catch {
-    window.open(preventivo.pdf_url, "_blank");
+    window.alert("Impossibile aprire il PDF.");
   }
 }
 

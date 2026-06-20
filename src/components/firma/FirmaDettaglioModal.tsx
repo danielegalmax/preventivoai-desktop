@@ -14,6 +14,7 @@ import {
   isFirmaManuale,
   isFirmaOnline,
   ottieniUrlFirma,
+  ottieniUrlInvioFirma,
   registraFirmaManuale,
   statoFirmaInvio,
 } from "../../lib/firma";
@@ -45,6 +46,11 @@ export default function FirmaDettaglioModal({
   const [confermaAnnulla, setConfermaAnnulla] = useState(false);
   const [telefono, setTelefono] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [urlDocumentiFirma, setUrlDocumentiFirma] = useState<{
+    pdf: string | null;
+    img: string | null;
+    loading: boolean;
+  }>({ pdf: null, img: null, loading: false });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const nomeCliente = preventivo.nome_cliente || "Cliente";
@@ -61,6 +67,33 @@ export default function FirmaDettaglioModal({
       }
     });
   }, [open, preventivo.cliente_id]);
+
+  useEffect(() => {
+    if (!open || sf !== "firmato" || !invio) {
+      setUrlDocumentiFirma({ pdf: null, img: null, loading: false });
+      return;
+    }
+
+    let cancelled = false;
+    setUrlDocumentiFirma({ pdf: null, img: null, loading: true });
+
+    void ottieniUrlInvioFirma(preventivo.id)
+      .then((res) => {
+        if (cancelled) return;
+        setUrlDocumentiFirma({
+          pdf: res.pdf_firmato_url,
+          img: res.firma_immagine_url,
+          loading: false,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUrlDocumentiFirma({ pdf: null, img: null, loading: false });
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [open, sf, invio?.id, preventivo.id]);
 
   if (!open) return null;
 
@@ -177,18 +210,24 @@ export default function FirmaDettaglioModal({
             <p className="font-semibold">
               {firmatoManuale ? "Firmato a mano" : "Firmato online"} il {formatData(invio.firmato_at!)}
             </p>
-            {invio.firma_immagine_url ? (
-              <img src={invio.firma_immagine_url} alt="Documento firmato" className="max-h-32 rounded-lg border border-emerald-200" />
+            {urlDocumentiFirma.loading ? (
+              <p className="text-emerald-800">Caricamento documenti…</p>
             ) : null}
-            {invio.pdf_firmato_url ? (
+            {urlDocumentiFirma.img ? (
+              <img src={urlDocumentiFirma.img} alt="Documento firmato" className="max-h-32 rounded-lg border border-emerald-200" />
+            ) : null}
+            {urlDocumentiFirma.pdf ? (
               <a
-                href={invio.pdf_firmato_url}
+                href={urlDocumentiFirma.pdf}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block font-medium text-brand-teal underline"
               >
                 Apri PDF firmato
               </a>
+            ) : null}
+            {!urlDocumentiFirma.loading && !urlDocumentiFirma.pdf && !urlDocumentiFirma.img && (invio.pdf_firmato_url || invio.firma_immagine_url) ? (
+              <p className="text-emerald-800">Documenti non disponibili al momento.</p>
             ) : null}
             {firmatoOnline ? (
               confermaAnnulla ? (

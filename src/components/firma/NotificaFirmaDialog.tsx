@@ -2,6 +2,7 @@ import type { Notifica } from "../../lib/notifiche";
 import {
   apriEmailFirma,
   apriWhatsAppFirma,
+  apriPdfFirmatoDaNotifica,
   disabilitaReminderInvio,
   inviaPreventivoPerFirma,
   registraReminderWhatsapp,
@@ -56,13 +57,34 @@ export default function NotificaFirmaDialog({
     onCompletata();
   }
 
+  async function apriPdfFirmato() {
+    if (!preventivoId) return;
+    try {
+      await apriPdfFirmatoDaNotifica(preventivoId);
+    } catch {
+      window.alert(
+        "Impossibile aprire il documento firmato in questo momento. Riprova tra poco dal dettaglio firma.",
+      );
+    }
+  }
+
   if (notifica.tipo === "firma_ricevuta") {
+    const mostraPdfFirmato = Boolean(preventivoId);
     return (
       <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
         <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
           <h2 className="text-lg font-semibold text-brand-navy">{notifica.titolo}</h2>
           <p className="mt-2 text-sm text-brand-navy/70">{notifica.messaggio}</p>
           <div className="mt-5 grid gap-2">
+            {mostraPdfFirmato ? (
+              <button
+                type="button"
+                onClick={() => void apriPdfFirmato()}
+                className="w-full rounded-xl border border-brand-teal py-3 text-sm font-semibold text-brand-teal"
+              >
+                Apri PDF firmato
+              </button>
+            ) : null}
             {preventivoId && payload.chiediPagato ? (
               <button
                 type="button"

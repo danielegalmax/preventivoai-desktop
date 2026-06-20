@@ -1,4 +1,4 @@
-import { formatImportoEuro } from "../../lib/importo";
+import { formatImportoEuro } from "preventivoai-shared";
 
 type Props = {
   preventiviCount: number;

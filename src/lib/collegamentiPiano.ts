@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
-import { rimuoviDataDaNomePiano } from "./preventivoMadre";
-import { queryConFiltroCestino } from "./preventiviVisibili";
+import { rimuoviDataDaNomePiano } from "preventivoai-shared";
+import { queryConFiltroCestino } from "preventivoai-shared";
 
 export type CollegamentoPiano = {
   tipo: "canone" | "rate";

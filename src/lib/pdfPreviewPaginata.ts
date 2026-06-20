@@ -80,6 +80,27 @@ function preparaPreviewDesktop(html: string): string {
         })();`,
   );
 
+  // Anteprima paginata: il running footer è position:absolute sul fondo pagina.
+  // Con 1 sola pagina il contenuto può essere più basso di A4 → overflow:hidden lo taglia.
+  out = out.replace(
+    `        } else {
+          var previewIndex = window.__PREVIEW_PAGE_INDEX || 0;
+          if (previewIndex < totalPages) {
+            mount.appendChild(createRunningFooterClone(template, previewIndex, totalPages));
+          }
+        }`,
+    `        } else {
+          var previewIndex = window.__PREVIEW_PAGE_INDEX || 0;
+          if (previewIndex < totalPages) {
+            var pageEnd = (previewIndex + 1) * A4_HEIGHT_UNSCALED;
+            if (getDocumentLayoutBottom() < pageEnd) {
+              mount.style.minHeight = pageEnd + 'px';
+            }
+            mount.appendChild(createRunningFooterClone(template, previewIndex, totalPages));
+          }
+        }`,
+  );
+
   return out;
 }
 

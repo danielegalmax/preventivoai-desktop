@@ -21,6 +21,10 @@ export default function Profilo() {
   const [passwordNuova, setPasswordNuova] = useState("");
   const [passwordConferma, setPasswordConferma] = useState("");
   const [salvandoPassword, setSalvandoPassword] = useState(false);
+  const [modalPasswordElimina, setModalPasswordElimina] = useState(false);
+  const [passwordElimina, setPasswordElimina] = useState("");
+  const [verificandoPasswordElimina, setVerificandoPasswordElimina] = useState(false);
+  const [eliminandoAccount, setEliminandoAccount] = useState(false);
 
   const [errore, setErrore] = useState("");
   const [messaggio, setMessaggio] = useState("");
@@ -88,7 +92,40 @@ export default function Profilo() {
     navigate("/login");
   }
 
-  async function elimina() {
+  function apriEliminaAccount() {
+    setMessaggio("");
+    setErrore("");
+    setPasswordElimina("");
+    setModalPasswordElimina(true);
+  }
+
+  function chiudiModalPasswordElimina() {
+    setModalPasswordElimina(false);
+    setPasswordElimina("");
+  }
+
+  async function confermaPasswordEliminazione() {
+    const passwordPulita = passwordElimina.trim();
+    if (!passwordPulita) {
+      setErrore("Inserisci la password attuale.");
+      return;
+    }
+
+    setVerificandoPasswordElimina(true);
+    setErrore("");
+    const { error } = await verificaPasswordAccount(email, passwordPulita);
+    setVerificandoPasswordElimina(false);
+
+    if (error) {
+      setErrore("Password non corretta.");
+      return;
+    }
+
+    chiudiModalPasswordElimina();
+    await procediEliminazioneAccount();
+  }
+
+  async function procediEliminazioneAccount() {
     const conferma1 = window.confirm(
       "Questa azione è irreversibile. Tutti i tuoi dati verranno eliminati. Vuoi continuare?",
     );
@@ -96,12 +133,15 @@ export default function Profilo() {
     const conferma2 = window.confirm("Conferma finale: sei assolutamente sicuro?");
     if (!conferma2) return;
 
+    setEliminandoAccount(true);
     try {
       await eliminaAccount();
       await logoutAccount();
       navigate("/login");
     } catch (e) {
       setErrore(e instanceof Error ? e.message : "Impossibile eliminare account.");
+    } finally {
+      setEliminandoAccount(false);
     }
   }
 
@@ -115,6 +155,54 @@ export default function Profilo() {
 
   return (
     <PageContainer>
+      {modalPasswordElimina && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
+          onClick={chiudiModalPasswordElimina}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="elimina-account-password-title"
+          >
+            <h2 id="elimina-account-password-title" className="text-lg font-semibold text-brand-navy">
+              Conferma identita
+            </h2>
+            <p className="mt-2 text-sm text-brand-navy/60">
+              Inserisci la password attuale per eliminare definitivamente l&apos;account.
+            </p>
+            <input
+              value={passwordElimina}
+              onChange={(e) => setPasswordElimina(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              placeholder="Password attuale"
+              className="mt-4 w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={chiudiModalPasswordElimina}
+                disabled={verificandoPasswordElimina}
+                className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-brand-navy/70 hover:bg-brand-bg disabled:opacity-60"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={() => void confermaPasswordEliminazione()}
+                disabled={verificandoPasswordElimina}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {verificandoPasswordElimina ? "Verifica..." : "Conferma"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-semibold text-brand-navy">Profilo</h1>
 
       <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
@@ -221,10 +309,11 @@ export default function Profilo() {
         </button>
         <button
           type="button"
-          onClick={elimina}
-          className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+          onClick={apriEliminaAccount}
+          disabled={eliminandoAccount}
+          className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
         >
-          Elimina account
+          {eliminandoAccount ? "Eliminazione..." : "Elimina account"}
         </button>
       </div>
     </PageContainer>

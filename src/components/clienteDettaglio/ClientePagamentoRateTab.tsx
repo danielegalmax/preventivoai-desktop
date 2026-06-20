@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Abbonamento } from "../../lib/types";
-import { analizzaStatoPiano, ordinaPianiPerStato } from "../../lib/statoPiano";
+import { analizzaStatoPiano, ordinaPianiPerStato } from "preventivoai-shared";
 import type { PianoRateCardProps } from "./PianoRateCard";
 import PianoRateCard from "./PianoRateCard";
 import PianoVuotoState from "./PianoVuotoState";

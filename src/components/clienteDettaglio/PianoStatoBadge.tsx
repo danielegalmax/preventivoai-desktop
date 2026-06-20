@@ -1,4 +1,4 @@
-import type { AnalisiPiano } from "../../lib/statoPiano";
+import type { AnalisiPiano } from "preventivoai-shared";
 
 type Props = {
   analisi: AnalisiPiano;
