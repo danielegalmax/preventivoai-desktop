@@ -9,126 +9,15 @@ import { titoloHeaderPiano, analizzaStatoPiano } from "preventivoai-shared";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 import PianoStatoBadge from "./PianoStatoBadge";
 import PreventivoMadreLink from "./PreventivoMadreLink";
+import RigaPiano from "./RigaPiano";
 import MenuTrePuntini from "../MenuTrePuntini";
 
 function labelScadenza(rata: RataAbbonamento) {
   return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
 }
 
-function badgeRata(stato: RataAbbonamento["stato"]) {
-  if (stato === "incassato") return { label: "Pagata", className: "bg-emerald-100 text-emerald-700" };
-  if (stato === "in_ritardo") return { label: "Scaduta", className: "bg-red-100 text-red-600" };
-  if (stato === "parziale") return { label: "Parziale", className: "bg-amber-100 text-amber-700" };
-  return { label: "Da pagare", className: "bg-amber-100 text-amber-700" };
-}
-
 function ordinaRate(a: RataAbbonamento, b: RataAbbonamento) {
   return a.anno - b.anno || a.mese - b.mese;
-}
-
-function residuoRata(rata: RataAbbonamento) {
-  return rata.importo - (rata.acconto || 0);
-}
-
-type RataRowProps = {
-  rata: RataAbbonamento;
-  index: number;
-  aperta: boolean;
-  invioReminderLoading: string | null;
-  mostraReminder: boolean;
-  onToggle: () => void;
-  onOpenPagamento: (rata: RataAbbonamento) => void;
-  onAzzeraPagamento: (rataId: string) => void;
-  onReminder: () => void;
-  onElimina: () => void;
-};
-
-function RataRow({
-  rata,
-  index,
-  aperta,
-  invioReminderLoading,
-  mostraReminder,
-  onToggle,
-  onOpenPagamento,
-  onAzzeraPagamento,
-  onReminder,
-  onElimina,
-}: RataRowProps) {
-  const badge = badgeRata(rata.stato);
-  const pagata = rata.stato === "incassato";
-
-  return (
-    <div className="border-t border-black/5 px-3 py-3">
-      <button type="button" onClick={onToggle} className="flex w-full items-center gap-2 text-left">
-        <span className="min-w-0 flex-1 text-sm font-medium text-brand-navy">
-          Rata {index + 1} · {labelScadenza(rata)}
-        </span>
-        <span className="text-sm font-semibold text-brand-navy">€{formatImportoEuro(rata.importo, 2)}</span>
-        <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${badge.className}`}>{badge.label}</span>
-        <span className="text-[10px] text-brand-navy/40">{aperta ? "▲" : "▼"}</span>
-      </button>
-      {aperta ? (
-        <div className="mt-3 space-y-2 border-t border-black/5 pt-3">
-          {rata.stato === "parziale" ? (
-            <div className="space-y-1">
-              <div className="h-1.5 overflow-hidden rounded-full bg-black/5">
-                <div
-                  className="h-full rounded-full bg-amber-500"
-                  style={{ width: `${((rata.acconto || 0) / rata.importo) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-amber-600">Acconto: €{formatImportoEuro(rata.acconto || 0, 2)}</span>
-                <span className="text-red-500">Residuo: €{formatImportoEuro(residuoRata(rata), 2)}</span>
-              </div>
-            </div>
-          ) : null}
-          {rata.note ? <p className="text-xs text-brand-navy/40">{rata.note}</p> : null}
-          <div className="flex gap-2">
-            {!pagata ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onOpenPagamento(rata)}
-                  className="flex-1 rounded-xl border border-brand-teal py-2 text-sm font-semibold text-brand-teal"
-                >
-                  + Registra pagamento
-                </button>
-                {mostraReminder ? (
-                  <button
-                    type="button"
-                    onClick={onReminder}
-                    disabled={invioReminderLoading === rata.id}
-                    className="rounded-xl border border-green-500 px-3 py-2 text-sm font-semibold text-green-600 disabled:opacity-50"
-                  >
-                    {invioReminderLoading === rata.id ? "..." : "WA"}
-                  </button>
-                ) : null}
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('Riportare a "da pagare"?')) onAzzeraPagamento(rata.id);
-                }}
-                className="flex-1 rounded-xl border border-black/10 py-2 text-sm text-brand-navy/40"
-              >
-                ↩ Azzera
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onElimina}
-            className="w-full rounded-xl border border-red-200 py-2 text-sm font-medium text-red-600"
-          >
-            Elimina
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export type PianoRateCardProps = {
@@ -533,10 +422,12 @@ export default function PianoRateCard({
               {futureAperte ? rateFuture.map((rata) => {
                 const index = rateOrdinate.findIndex((r) => r.id === rata.id);
                 return (
-                  <RataRow
+                  <RigaPiano
                     key={rata.id}
                     rata={rata}
-                    index={index}
+                    variante="rate"
+                    layout="completa"
+                    indiceRata={index}
                     aperta={rataMiniAperta === rata.id}
                     invioReminderLoading={invioReminderLoading}
                     mostraReminder={prossima?.id === rata.id}
@@ -566,10 +457,12 @@ export default function PianoRateCard({
               {storicoAperto ? rateStorico.map((rata) => {
                 const index = rateOrdinate.findIndex((r) => r.id === rata.id);
                 return (
-                  <RataRow
+                  <RigaPiano
                     key={rata.id}
                     rata={rata}
-                    index={index}
+                    variante="rate"
+                    layout="completa"
+                    indiceRata={index}
                     aperta={rataMiniAperta === rata.id}
                     invioReminderLoading={invioReminderLoading}
                     mostraReminder={false}
