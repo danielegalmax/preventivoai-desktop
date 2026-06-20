@@ -3,8 +3,9 @@ import { MESI_FULL } from "../../lib/constants";
 import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
-import { formatImportoEuro, parseImportoEuro, ricalcolaImportiRateLibere } from "preventivoai-shared";
+import { formatImportoEuro, generaLinkPaypalMe, generaTestoReminderPagamento, parseImportoEuro, ricalcolaImportiRateLibere } from "preventivoai-shared";
 import { creaLinkPagamentoRata } from "../../lib/pdf";
+import type { MetodoPagamento } from "../../lib/pagamenti";
 import { titoloHeaderPiano, analizzaStatoPiano } from "preventivoai-shared";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 import PianoStatoBadge from "./PianoStatoBadge";
@@ -22,6 +23,7 @@ export type PianoRateCardProps = {
   rate: RataAbbonamento[];
   preventivoMadre: PreventivoMadre | null;
   clienteNome: string;
+  metodoPredefinito: MetodoPagamento | null;
   onApriPreventivoMadre?: (preventivoId: string) => void;
   onPianoAggiornato?: () => void | Promise<void>;
   onOpenPagamento: (rata: RataAbbonamento) => void;
@@ -42,6 +44,7 @@ export default function PianoRateCard({
   rate,
   preventivoMadre,
   clienteNome,
+  metodoPredefinito,
   onApriPreventivoMadre,
   onPianoAggiornato,
   onOpenPagamento,
@@ -159,12 +162,51 @@ export default function PianoRateCard({
   async function inviaReminder(rata: RataAbbonamento) {
     try {
       setInvioReminderLoading(rata.id);
-      const session = await sessioneClienteDettaglio();
-      if (!session) return;
       const residuo = rata.importo - (rata.acconto || 0);
-      const link = await creaLinkPagamentoRata(rata.id, clienteNome, session.access_token);
-      const testo = `Ciao ${clienteNome}, ti ricordo il pagamento di €${formatImportoEuro(residuo, 2)} per la rata di ${MESI_FULL[rata.mese - 1]} ${rata.anno}. Puoi pagare qui: ${link}`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(testo)}`, "_blank");
+      const periodoLabel = `${MESI_FULL[rata.mese - 1]} ${rata.anno}`;
+      let testo: string;
+
+      if (!metodoPredefinito) {
+        const session = await sessioneClienteDettaglio();
+        if (!session) return;
+        const link = await creaLinkPagamentoRata(rata.id, clienteNome, session.access_token);
+        testo = `Ciao ${clienteNome}, ti ricordo il pagamento di €${formatImportoEuro(residuo, 2)} per la rata di ${periodoLabel}. Puoi pagare qui: ${link}`;
+      } else if (metodoPredefinito.tipo === "stripe") {
+        const session = await sessioneClienteDettaglio();
+        if (!session) return;
+        const link = await creaLinkPagamentoRata(rata.id, clienteNome, session.access_token);
+        testo = generaTestoReminderPagamento({
+          clienteNome,
+          residuo,
+          periodoLabel,
+          metodo: metodoPredefinito,
+          link,
+        });
+      } else if (metodoPredefinito.tipo === "paypal" && metodoPredefinito.dati?.paypalme?.trim()) {
+        const link = generaLinkPaypalMe(metodoPredefinito.dati.paypalme, residuo);
+        testo = generaTestoReminderPagamento({
+          clienteNome,
+          residuo,
+          periodoLabel,
+          metodo: metodoPredefinito,
+          link,
+        });
+      } else {
+        testo = generaTestoReminderPagamento({
+          clienteNome,
+          residuo,
+          periodoLabel,
+          metodo: metodoPredefinito,
+        });
+      }
+
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(testo)}`;
+      try {
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(waUrl);
+      } catch {
+        window.open(waUrl, "_blank");
+      }
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Errore invio reminder");
     } finally {

@@ -7,6 +7,7 @@ import {
   caricaMetodiPagamento,
   eliminaMetodoPagamento,
   iconaMetodoPagamento,
+  normalizzaPaypalMe,
   salvaMetodoPagamento,
   type MetodoPagamento,
   type MetodoPagamentoForm,
@@ -153,8 +154,12 @@ export default function MetodiPagamento() {
                 {m.tipo === "bonifico" && m.dati?.iban && (
                   <p className="truncate text-xs text-brand-navy/50">{m.dati.iban}</p>
                 )}
-                {m.tipo === "paypal" && m.dati?.email && (
-                  <p className="truncate text-xs text-brand-navy/50">{m.dati.email}</p>
+                {m.tipo === "paypal" && (m.dati?.paypalme || m.dati?.email) && (
+                  <p className="truncate text-xs text-brand-navy/50">
+                    {[m.dati.paypalme && `paypal.me/${m.dati.paypalme}`, m.dati.email]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                 )}
                 {m.predefinito && (
                   <span className="mt-1 inline-block text-xs font-semibold text-brand-teal">predefinito</span>
@@ -250,16 +255,63 @@ export default function MetodiPagamento() {
               )}
 
               {form.tipo === "paypal" && (
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold tracking-wide text-brand-navy/40">EMAIL PAYPAL</label>
-                  <input
-                    type="email"
-                    value={form.dati?.email || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, dati: { ...f.dati, email: e.target.value } }))}
-                    placeholder={PLACEHOLDER.email}
-                    className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold tracking-wide text-brand-navy/40">
+                        USERNAME PAYPAL.ME
+                      </label>
+                      <div className="flex overflow-hidden rounded-lg border border-black/10 focus-within:border-brand-teal">
+                        <span className="flex shrink-0 items-center bg-brand-bg px-2.5 text-xs text-brand-navy/50">
+                          paypal.me/
+                        </span>
+                        <input
+                          value={form.dati?.paypalme || ""}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              dati: { ...f.dati, paypalme: normalizzaPaypalMe(e.target.value) },
+                            }))
+                          }
+                          placeholder="marioelettricista"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className="min-w-0 flex-1 px-3 py-2 text-sm outline-none"
+                        />
+                      </div>
+                      <p className="text-xs leading-relaxed text-brand-navy/55">
+                        Il tuo link PayPal.me per ricevere pagamenti (es.{" "}
+                        <span className="font-medium text-brand-navy/70">paypal.me/marioelettricista</span>
+                        ). Lo trovi nell&apos;app o sul sito PayPal, in{" "}
+                        <span className="font-medium text-brand-navy/70">Impostazioni → PayPal.me</span>: copia solo
+                        la parte dopo la barra, senza URL completo.
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold tracking-wide text-brand-navy/40">EMAIL PAYPAL</label>
+                      <input
+                        type="email"
+                        value={form.dati?.email || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, dati: { ...f.dati, email: e.target.value } }))}
+                        placeholder={PLACEHOLDER.email}
+                        className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                      />
+                      <p className="text-xs leading-relaxed text-brand-navy/55">
+                        Email del conto PayPal, utile come contatto per il cliente nel preventivo.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-950">
+                    <p className="font-semibold">Pagamenti non rilevati automaticamente</p>
+                    <p className="mt-1">
+                      I pagamenti ricevuti via PayPal{" "}
+                      <span className="font-medium">non vengono segnati come pagati in automatico</span> nell&apos;app.
+                      Dovrai marcarli manualmente come saldati. Con Stripe, invece, il pagamento online viene
+                      registrato automaticamente quando il cliente completa il checkout.
+                    </p>
+                  </div>
+                </>
               )}
 
               {form.tipo === "stripe" && (

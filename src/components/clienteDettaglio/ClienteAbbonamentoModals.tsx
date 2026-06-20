@@ -1,9 +1,14 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import type { Preventivo, RataAbbonamento } from "../../lib/types";
 import { MESI_BREVI } from "../../lib/constants";
-import { formatImportoEuro } from "preventivoai-shared";
+import { formatImportoEuro, parseImportoEuro } from "preventivoai-shared";
 import { AnnoSelect, GiornoScadenzaSelect, MeseInizioSelect } from "../pickers/DatePartPickers";
 import PreventivoPicker from "./PreventivoPicker";
+import {
+  calcolaAccontoSaldoPiano,
+  type RateAccontoTipo,
+  type RateModalitaPiano,
+} from "../../lib/calcolaAccontoSaldoPiano";
 
 type ModalShellProps = {
   title: string;
@@ -57,6 +62,35 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+function OptionToggle<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => onChange(opt.key)}
+          className={`rounded-full px-3 py-1.5 text-sm ${
+            value === opt.key
+              ? "bg-brand-navy text-white"
+              : "border border-black/10 bg-brand-bg text-brand-navy"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type Props = {
   mostraNuovo: boolean;
   onCloseNuovo: () => void;
@@ -81,6 +115,12 @@ type Props = {
   onChangeRateGiorno: (v: string) => void;
   rateMeseInizio: string;
   onChangeRateMeseInizio: (v: string) => void;
+  rateModalita: RateModalitaPiano;
+  onChangeRateModalita: (v: RateModalitaPiano) => void;
+  rateAccontoTipo: RateAccontoTipo;
+  onChangeRateAccontoTipo: (v: RateAccontoTipo) => void;
+  rateAccontoValore: string;
+  onChangeRateAccontoValore: (v: string) => void;
   preventiviDisponibiliRate: Preventivo[];
   preventivoRateSelezionatoId: string | null;
   onSelectPreventivoRate: (id: string | null) => void;
@@ -144,6 +184,12 @@ export default function ClienteAbbonamentoModals({
   onChangeRateGiorno,
   rateMeseInizio,
   onChangeRateMeseInizio,
+  rateModalita,
+  onChangeRateModalita,
+  rateAccontoTipo,
+  onChangeRateAccontoTipo,
+  rateAccontoValore,
+  onChangeRateAccontoValore,
   preventiviDisponibiliRate,
   preventivoRateSelezionatoId,
   onSelectPreventivoRate,
@@ -179,6 +225,14 @@ export default function ClienteAbbonamentoModals({
   onChangeNuovaRataImporto,
   onConfermaAggiungiRata,
 }: Props) {
+  const importoTotaleParsed = parseImportoEuro(rateImportoTotale);
+  const anteprimaAccontoSaldo = useMemo(() => {
+    if (rateModalita !== "acconto_saldo" || importoTotaleParsed === null || !(importoTotaleParsed > 0)) {
+      return null;
+    }
+    return calcolaAccontoSaldoPiano(importoTotaleParsed, rateAccontoTipo, rateAccontoValore);
+  }, [rateModalita, importoTotaleParsed, rateAccontoTipo, rateAccontoValore]);
+
   return (
     <>
       {mostraNuovo ? (
@@ -218,10 +272,61 @@ export default function ClienteAbbonamentoModals({
             <FieldLabel>IMPORTO TOTALE (€)</FieldLabel>
             <FieldInput value={rateImportoTotale} onChange={(e) => onChangeRateImportoTotale(e.target.value)} placeholder="es. 3000" />
           </div>
-          <div className="space-y-1">
-            <FieldLabel>N° RATE (min. 2)</FieldLabel>
-            <FieldInput value={rateNumero} onChange={(e) => onChangeRateNumero(e.target.value)} placeholder="es. 6" />
+          <div className="space-y-2">
+            <FieldLabel>MODALITÀ</FieldLabel>
+            <OptionToggle
+              options={[
+                { key: "rate_uguali" as const, label: "Rate uguali" },
+                { key: "acconto_saldo" as const, label: "Acconto + saldo" },
+              ]}
+              value={rateModalita}
+              onChange={onChangeRateModalita}
+            />
           </div>
+          {rateModalita === "rate_uguali" ? (
+            <div className="space-y-1">
+              <FieldLabel>N° RATE (min. 2)</FieldLabel>
+              <FieldInput value={rateNumero} onChange={(e) => onChangeRateNumero(e.target.value)} placeholder="es. 6" />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <FieldLabel>TIPO ACCONTO</FieldLabel>
+                <OptionToggle
+                  options={[
+                    { key: "fisso" as const, label: "Importo fisso (€)" },
+                    { key: "percentuale" as const, label: "Percentuale (%)" },
+                  ]}
+                  value={rateAccontoTipo}
+                  onChange={onChangeRateAccontoTipo}
+                />
+              </div>
+              <div className="space-y-1">
+                <FieldLabel>{rateAccontoTipo === "fisso" ? "IMPORTO ACCONTO (€)" : "PERCENTUALE ACCONTO (%)"}</FieldLabel>
+                <FieldInput
+                  value={rateAccontoValore}
+                  onChange={(e) => onChangeRateAccontoValore(e.target.value)}
+                  placeholder={rateAccontoTipo === "fisso" ? "es. 500" : "es. 30"}
+                  inputMode={rateAccontoTipo === "fisso" ? "decimal" : "numeric"}
+                />
+              </div>
+              <div className="rounded-xl bg-brand-bg px-3 py-2.5 text-sm text-brand-navy/70">
+                {anteprimaAccontoSaldo ? (
+                  <>
+                    Acconto: <span className="font-semibold text-brand-navy">€{formatImportoEuro(anteprimaAccontoSaldo.acconto, 2)}</span>
+                    {" · "}
+                    Saldo: <span className="font-semibold text-brand-navy">€{formatImportoEuro(anteprimaAccontoSaldo.saldo, 2)}</span>
+                  </>
+                ) : (
+                  <span className="text-brand-navy/45">
+                    {rateAccontoTipo === "fisso"
+                      ? "Inserisci un acconto maggiore di zero e minore del totale."
+                      : "Inserisci una percentuale tra 1 e 99."}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
           <div className="space-y-1">
             <FieldLabel>GIORNO SCADENZA</FieldLabel>
             <GiornoScadenzaSelect value={rateGiorno} onChange={onChangeRateGiorno} mese={rateMeseInizio} />

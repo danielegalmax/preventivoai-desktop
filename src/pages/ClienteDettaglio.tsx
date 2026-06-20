@@ -15,6 +15,12 @@ import { useConfirmDialog } from "../lib/hooks/useConfirmDialog";
 import { useAnnullaSelezioneOnEscape } from "../lib/hooks/useAnnullaSelezioneOnEscape";
 import { useAbbonamento } from "../lib/hooks/useAbbonamento";
 import { parseImportoEuro } from "preventivoai-shared";
+import {
+  calcolaAccontoSaldoPiano,
+  type RateAccontoTipo,
+  type RateModalitaPiano,
+} from "../lib/calcolaAccontoSaldoPiano";
+import { caricaMetodiPagamento, type MetodoPagamento } from "../lib/pagamenti";
 import { supabase } from "../lib/supabase";
 import type { Cliente, Preventivo, RataAbbonamento } from "../lib/types";
 import PageContainer from "../components/PageContainer";
@@ -60,6 +66,9 @@ export default function ClienteDettaglio() {
   const [rateNumero, setRateNumero] = useState("");
   const [rateGiorno, setRateGiorno] = useState(String(ora.getDate()));
   const [rateMeseInizio, setRateMeseInizio] = useState(String(meseCorrente));
+  const [rateModalita, setRateModalita] = useState<RateModalitaPiano>("rate_uguali");
+  const [rateAccontoTipo, setRateAccontoTipo] = useState<RateAccontoTipo>("fisso");
+  const [rateAccontoValore, setRateAccontoValore] = useState("");
   const [abbonamentoSelezionatoId, setAbbonamentoSelezionatoId] = useState<string | null>(null);
   const [pianoEspansoId, setPianoEspansoId] = useState<string | null>(null);
   const [rataSelezionata, setRataSelezionata] = useState<RataAbbonamento | null>(null);
@@ -79,6 +88,7 @@ export default function ClienteDettaglio() {
   const [fatturatoLoading, setFatturatoLoading] = useState(
     () => getFatturatoClienteCached(id || "") === undefined,
   );
+  const [metodoPredefinito, setMetodoPredefinito] = useState<MetodoPagamento | null>(null);
 
   const preventiviSenzaPiano = useMemo(
     () => preventivi.filter((p) => !collegamentiPiano[p.id]),
@@ -114,6 +124,12 @@ export default function ClienteDettaglio() {
     if (!id) return;
     void carica(id);
   }, [id]);
+
+  useEffect(() => {
+    void caricaMetodiPagamento().then((metodi) => {
+      setMetodoPredefinito(metodi.find((m) => m.predefinito) ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -199,6 +215,9 @@ export default function ClienteDettaglio() {
     setRateNumero("");
     setRateGiorno(String(ora.getDate()));
     setRateMeseInizio(String(meseCorrente));
+    setRateModalita("rate_uguali");
+    setRateAccontoTipo("fisso");
+    setRateAccontoValore("");
     setMostraModalNuovoRate(true);
   }
 
@@ -220,19 +239,42 @@ export default function ClienteDettaglio() {
 
   async function salvaNuovoPianoRate() {
     const importo = parseImportoEuro(rateImportoTotale);
-    const numero = parseInt(rateNumero, 10);
     const giorno = parseInt(rateGiorno, 10);
     const mese = parseInt(rateMeseInizio, 10);
     if (!(importo && importo > 0)) { window.alert("Inserisci un importo valido"); return; }
-    if (!(numero >= 2)) { window.alert("Inserisci almeno 2 rate."); return; }
     if (!(giorno >= 1 && giorno <= 31)) { window.alert("Inserisci un giorno valido (1-31)"); return; }
     if (!(mese >= 1 && mese <= 12)) { window.alert("Inserisci un mese valido (1-12)"); return; }
-    const ok = await abbonamentoRate.creaPianoRate(importo, numero, {
+
+    const accontoSaldo =
+      rateModalita === "acconto_saldo"
+        ? calcolaAccontoSaldoPiano(importo, rateAccontoTipo, rateAccontoValore)
+        : null;
+
+    if (rateModalita === "acconto_saldo") {
+      if (!accontoSaldo) {
+        window.alert(
+          rateAccontoTipo === "fisso"
+            ? "Inserisci un acconto valido: maggiore di zero e minore dell'importo totale."
+            : "Inserisci una percentuale di acconto tra 1 e 99.",
+        );
+        return;
+      }
+    } else {
+      const numero = parseInt(rateNumero, 10);
+      if (!(numero >= 2)) { window.alert("Inserisci almeno 2 rate."); return; }
+    }
+
+    const numeroRate = rateModalita === "acconto_saldo" ? 2 : parseInt(rateNumero, 10);
+    const risultato = await abbonamentoRate.creaPianoRate(importo, numeroRate, {
       preventivoId: preventivoRateSelezionatoId || undefined,
       giornoScadenza: giorno,
       meseInizio: mese,
+      ...(rateModalita === "acconto_saldo" && accontoSaldo
+        ? { importiPersonalizzati: [accontoSaldo.acconto, accontoSaldo.saldo] }
+        : {}),
     });
-    if (!ok) return;
+    if (!risultato) return;
+
     setMostraModalNuovoRate(false);
     await aggiornaCollegamentiPiano();
     await abbonamentoRate.carica();
@@ -488,6 +530,7 @@ export default function ClienteDettaglio() {
             selezionePianoAttiva={pianoSelezioneAttiva}
             pianiSelezionati={pianiSelezionati}
             onToggleSelezionePiano={toggleSelezionePiano}
+            metodoPredefinito={metodoPredefinito}
           />
         ) : null}
 
@@ -498,6 +541,7 @@ export default function ClienteDettaglio() {
             ratePerPiano={abbonamentoCanone.ratePerPiano}
             preventiviMadreStorico={abbonamentoCanone.preventiviMadreStorico}
             clienteNome={cliente.nome}
+            metodoPredefinito={metodoPredefinito}
             onApriPreventivoMadre={apriPreventivoMadre}
             meseCorrente={meseCorrente}
             annoCorrente={annoCorrente}
@@ -601,6 +645,12 @@ export default function ClienteDettaglio() {
         onChangeRateGiorno={setRateGiorno}
         rateMeseInizio={rateMeseInizio}
         onChangeRateMeseInizio={setRateMeseInizio}
+        rateModalita={rateModalita}
+        onChangeRateModalita={setRateModalita}
+        rateAccontoTipo={rateAccontoTipo}
+        onChangeRateAccontoTipo={setRateAccontoTipo}
+        rateAccontoValore={rateAccontoValore}
+        onChangeRateAccontoValore={setRateAccontoValore}
         preventiviDisponibiliRate={preventiviSenzaPiano}
         preventivoRateSelezionatoId={preventivoRateSelezionatoId}
         onSelectPreventivoRate={selezionaPreventivoRate}

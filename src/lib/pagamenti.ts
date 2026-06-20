@@ -2,6 +2,18 @@ import { supabase } from "./supabase";
 
 export type TipoPagamento = "bonifico" | "paypal" | "contanti" | "carta" | "stripe";
 
+/** Campi in `dati` quando `tipo === "paypal"` */
+export type DatiPayPal = {
+  email?: string;
+  paypalme?: string;
+};
+
+/** Campi in `dati` quando `tipo === "bonifico"` */
+export type DatiBonifico = {
+  iban?: string;
+  intestatario?: string;
+};
+
 export type MetodoPagamento = {
   id: string;
   user_id?: string;
@@ -10,6 +22,15 @@ export type MetodoPagamento = {
   dati: Record<string, string>;
   predefinito: boolean;
 };
+
+/** Estrae solo lo username PayPal.me (senza URL o slash). */
+export function normalizzaPaypalMe(value: string): string {
+  let v = value.trim();
+  v = v.replace(/^https?:\/\//i, "");
+  v = v.replace(/^www\./i, "");
+  v = v.replace(/^paypal\.me\//i, "");
+  return v.replace(/^\/+|\/+$/g, "");
+}
 
 export type MetodoPagamentoForm = {
   tipo: TipoPagamento;

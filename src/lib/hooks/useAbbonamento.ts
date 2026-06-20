@@ -48,6 +48,11 @@ async function pianoAttivoSuPreventivo(preventivoId: string) {
   return data?.tipo as "canone" | "rate" | undefined;
 }
 
+export type CreaPianoRateResult = {
+  abbonamentoId: string;
+  rate: { id: string; mese: number; anno: number }[];
+};
+
 export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   const [abbonamentiAttivi, setAbbonamentiAttivi] = useState<Abbonamento[]>([]);
   const [abbonamentiStorico, setAbbonamentiStorico] = useState<Abbonamento[]>([]);
@@ -239,8 +244,8 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     abbonamentoId: string,
     voci: { importo: number; mese: number; anno: number }[],
   ) {
-    if (voci.length === 0) return;
-    await supabase.from("rate_abbonamento").insert(
+    if (voci.length === 0) return [];
+    const { data, error } = await supabase.from("rate_abbonamento").insert(
       voci.map((v) => ({
         abbonamento_id: abbonamentoId,
         mese: v.mese,
@@ -249,18 +254,37 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
         acconto: 0,
         stato: "da_incassare" as const,
       })),
-    );
+    ).select("id, mese, anno");
+    if (error) { alertErrore("Errore", error.message); return []; }
+    return data || [];
   }
 
   async function creaPianoRate(
     importoTotale: number,
     numeroRate: number,
-    opzioni?: { preventivoId?: string; giornoScadenza?: number; meseInizio?: number },
-  ) {
-    const importi = calcolaImportiRate(importoTotale, numeroRate);
+    opzioni?: {
+      preventivoId?: string;
+      giornoScadenza?: number;
+      meseInizio?: number;
+      importiPersonalizzati?: number[];
+    },
+  ): Promise<CreaPianoRateResult | null> {
+    const personalizzati = opzioni?.importiPersonalizzati;
+    const sommaPersonalizzati = personalizzati
+      ? Math.round(personalizzati.reduce((a, v) => a + v, 0) * 100) / 100
+      : null;
+    const usaImportiPersonalizzati =
+      personalizzati != null
+      && personalizzati.length === numeroRate
+      && sommaPersonalizzati != null
+      && Math.abs(sommaPersonalizzati - importoTotale) <= 0.01;
+
+    const importi = usaImportiPersonalizzati
+      ? personalizzati
+      : calcolaImportiRate(importoTotale, numeroRate);
     if (importi.length === 0) {
       alertErrore("Errore", "Inserisci un numero di rate valido (minimo 2).");
-      return false;
+      return null;
     }
 
     const preventivoId = opzioni?.preventivoId;
@@ -273,14 +297,14 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
             ? "Questo preventivo ha già un abbonamento collegato."
             : "Questo preventivo ha già un piano a rate collegato.",
         );
-        return false;
+        return null;
       }
     }
 
     const giornoScadenza = opzioni?.giornoScadenza ?? new Date().getDate();
     const scadenze = calcolaScadenzeRate(numeroRate, giornoScadenza, opzioni?.meseInizio);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return null;
 
     const nome = preventivoId ? await nomeDaPreventivoId(preventivoId, "rate") : null;
     const { data, error } = await supabase
@@ -300,14 +324,19 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       .select()
       .single();
 
-    if (error) { alertErrore("Errore", error.message); return false; }
+    if (error) { alertErrore("Errore", error.message); return null; }
 
-    await generaRateConImporti(
+    const rateInserite = await generaRateConImporti(
       data.id,
       importi.map((importo, i) => ({ importo, ...scadenze[i] })),
     );
+    if (rateInserite.length === 0) return null;
+
     await carica();
-    return true;
+    return {
+      abbonamentoId: data.id as string,
+      rate: [...rateInserite].sort((a, b) => a.anno - b.anno || a.mese - b.mese),
+    };
   }
 
   async function segnaRataPagata(rataId: string, pagata: boolean) {
