@@ -124,6 +124,7 @@ function RataRow({
 
 export type PianoRateCardProps = {
   abbonamento: Abbonamento;
+  indice: number;
   rate: RataAbbonamento[];
   preventivoMadre: PreventivoMadre | null;
   clienteNome: string;
@@ -142,6 +143,7 @@ export type PianoRateCardProps = {
 
 export default function PianoRateCard({
   abbonamento,
+  indice,
   rate,
   preventivoMadre,
   clienteNome,
@@ -182,6 +184,7 @@ export default function PianoRateCard({
     return incassato + parziale;
   }, [rate]);
   const analisi = useMemo(() => analizzaStatoPiano(abbonamento, rate), [abbonamento, rate]);
+  const defaultNome = `Piano a rate N.${indice + 1}`;
   const prossima = rateFuture[0];
   const targetImportoPiano = abbonamento.importo_default ?? importoPiano;
   const sommaIncassateFisse = rateStorico.reduce((a, r) => a + r.importo, 0);
@@ -449,7 +452,7 @@ export default function PianoRateCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-sm font-bold text-brand-navy">
-                {titoloHeaderPiano(abbonamento.nome, preventivoMadre, "rate", "Piano a rate")}
+                {titoloHeaderPiano(abbonamento.nome, preventivoMadre, "rate", defaultNome)}
               </h3>
               {!selezionePianoAttiva ? <PianoStatoBadge analisi={analisi} compact /> : null}
             </div>

@@ -314,6 +314,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     const found = trovaRata(rataId);
     if (!found) return;
     if (pagata) {
+      if (found.rata.stato === "incassato") return;
       await registraPagamento(rataId, found.rata.importo - (found.rata.acconto || 0));
     } else {
       await azzeraPagamento(rataId);
@@ -404,6 +405,10 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     const found = trovaRata(rataId);
     if (!found) return;
     const { rata, abbonamentoId } = found;
+    if (rata.stato === "incassato") {
+      alertErrore("Rata già incassata", "Questa rata è già stata incassata.");
+      return;
+    }
 
     const nuovoAcconto = Math.min(rata.acconto + importoPagato, rata.importo);
     const nuovoSaldo = rata.importo - nuovoAcconto;
@@ -436,7 +441,6 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       acconto: 0,
       stato: "da_incassare",
       data_incasso: null,
-      note: null,
     };
     const { error } = await supabase
       .from("rate_abbonamento")

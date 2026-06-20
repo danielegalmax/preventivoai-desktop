@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { Preventivo, RataAbbonamento } from "../../lib/types";
 import { MESI_BREVI } from "../../lib/constants";
 import { formatImportoEuro } from "preventivoai-shared";
@@ -11,8 +12,26 @@ type ModalShellProps = {
 };
 
 function ModalShell({ title, onClose, children }: ModalShellProps) {
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  function handleBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    mouseDownTargetRef.current = e.target;
+  }
+
+  function handleBackdropMouseUp(e: React.MouseEvent<HTMLDivElement>) {
+    const backdrop = e.currentTarget;
+    if (e.target === backdrop && mouseDownTargetRef.current === backdrop) {
+      onClose();
+    }
+    mouseDownTargetRef.current = null;
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={handleBackdropMouseDown}
+      onMouseUp={handleBackdropMouseUp}
+    >
       <div
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}

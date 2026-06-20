@@ -5,7 +5,7 @@ import type { PianoRateCardProps } from "./PianoRateCard";
 import PianoRateCard from "./PianoRateCard";
 import PianoVuotoState from "./PianoVuotoState";
 
-type Props = Omit<PianoRateCardProps, "abbonamento" | "rate" | "preventivoMadre"> & {
+type Props = Omit<PianoRateCardProps, "abbonamento" | "indice" | "rate" | "preventivoMadre"> & {
   loading: boolean;
   abbonamentiAttivi: Abbonamento[];
   ratePerPiano: Record<string, import("../../lib/types").RataAbbonamento[]>;
@@ -54,11 +54,12 @@ export default function ClientePagamentoRateTab({
     );
   }
 
-  function renderCard(abbonamento: Abbonamento) {
+  function renderCard(abbonamento: Abbonamento, indice: number) {
     return (
       <PianoRateCard
         key={abbonamento.id}
         abbonamento={abbonamento}
+        indice={indice}
         rate={ratePerPiano[abbonamento.id] || []}
         preventivoMadre={
           abbonamento.preventivo_id
@@ -75,13 +76,13 @@ export default function ClientePagamentoRateTab({
 
   return (
     <div className="space-y-3">
-      {pianiInCorso.map(renderCard)}
+      {pianiInCorso.map((ab, i) => renderCard(ab, i))}
       {pianiConclusi.length > 0 ? (
         <>
           <p className="pt-2 text-[11px] font-semibold tracking-wide text-brand-navy/40 uppercase">
             {pianiConclusi.length === 1 ? "Concluso" : `Conclusi (${pianiConclusi.length})`}
           </p>
-          {pianiConclusi.map(renderCard)}
+          {pianiConclusi.map((ab, i) => renderCard(ab, pianiInCorso.length + i))}
         </>
       ) : null}
     </div>
