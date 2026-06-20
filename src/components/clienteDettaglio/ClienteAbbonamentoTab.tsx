@@ -104,8 +104,15 @@ function AbbonamentoPianoCard({
     () => [...rateStoriche].sort((a, b) => b.anno - a.anno || b.mese - a.mese),
     [rateStoriche],
   );
-  const totaleIncassato = rate.filter((r) => r.stato === "incassato").reduce((a, r) => a + r.importo, 0);
   const analisi = useMemo(() => analizzaStatoPiano(abbonamento, rate), [abbonamento, rate]);
+  const importoRaccolto = useMemo(
+    () => rate.reduce((a, r) => {
+      if (r.stato === "incassato") return a + r.importo;
+      if (r.stato === "parziale") return a + (r.acconto || 0);
+      return a;
+    }, 0),
+    [rate],
+  );
   const badgeCorrente = rataMeseCorrente ? badgeCanone(rataMeseCorrente.stato) : null;
   const defaultNome = `Abbonamento N.${indice + 1}`;
 
@@ -189,15 +196,15 @@ function AbbonamentoPianoCard({
             </div>
             <p className="mt-1 text-xs text-brand-navy/50">
               {analisi.concluso
-                ? `Canone completato · €${formatImportoEuro(totaleIncassato, 2)} incassati`
+                ? `Canone completato · €${formatImportoEuro(importoRaccolto, 2)} incassati`
                 : `Canone mensile · €${formatImportoEuro(abbonamento.importo_default, 2)}/mese · giorno ${abbonamento.giorno_scadenza}`}
             </p>
             {analisi.sottotitolo ? (
               <p className={`mt-1 text-xs ${analisi.concluso ? "font-medium text-emerald-700" : "text-brand-teal"}`}>
                 {analisi.sottotitolo}
               </p>
-            ) : totaleIncassato > 0 && !analisi.concluso ? (
-              <p className="mt-1 text-xs font-medium text-brand-teal">€{formatImportoEuro(totaleIncassato, 2)} incassati</p>
+            ) : importoRaccolto > 0 && !analisi.concluso ? (
+              <p className="mt-1 text-xs font-medium text-brand-teal">€{formatImportoEuro(importoRaccolto, 2)} incassati</p>
             ) : null}
           </div>
           {!selezionePianoAttiva ? (
