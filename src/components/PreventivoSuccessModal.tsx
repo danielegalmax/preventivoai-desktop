@@ -5,6 +5,7 @@ import { caricaHeaderProfilo } from "../lib/greeting";
 import { buildMessaggioCondividiPdf } from "preventivoai-shared";
 import { caricaMessaggiCliente } from "../lib/messaggiCliente";
 import InviaFirmaModal from "./firma/InviaFirmaModal";
+import { useAppModalKeyboard } from "./ModalShell";
 
 export type PdfSuccessAzioni = {
   percorsoLocale?: string;
@@ -44,6 +45,8 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
     }
     void caricaHeaderProfilo().then((p) => setNomeAzienda(p?.nomeBreve || ""));
   }, [open]);
+
+  useAppModalKeyboard(onClose, { enabled: open });
 
   if (!open) return null;
 

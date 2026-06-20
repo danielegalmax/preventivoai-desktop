@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppModalKeyboard } from "./ModalShell";
 
 type ClienteOpzione = { id: string; nome: string };
 
@@ -17,6 +18,8 @@ export default function SpostaClienteModal({
 }: Props) {
   const [clienti, setClienti] = useState<ClienteOpzione[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useAppModalKeyboard(onClose);
 
   useEffect(() => {
     caricaClienti().then((data) => {

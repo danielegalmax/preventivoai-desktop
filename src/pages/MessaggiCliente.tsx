@@ -8,6 +8,7 @@ import {
 } from "preventivoai-shared";
 import { caricaMessaggiCliente } from "../lib/messaggiCliente";
 import { caricaSettingsData, salvaProfiloSettings } from "../lib/settings";
+import { useAppModalKeyboard } from "../components/ModalShell";
 
 function ModificheNonSalvateDialog({
   onAbbandona,
@@ -20,6 +21,8 @@ function ModificheNonSalvateDialog({
   onSalva: () => void;
   salvando: boolean;
 }) {
+  useAppModalKeyboard(onContinua);
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"

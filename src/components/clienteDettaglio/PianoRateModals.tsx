@@ -1,46 +1,7 @@
-import { useRef } from "react";
 import { MESI_BREVI } from "../../lib/constants";
 import { formatImportoEuro } from "preventivoai-shared";
 import type { RataAbbonamento } from "../../lib/types";
-
-type ModalShellProps = {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  zClass?: string;
-};
-
-function ModalShell({ title, onClose, children, zClass = "z-50" }: ModalShellProps) {
-  const mouseDownTargetRef = useRef<EventTarget | null>(null);
-
-  function handleBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    mouseDownTargetRef.current = e.target;
-  }
-
-  function handleBackdropMouseUp(e: React.MouseEvent<HTMLDivElement>) {
-    const backdrop = e.currentTarget;
-    if (e.target === backdrop && mouseDownTargetRef.current === backdrop) {
-      onClose();
-    }
-    mouseDownTargetRef.current = null;
-  }
-
-  return (
-    <div
-      className={`fixed inset-0 ${zClass} flex items-center justify-center bg-black/40 p-4`}
-      onMouseDown={handleBackdropMouseDown}
-      onMouseUp={handleBackdropMouseUp}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-center text-lg font-semibold text-brand-navy">{title}</h2>
-        <div className="mt-4 space-y-4">{children}</div>
-      </div>
-    </div>
-  );
-}
+import ModalShell from "../ModalShell";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-xs font-semibold tracking-wide text-brand-navy/50">{children}</label>;
@@ -110,7 +71,13 @@ export default function PianoRateModals({
   return (
     <>
       {mostraModificaImporto ? (
-        <ModalShell title="Modifica importo piano" onClose={onCloseModificaImporto}>
+        <ModalShell
+          title="Modifica importo piano"
+          onClose={onCloseModificaImporto}
+          onConfirm={() => {
+            if (!salvaImportoLoading) onSalvaModificaImporto();
+          }}
+        >
           <div className="space-y-1">
             <FieldLabel>NUOVO IMPORTO TOTALE (€)</FieldLabel>
             <FieldInput
@@ -135,7 +102,15 @@ export default function PianoRateModals({
       ) : null}
 
       {mostraPersonalizzaRate ? (
-        <ModalShell title="Personalizza rate" onClose={onClosePersonalizzaRate}>
+        <ModalShell
+          title="Personalizza rate"
+          onClose={onClosePersonalizzaRate}
+          onConfirm={() => {
+            if (!salvaPersonalizzaLoading && bozzaSommaValida && bozzaImportiValidi) {
+              onSalvaPersonalizzaRate();
+            }
+          }}
+        >
           <p className="text-xs leading-relaxed text-brand-navy/60">
             Fissa le rate che vuoi impostare tu, poi usa Ricalcola rate libere per ripartire il resto su €
             {formatImportoEuro(targetImportoPiano, 2)}.

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { aggiornaCliente } from "../lib/clienti";
 import { PLACEHOLDER } from "../lib/placeholders";
 import type { Cliente } from "../lib/types";
+import { useAppModalKeyboard } from "./ModalShell";
 
 interface Props {
   cliente: Cliente;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export default function ClienteModificaModal({ cliente, onClose, onSaved }: Props) {
+  useAppModalKeyboard(onClose);
+
   const [nome, setNome] = useState(cliente.nome);
   const [telefono, setTelefono] = useState(cliente.telefono || "");
   const [email, setEmail] = useState(cliente.email || "");

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useAppModalKeyboard } from "./ModalShell";
 
 type Props = {
   titoloIniziale: string;
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export default function PreventivoTitoloModal({ titoloIniziale, onClose, onSalva }: Props) {
+  useAppModalKeyboard(onClose);
+
   const [titolo, setTitolo] = useState(titoloIniziale);
   const [salvando, setSalvando] = useState(false);
 

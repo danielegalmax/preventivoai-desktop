@@ -4,6 +4,7 @@ import { creaServizio, aggiornaServizio } from "../lib/listino";
 import type { Servizio } from "../lib/types";
 import { PLACEHOLDER } from "../lib/placeholders";
 import { UNITA_MISURA } from "preventivoai-shared";
+import { useAppModalKeyboard } from "./ModalShell";
 
 interface Props {
   onClose: () => void;
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function ServizioModal({ onClose, onSaved, servizio, ordineSuccessivo }: Props) {
+  useAppModalKeyboard(onClose);
+
   const [nome, setNome] = useState(servizio?.nome || "");
   const [descrizione, setDescrizione] = useState(servizio?.descrizione || "");
   const [costo, setCosto] = useState(servizio?.costo != null ? String(servizio.costo) : "");

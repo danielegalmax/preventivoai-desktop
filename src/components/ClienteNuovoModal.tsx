@@ -2,6 +2,7 @@
 import type { FormEvent } from "react";
 import { creaCliente } from "../lib/clienti";
 import { PLACEHOLDER } from "../lib/placeholders";
+import { useAppModalKeyboard } from "./ModalShell";
 
 interface Props {
   onClose: () => void;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function ClienteNuovoModal({ onClose, onCreated, nomeIniziale = "" }: Props) {
+  useAppModalKeyboard(onClose);
+
   const [nome, setNome] = useState(nomeIniziale);
   const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");

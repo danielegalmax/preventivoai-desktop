@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import PageContainer from "../components/PageContainer";
 import StripeConnectCard from "../components/StripeConnectCard";
+import { useAppModalKeyboard } from "../components/ModalShell";
 import { PLACEHOLDER } from "../lib/placeholders";
 import {
   caricaMetodiPagamento,
@@ -37,6 +38,13 @@ export default function MetodiPagamento() {
   const [form, setForm] = useState<MetodoPagamentoForm>(FORM_VUOTO);
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState("");
+
+  useAppModalKeyboard(() => setModalAperto(false), {
+    enabled: modalAperto,
+    onConfirm: () => {
+      if (!saving) void salva();
+    },
+  });
 
   async function carica() {
     const data = await caricaMetodiPagamento();

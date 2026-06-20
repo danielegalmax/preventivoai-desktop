@@ -2,6 +2,7 @@ import {
   SEGNALAZIONE_TIPI,
   type SegnalazioneForm,
 } from "../lib/segnalazioni";
+import { useAppModalKeyboard } from "./ModalShell";
 
 type Props = {
   open: boolean;
@@ -20,6 +21,8 @@ export default function SegnalazioneModal({
   onChange,
   onInvia,
 }: Props) {
+  useAppModalKeyboard(onClose, { enabled: open });
+
   if (!open) return null;
 
   return (

@@ -417,7 +417,7 @@ export default function ClienteDettaglio() {
   const paddingBarraFissa = mostraBarraNuovo || (tab === "preventivi" && preventiviSelezionati > 0) || barraSelezionePianiVisibile;
 
   return (
-    <PageContainer className={paddingBarraFissa ? "pb-24" : ""}>
+    <PageContainer className={paddingBarraFissa ? "!pb-28 lg:!pb-28" : ""}>
       <div className="sticky top-0 z-20 -mx-4 bg-brand-bg px-4 pb-3 sm:-mx-6 sm:px-6 lg:pb-4">
         <Link to="/clienti" className="text-sm text-brand-navy/60 hover:text-brand-navy">
           ← Torna ai clienti

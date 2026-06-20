@@ -1,7 +1,9 @@
 import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";
-import type { RateAccontoTipo, RateModalitaPiano } from "preventivoai-shared";
+import type { RateAccontoTipo } from "preventivoai-shared";
+
+export type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
 
 const CHAT_KEY = "preventivoai-nuovo-chat";
 const MANUALE_KEY = "preventivoai-nuovo-manuale";
@@ -31,21 +33,37 @@ export type NuovoManualeDraft = {
   preventivo: string;
   template: string;
   pdfUrl: string;
-  abbonamentoAttivo: boolean;
+  pianoPagamentoTipo: PianoPagamentoTipo;
   abImporto: string;
   abGiorno: string;
   abMeseInizio: string;
   abMensilita: string;
   abVisibileNelPDF: boolean;
-  pagamentoRateAttivo: boolean;
   rateNumero: string;
   rateGiornoScadenza: string;
   rateMeseInizio: string;
   rateVisibileNelPDF: boolean;
-  rateModalita: RateModalitaPiano;
   rateAccontoTipo: RateAccontoTipo;
   rateAccontoValore: string;
 };
+
+/** Bozze salvate prima di pianoPagamentoTipo unificato. */
+type NuovoManualeDraftLegacy = NuovoManualeDraft & {
+  abbonamentoAttivo?: boolean;
+  pagamentoRateAttivo?: boolean;
+  rateModalita?: "rate_uguali" | "acconto_saldo";
+};
+
+export function pianoPagamentoTipoDaBozza(
+  draft: Partial<NuovoManualeDraftLegacy>,
+): PianoPagamentoTipo {
+  if (draft.pianoPagamentoTipo) return draft.pianoPagamentoTipo;
+  if (draft.abbonamentoAttivo) return "abbonamento";
+  if (draft.pagamentoRateAttivo) {
+    return draft.rateModalita === "acconto_saldo" ? "acconto" : "rate";
+  }
+  return "nessuno";
+}
 
 function load<T>(key: string): T | null {
   try {

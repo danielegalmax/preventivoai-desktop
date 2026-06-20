@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import PageContainer from "../components/PageContainer";
 import ToggleSwitch from "../components/ToggleSwitch";
 import { useSegnalazioneFeedback } from "../components/SegnalazioneProvider";
+import { useAppModalKeyboard } from "../components/ModalShell";
 import { sonoNotificheAbilitate, setNotificheAbilitate } from "../lib/notifications";
 import {
   aggiornaPasswordAccount,
@@ -33,6 +34,13 @@ export default function Profilo() {
   const [notificheOs, setNotificheOs] = useState(() => sonoNotificheAbilitate());
 
   const iniziale = useMemo(() => (nomeAzienda?.trim()?.charAt(0)?.toUpperCase() || "?"), [nomeAzienda]);
+
+  useAppModalKeyboard(chiudiModalPasswordElimina, {
+    enabled: modalPasswordElimina,
+    onConfirm: () => {
+      if (!verificandoPasswordElimina) void confermaPasswordEliminazione();
+    },
+  });
 
   useEffect(() => {
     caricaProfiloUtente().then((p) => {

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isAppModalOpen } from "../../components/ModalShell";
 
 export function useAnnullaSelezioneOnEscape(attivo: boolean, annulla: () => void) {
   useEffect(() => {
@@ -6,6 +7,7 @@ export function useAnnullaSelezioneOnEscape(attivo: boolean, annulla: () => void
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
+      if (isAppModalOpen()) return;
       e.preventDefault();
       annulla();
     }

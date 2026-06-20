@@ -11,7 +11,9 @@ import {
   caricaBozzaManuale,
   salvaBozzaChat,
   salvaBozzaManuale,
+  pianoPagamentoTipoDaBozza,
   type NuovoManualeDraft,
+  type PianoPagamentoTipo,
 } from "../lib/nuovoDraft";
 import { generaTestoPreventivoBuilder, calcolaTotaleVoci, calcolaTotaleTrasferte, formatImportoVoce, isVoceCustom } from "../lib/builder";
 import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
@@ -19,7 +21,6 @@ import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
 import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale, creaLinkPagamentoRata } from "../lib/pdf";
 import { calcolaAccontoSaldoPiano, generaLinkPaypalMe, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
-import { confermaPagamentoEsclusivo } from "../lib/confermaPagamentoEsclusivo";
 import {
   creaAbbonamentoDaPreventivo,
   creaPianoRateDaPreventivo,
@@ -37,8 +38,7 @@ import ClienteNuovoModal from "../components/ClienteNuovoModal";
 import MetodoPagamentoModal from "../components/MetodoPagamentoModal";
 import PagamentoCard from "../components/PagamentoCard";
 import IvaCard from "../components/IvaCard";
-import BuilderPagamentoRateCard from "../components/BuilderPagamentoRateCard";
-import BuilderAbbonamentoCard from "../components/BuilderAbbonamentoCard";
+import BuilderPianoPagamentoCard from "../components/builder/BuilderPianoPagamentoCard";
 import PreventivoPdfTemplatePicker from "../components/PreventivoPdfTemplatePicker";
 import PreventivoPdfPreview from "../components/PreventivoPdfPreview";
 import PreventivoSuccessModal, { type PdfSuccessAzioni, type PdfSuccessInvio } from "../components/PreventivoSuccessModal";
@@ -128,9 +128,11 @@ export default function Nuovo({ mode }: Props) {
   );
   const [mostraModalPagamento, setMostraModalPagamento] = useState(false);
 
-  const [abbonamentoAttivo, setAbbonamentoAttivo] = useState(
-    () => (mode === "manuale" ? caricaBozzaManuale()?.abbonamentoAttivo : undefined) ?? false,
-  );
+  const [pianoPagamentoTipo, setPianoPagamentoTipo] = useState<PianoPagamentoTipo>(() => {
+    if (mode !== "manuale") return "nessuno";
+    const bozza = caricaBozzaManuale();
+    return bozza ? pianoPagamentoTipoDaBozza(bozza) : "nessuno";
+  });
   const [abImporto, setAbImporto] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.abImporto : undefined) ?? "",
   );
@@ -146,9 +148,6 @@ export default function Nuovo({ mode }: Props) {
   const [abVisibileNelPDF, setAbVisibileNelPDF] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.abVisibileNelPDF : undefined) ?? true,
   );
-  const [pagamentoRateAttivo, setPagamentoRateAttivo] = useState(
-    () => (mode === "manuale" ? caricaBozzaManuale()?.pagamentoRateAttivo : undefined) ?? false,
-  );
   const [rateNumero, setRateNumero] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.rateNumero : undefined) ?? "",
   );
@@ -161,15 +160,16 @@ export default function Nuovo({ mode }: Props) {
   const [rateVisibileNelPDF, setRateVisibileNelPDF] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.rateVisibileNelPDF : undefined) ?? true,
   );
-  const [rateModalita, setRateModalita] = useState<RateModalitaPiano>(
-    () => (mode === "manuale" ? caricaBozzaManuale()?.rateModalita : undefined) ?? "rate_uguali",
-  );
   const [rateAccontoTipo, setRateAccontoTipo] = useState<RateAccontoTipo>(
     () => (mode === "manuale" ? caricaBozzaManuale()?.rateAccontoTipo : undefined) ?? "fisso",
   );
   const [rateAccontoValore, setRateAccontoValore] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.rateAccontoValore : undefined) ?? "",
   );
+
+  const pagamentoRateAttivo = pianoPagamentoTipo === "rate" || pianoPagamentoTipo === "acconto";
+  const rateModalita: RateModalitaPiano = pianoPagamentoTipo === "acconto" ? "acconto_saldo" : "rate_uguali";
+  const abbonamentoAttivo = pianoPagamentoTipo === "abbonamento";
 
   const [clienti, setClienti] = useState<{ id: string; nome: string }[]>([]);
   const [clienteSelezionatoId, setClienteSelezionatoId] = useState(() => {
@@ -225,18 +225,16 @@ export default function Nuovo({ mode }: Props) {
       preventivo,
       template,
       pdfUrl,
-      abbonamentoAttivo,
+      pianoPagamentoTipo,
       abImporto,
       abGiorno,
       abMeseInizio,
       abMensilita,
       abVisibileNelPDF,
-      pagamentoRateAttivo,
       rateNumero,
       rateGiornoScadenza,
       rateMeseInizio,
       rateVisibileNelPDF,
-      rateModalita,
       rateAccontoTipo,
       rateAccontoValore,
       ...override,
@@ -322,18 +320,16 @@ export default function Nuovo({ mode }: Props) {
     trasferte,
     mostraTrasferte,
     metodoPagamentoSelezionato,
-    abbonamentoAttivo,
+    pianoPagamentoTipo,
     abImporto,
     abGiorno,
     abMeseInizio,
     abMensilita,
     abVisibileNelPDF,
-    pagamentoRateAttivo,
     rateNumero,
     rateGiornoScadenza,
     rateMeseInizio,
     rateVisibileNelPDF,
-    rateModalita,
     rateAccontoTipo,
     rateAccontoValore,
     inModifica,
@@ -446,17 +442,15 @@ export default function Nuovo({ mode }: Props) {
     template,
     token,
     clienteSelezionatoId,
-    abbonamentoAttivo,
+    pianoPagamentoTipo,
     abVisibileNelPDF,
     abImporto,
     abGiorno,
     abMeseInizio,
-    pagamentoRateAttivo,
     rateVisibileNelPDF,
     rateNumero,
     rateGiornoScadenza,
     rateMeseInizio,
-    rateModalita,
     rateAccontoTipo,
     rateAccontoValore,
     metodoPagamentoSelezionato,
@@ -474,28 +468,12 @@ export default function Nuovo({ mode }: Props) {
     return false;
   }
 
-  function onChangeAbbonamentoAttivo(v: boolean) {
-    if (!v) {
-      setAbbonamentoAttivo(false);
-      return;
+  function onChangePianoPagamentoTipo(nuovoTipo: PianoPagamentoTipo) {
+    if (nuovoTipo !== "nessuno" && !richiediClientePerPagamentoRicorrente()) return;
+    setPianoPagamentoTipo(nuovoTipo);
+    if (nuovoTipo === "abbonamento" && importoAnteprima > 0 && !abImporto.trim()) {
+      setAbImporto(String(Math.round(importoAnteprima)));
     }
-    if (!richiediClientePerPagamentoRicorrente()) return;
-    confermaPagamentoEsclusivo("canone", pagamentoRateAttivo, () => {
-      setPagamentoRateAttivo(false);
-      setAbbonamentoAttivo(true);
-    });
-  }
-
-  function onChangePagamentoRateAttivo(v: boolean) {
-    if (!v) {
-      setPagamentoRateAttivo(false);
-      return;
-    }
-    if (!richiediClientePerPagamentoRicorrente()) return;
-    confermaPagamentoEsclusivo("rate", abbonamentoAttivo, () => {
-      setAbbonamentoAttivo(false);
-      setPagamentoRateAttivo(true);
-    });
   }
 
   async function preparaTestoPerPdf(testo: string, accontoLinkPrecomputato?: string): Promise<string> {
@@ -1085,13 +1063,12 @@ export default function Nuovo({ mode }: Props) {
     setMetodoPagamentoSelezionato(null);
     setMetodiPagamento([]);
     setMostraModalPagamento(false);
-    setAbbonamentoAttivo(false);
+    setPianoPagamentoTipo("nessuno");
     setAbImporto("");
     setAbGiorno("1");
     setAbMeseInizio(meseCorrenteString());
     setAbMensilita("");
     setAbVisibileNelPDF(true);
-    setPagamentoRateAttivo(false);
     setRateNumero("");
     setRateGiornoScadenza("1");
     setRateMeseInizio(meseCorrenteString());
@@ -1247,42 +1224,6 @@ export default function Nuovo({ mode }: Props) {
             setMostraTrasferte={setMostraTrasferte}
           />
 
-          <BuilderPagamentoRateCard
-            attivo={pagamentoRateAttivo}
-            modalita={rateModalita}
-            accontoTipo={rateAccontoTipo}
-            accontoValore={rateAccontoValore}
-            numeroRate={rateNumero}
-            giornoScadenza={rateGiornoScadenza}
-            meseInizio={rateMeseInizio}
-            visibileNelPDF={rateVisibileNelPDF}
-            importoTotale={totaleConIva}
-            onChangeAttivo={onChangePagamentoRateAttivo}
-            onChangeModalita={setRateModalita}
-            onChangeAccontoTipo={setRateAccontoTipo}
-            onChangeAccontoValore={setRateAccontoValore}
-            onChangeNumeroRate={setRateNumero}
-            onChangeGiornoScadenza={setRateGiornoScadenza}
-            onChangeMeseInizio={setRateMeseInizio}
-            onChangeVisibileNelPDF={setRateVisibileNelPDF}
-          />
-
-          <BuilderAbbonamentoCard
-            attivo={abbonamentoAttivo}
-            importo={abImporto}
-            giorno={abGiorno}
-            meseInizio={abMeseInizio}
-            mensilita={abMensilita}
-            visibileNelPDF={abVisibileNelPDF}
-            importoTotale={totaleConIva.toFixed(0)}
-            onChangeAttivo={onChangeAbbonamentoAttivo}
-            onChangeImporto={setAbImporto}
-            onChangeGiorno={setAbGiorno}
-            onChangeMeseInizio={setAbMeseInizio}
-            onChangeMensilita={setAbMensilita}
-            onChangeVisibileNelPDF={setAbVisibileNelPDF}
-          />
-
           <div className="mt-3 space-y-1">
             <label className="text-sm text-brand-navy/70">Note</label>
             <textarea
@@ -1332,41 +1273,33 @@ export default function Nuovo({ mode }: Props) {
                 />
               </div>
 
-              <div className="mt-5 space-y-4 border-t border-black/5 pt-5">
-                <BuilderAbbonamentoCard
-                  attivo={abbonamentoAttivo}
-                  importo={abImporto}
-                  giorno={abGiorno}
-                  meseInizio={abMeseInizio}
-                  mensilita={abMensilita}
-                  visibileNelPDF={abVisibileNelPDF}
-                  importoTotale={String(importoAnteprima)}
-                  onChangeAttivo={onChangeAbbonamentoAttivo}
-                  onChangeImporto={setAbImporto}
-                  onChangeGiorno={setAbGiorno}
-                  onChangeMeseInizio={setAbMeseInizio}
-                  onChangeMensilita={setAbMensilita}
-                  onChangeVisibileNelPDF={setAbVisibileNelPDF}
-                />
-
-                <BuilderPagamentoRateCard
-                  attivo={pagamentoRateAttivo}
-                  modalita={rateModalita}
-                  accontoTipo={rateAccontoTipo}
-                  accontoValore={rateAccontoValore}
-                  numeroRate={rateNumero}
-                  giornoScadenza={rateGiornoScadenza}
-                  meseInizio={rateMeseInizio}
-                  visibileNelPDF={rateVisibileNelPDF}
+              <div className="mt-5 border-t border-black/5 pt-5">
+                <BuilderPianoPagamentoCard
+                  tipo={pianoPagamentoTipo}
+                  onChangeTipo={onChangePianoPagamentoTipo}
                   importoTotale={importoAnteprima}
-                  onChangeAttivo={onChangePagamentoRateAttivo}
-                  onChangeModalita={setRateModalita}
-                  onChangeAccontoTipo={setRateAccontoTipo}
-                  onChangeAccontoValore={setRateAccontoValore}
-                  onChangeNumeroRate={setRateNumero}
-                  onChangeGiornoScadenza={setRateGiornoScadenza}
-                  onChangeMeseInizio={setRateMeseInizio}
-                  onChangeVisibileNelPDF={setRateVisibileNelPDF}
+                  rateAccontoTipo={rateAccontoTipo}
+                  rateAccontoValore={rateAccontoValore}
+                  rateNumero={rateNumero}
+                  rateGiornoScadenza={rateGiornoScadenza}
+                  rateMeseInizio={rateMeseInizio}
+                  rateVisibileNelPDF={rateVisibileNelPDF}
+                  onChangeRateAccontoTipo={setRateAccontoTipo}
+                  onChangeRateAccontoValore={setRateAccontoValore}
+                  onChangeRateNumero={setRateNumero}
+                  onChangeRateGiornoScadenza={setRateGiornoScadenza}
+                  onChangeRateMeseInizio={setRateMeseInizio}
+                  onChangeRateVisibileNelPDF={setRateVisibileNelPDF}
+                  abImporto={abImporto}
+                  abGiorno={abGiorno}
+                  abMeseInizio={abMeseInizio}
+                  abMensilita={abMensilita}
+                  abVisibileNelPDF={abVisibileNelPDF}
+                  onChangeAbImporto={setAbImporto}
+                  onChangeAbGiorno={setAbGiorno}
+                  onChangeAbMeseInizio={setAbMeseInizio}
+                  onChangeAbMensilita={setAbMensilita}
+                  onChangeAbVisibileNelPDF={setAbVisibileNelPDF}
                 />
               </div>
             </div>

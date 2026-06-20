@@ -10,6 +10,7 @@ import {
   buildOggettoFirmaInvio,
 } from "../../lib/firma";
 import { sessionToken } from "../../lib/settings";
+import { useAppModalKeyboard } from "../ModalShell";
 
 type Props = {
   open: boolean;
@@ -43,6 +44,8 @@ export default function InviaFirmaModal({
   useEffect(() => {
     if (open) void caricaMessaggiCliente(true);
   }, [open]);
+
+  useAppModalKeyboard(onClose, { enabled: open });
 
   if (!open) return null;
 

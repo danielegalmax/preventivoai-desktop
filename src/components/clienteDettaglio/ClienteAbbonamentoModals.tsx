@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useMemo } from "react";
 import type { Preventivo, RataAbbonamento } from "../../lib/types";
 import { MESI_BREVI } from "../../lib/constants";
 import { formatImportoEuro, parseImportoEuro } from "preventivoai-shared";
@@ -9,45 +9,7 @@ import {
   type RateAccontoTipo,
   type RateModalitaPiano,
 } from "preventivoai-shared";
-
-type ModalShellProps = {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  zClass?: string;
-};
-
-function ModalShell({ title, onClose, children, zClass = "z-50" }: ModalShellProps) {
-  const mouseDownTargetRef = useRef<EventTarget | null>(null);
-
-  function handleBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    mouseDownTargetRef.current = e.target;
-  }
-
-  function handleBackdropMouseUp(e: React.MouseEvent<HTMLDivElement>) {
-    const backdrop = e.currentTarget;
-    if (e.target === backdrop && mouseDownTargetRef.current === backdrop) {
-      onClose();
-    }
-    mouseDownTargetRef.current = null;
-  }
-
-  return (
-    <div
-      className={`fixed inset-0 ${zClass} flex items-center justify-center bg-black/40 p-4`}
-      onMouseDown={handleBackdropMouseDown}
-      onMouseUp={handleBackdropMouseUp}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-center text-lg font-semibold text-brand-navy">{title}</h2>
-        <div className="mt-4 space-y-4">{children}</div>
-      </div>
-    </div>
-  );
-}
+import ModalShell from "../ModalShell";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-xs font-semibold tracking-wide text-brand-navy/50">{children}</label>;
@@ -236,7 +198,7 @@ export default function ClienteAbbonamentoModals({
   return (
     <>
       {mostraNuovo ? (
-        <ModalShell title="Nuovo abbonamento" onClose={onCloseNuovo}>
+        <ModalShell title="Nuovo abbonamento" onClose={onCloseNuovo} onConfirm={onCreaAbbonamento}>
           <PreventivoPicker
             preventivi={preventiviDisponibili}
             selezionatoId={preventivoSelezionatoId}
@@ -262,7 +224,7 @@ export default function ClienteAbbonamentoModals({
       ) : null}
 
       {mostraNuovoRate ? (
-        <ModalShell title="Nuovo piano a rate" onClose={onCloseNuovoRate}>
+        <ModalShell title="Nuovo piano a rate" onClose={onCloseNuovoRate} onConfirm={onCreaPianoRate}>
           <PreventivoPicker
             preventivi={preventiviDisponibiliRate}
             selezionatoId={preventivoRateSelezionatoId}
@@ -348,7 +310,7 @@ export default function ClienteAbbonamentoModals({
       ) : null}
 
       {mostraModifica ? (
-        <ModalShell title="Modifica abbonamento" onClose={onCloseModifica}>
+        <ModalShell title="Modifica abbonamento" onClose={onCloseModifica} onConfirm={onAggiornaAbbonamento}>
           <div className="space-y-1">
             <FieldLabel>IMPORTO MENSILE (€)</FieldLabel>
             <FieldInput value={abImporto} onChange={(e) => onChangeAbImporto(e.target.value)} autoFocus />
@@ -391,7 +353,11 @@ export default function ClienteAbbonamentoModals({
       ) : null}
 
       {rataSelezionata ? (
-        <ModalShell title={`${MESI_BREVI[rataSelezionata.mese - 1]} ${rataSelezionata.anno}`} onClose={onCloseRata}>
+        <ModalShell
+          title={`${MESI_BREVI[rataSelezionata.mese - 1]} ${rataSelezionata.anno}`}
+          onClose={onCloseRata}
+          onConfirm={onConfermaPagamento}
+        >
           <div className="space-y-2 rounded-xl bg-brand-bg p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-brand-navy/60">Totale</span>
@@ -430,7 +396,7 @@ export default function ClienteAbbonamentoModals({
       ) : null}
 
       {mostraAggiungiRata ? (
-        <ModalShell title="Aggiungi canone" onClose={onCloseAggiungiRata}>
+        <ModalShell title="Aggiungi canone" onClose={onCloseAggiungiRata} onConfirm={onConfermaAggiungiRata}>
           <div className="space-y-1">
             <FieldLabel>MESE</FieldLabel>
             <MeseInizioSelect value={nuovaRataMese} onChange={onChangeNuovaRataMese} />
@@ -451,7 +417,7 @@ export default function ClienteAbbonamentoModals({
       ) : null}
 
       {mostraRinomina ? (
-        <ModalShell title="Rinomina abbonamento" onClose={onCloseRinomina}>
+        <ModalShell title="Rinomina abbonamento" onClose={onCloseRinomina} onConfirm={onSalvaRinomina}>
           <FieldInput value={nomeAbTemp} onChange={(e) => onChangeNomeAbTemp(e.target.value)} placeholder="es. Sito web mensile" autoFocus />
           <button type="button" onClick={onSalvaRinomina} className="w-full rounded-xl bg-brand-navy py-3 text-sm font-semibold text-white">
             Salva

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Preventivo } from "../lib/types";
 import { STATI_PREVENTIVO, statoPreventivoIcon } from "../lib/preventivo";
 import ToggleSwitch from "./ToggleSwitch";
+import { useAppModalKeyboard } from "./ModalShell";
 
 type Props = {
   preventivo: Preventivo | null;
@@ -19,6 +20,8 @@ export default function PreventivoStatoModal({
   mostraTogglePagato = true,
 }: Props) {
   const [salvandoPagato, setSalvandoPagato] = useState(false);
+
+  useAppModalKeyboard(onClose, { enabled: !!preventivo });
 
   if (!preventivo) return null;
 

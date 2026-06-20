@@ -11,6 +11,7 @@ import {
   buildOggettoFirmaReminder,
 } from "../../lib/firma";
 import { sessionToken } from "../../lib/settings";
+import { useAppModalKeyboard } from "../ModalShell";
 
 type Props = {
   notifica: Notifica;
@@ -27,6 +28,8 @@ export default function NotificaFirmaDialog({
   onRimanda,
   onCompletata,
 }: Props) {
+  useAppModalKeyboard(onClose);
+
   const preventivoId = notifica.preventivo_id;
   const invioId = notifica.invio_id;
   const payload = notifica.payload || {};

@@ -18,6 +18,7 @@ import {
   registraFirmaManuale,
   statoFirmaInvio,
 } from "../../lib/firma";
+import { useAppModalKeyboard } from "../ModalShell";
 
 type Props = {
   open: boolean;
@@ -94,6 +95,8 @@ export default function FirmaDettaglioModal({
 
     return () => { cancelled = true; };
   }, [open, sf, invio?.id, preventivo.id]);
+
+  useAppModalKeyboard(onClose, { enabled: open });
 
   if (!open) return null;
 

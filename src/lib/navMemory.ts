@@ -75,11 +75,7 @@ export function getRememberedPath(section: NavSection): string {
 
 export function resolveSidebarTarget(
   section: NavSection,
-  currentPathname: string,
+  _currentPathname: string,
 ): string {
-  const currentSection = pathToSection(currentPathname);
-  if (currentSection === section) {
-    return getSectionRoot(section);
-  }
-  return getRememberedPath(section);
+  return getSectionRoot(section);
 }

@@ -496,6 +496,7 @@ export default function PreventiviLista({
                         menuAriaLabel={`Altre azioni per ${p.titolo || "preventivo"}`}
                         menuVoci={[
                           { label: "Rinomina", onClick: () => setModalRinominaId(p.id) },
+                          { label: MODIFICA_VERSIONE_ALTERNATIVA_LABEL, onClick: () => apriDaPreventivo(p) },
                           { label: "Sposta", onClick: () => apriSpostaSingolo(p.id) },
                           { label: "Elimina", onClick: () => eliminaSingolo(p.id), danger: true },
                         ]}
@@ -506,6 +507,16 @@ export default function PreventiviLista({
                     <tr className="border-t border-black/5 bg-brand-bg/50">
                       <td colSpan={colCount} className="px-5 py-4">
                         <div className="space-y-4">
+                          {collegamento ? (
+                            <p className="text-xs font-semibold text-brand-teal">
+                              {normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano) === "rate" ? "📅 " : "💰 "}
+                              {etichettaPianoCollegato(collegamento)}
+                            </p>
+                          ) : null}
+                          <FirmaStatoBadge
+                            invio={invioFirma}
+                            onClick={selezioneAttiva ? undefined : () => setFirmaDettaglioPreventivo(p)}
+                          />
                           {caricandoDettaglioId === p.id ? (
                             <p className="text-sm text-brand-navy/50">Caricamento testo...</p>
                           ) : p.testo_preventivo ? (
@@ -561,14 +572,6 @@ export default function PreventiviLista({
                               ))}
                             </div>
                           ) : null}
-
-                          <button
-                            type="button"
-                            onClick={() => apriDaPreventivo(p)}
-                            className="rounded-xl border border-brand-teal/30 bg-brand-teal/5 px-4 py-2.5 text-sm font-medium text-brand-teal hover:bg-brand-teal/10"
-                          >
-                            ✏️ {MODIFICA_VERSIONE_ALTERNATIVA_LABEL}
-                          </button>
                         </div>
                       </td>
                     </tr>
