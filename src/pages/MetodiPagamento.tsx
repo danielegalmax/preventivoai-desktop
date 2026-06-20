@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import PageContainer from "../components/PageContainer";
+import StripeConnectCard from "../components/StripeConnectCard";
 import { PLACEHOLDER } from "../lib/placeholders";
 import {
   caricaMetodiPagamento,
@@ -90,7 +91,17 @@ export default function MetodiPagamento() {
   if (loading) {
     return (
       <PageContainer>
-        <p className="text-brand-navy/60">Caricamento...</p>
+        <Link to="/impostazioni" className="text-sm text-brand-navy/60 hover:text-brand-navy">
+          ← Impostazioni
+        </Link>
+        <div className="mt-2">
+          <h1 className="text-2xl font-semibold text-brand-navy">Metodi di pagamento</h1>
+          <p className="mt-1 text-brand-navy/60">Bonifico, PayPal, contanti, carta o Stripe</p>
+        </div>
+        <div className="mt-6">
+          <StripeConnectCard />
+        </div>
+        <p className="mt-6 text-brand-navy/60">Caricamento...</p>
       </PageContainer>
     );
   }
@@ -112,6 +123,10 @@ export default function MetodiPagamento() {
         >
           + Nuovo
         </button>
+      </div>
+
+      <div className="mt-6">
+        <StripeConnectCard />
       </div>
 
       <div className="mt-6 space-y-3">
