@@ -6,6 +6,7 @@ import type { MetodoPagamento } from "./pagamenti";
 import {
   creaAbbonamentoDaPreventivo as creaAbbonamentoCore,
   creaPianoRateDaPreventivo as creaPianoRateCore,
+  agganciaPianoAPreventivo as agganciaPianoCore,
   testoConPagamento as testoConPagamentoShared,
   type PreventivoPianiDb,
 } from "preventivoai-shared";
@@ -53,6 +54,13 @@ const preventivoPianiDb: PreventivoPianiDb = {
   async insertRate(rows) {
     await supabase.from("rate_abbonamento").insert(rows);
   },
+  async agganciaPianoAPreventivo(abbonamentoId, preventivoId) {
+    const { error } = await supabase
+      .from("abbonamenti")
+      .update({ preventivo_id: preventivoId })
+      .eq("id", abbonamentoId);
+    return !error;
+  },
 };
 
 export type ClientePreventivo = { id: string; nome: string };
@@ -70,7 +78,7 @@ export async function creaAbbonamentoDaPreventivo(params: {
 
 export async function creaPianoRateDaPreventivo(params: {
   cliente: ClientePreventivo;
-  preventivoId: string;
+  preventivoId: string | null;
   importoTotale: number;
   numeroRateRaw: string;
   giornoScadenzaRaw: string;
@@ -78,6 +86,10 @@ export async function creaPianoRateDaPreventivo(params: {
   importiPersonalizzati?: number[];
 }) {
   return creaPianoRateCore(preventivoPianiDb, params);
+}
+
+export async function agganciaPianoAPreventivo(abbonamentoId: string, preventivoId: string) {
+  return agganciaPianoCore(preventivoPianiDb, abbonamentoId, preventivoId);
 }
 
 type TestoConPagamentoParams = {
@@ -96,6 +108,7 @@ type TestoConPagamentoParams = {
   rateModalita?: RateModalitaPiano;
   rateAccontoTipo?: RateAccontoTipo;
   rateAccontoValore?: string;
+  accontoLinkPrecomputato?: string;
   metodoPagamento: MetodoPagamento | null;
   token: string;
 };

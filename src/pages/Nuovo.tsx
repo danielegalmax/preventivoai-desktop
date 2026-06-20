@@ -17,12 +17,13 @@ import { generaTestoPreventivoBuilder, calcolaTotaleVoci, calcolaTotaleTrasferte
 import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
 import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
-import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale } from "../lib/pdf";
-import { calcolaAccontoSaldoPiano, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
+import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale, creaLinkPagamentoRata } from "../lib/pdf";
+import { calcolaAccontoSaldoPiano, generaLinkPaypalMe, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
 import { confermaPagamentoEsclusivo } from "../lib/confermaPagamentoEsclusivo";
 import {
   creaAbbonamentoDaPreventivo,
   creaPianoRateDaPreventivo,
+  agganciaPianoAPreventivo,
   testoConPagamento,
 } from "../lib/preventivoPdfPiani";
 import { caricaServizi, creaServizio } from "../lib/listino";
@@ -497,7 +498,7 @@ export default function Nuovo({ mode }: Props) {
     });
   }
 
-  async function preparaTestoPerPdf(testo: string): Promise<string> {
+  async function preparaTestoPerPdf(testo: string, accontoLinkPrecomputato?: string): Promise<string> {
     if (!token) return testo;
     const importoRate = mode === "manuale"
       ? totaleConIva
@@ -518,6 +519,7 @@ export default function Nuovo({ mode }: Props) {
       rateModalita,
       rateAccontoTipo,
       rateAccontoValore,
+      accontoLinkPrecomputato,
       metodoPagamento: metodoPagamentoSelezionato,
       token,
     });
@@ -541,24 +543,17 @@ export default function Nuovo({ mode }: Props) {
       }
     }
 
-    if (pagamentoRateAttivo) {
+    if (pagamentoRateAttivo && rateModalita !== "acconto_saldo") {
       const importoRate = mode === "manuale"
         ? totaleConIva
         : (importoDaTesto(preventivo) || 0);
-      const accontoSaldo =
-        rateModalita === "acconto_saldo"
-          ? calcolaAccontoSaldoPiano(importoRate, rateAccontoTipo, rateAccontoValore)
-          : null;
       const r = await creaPianoRateDaPreventivo({
         cliente,
         preventivoId,
         importoTotale: importoRate,
-        numeroRateRaw: rateModalita === "acconto_saldo" ? "2" : rateNumero,
+        numeroRateRaw: rateNumero,
         giornoScadenzaRaw: rateGiornoScadenza,
         meseInizioRaw: rateMeseInizio,
-        ...(accontoSaldo
-          ? { importiPersonalizzati: [accontoSaldo.acconto, accontoSaldo.saldo] }
-          : {}),
       });
       if (r.esistente) {
         window.alert("Questo preventivo ha già un piano a rate collegato. Gestiscilo dalla cartella cliente.");
@@ -886,7 +881,61 @@ export default function Nuovo({ mode }: Props) {
     setErrore("");
     setMessaggioSuccesso("");
     try {
-      const testoFinale = await preparaTestoPerPdf(preventivo);
+      let accontoAbbonamentoId: string | null = null;
+      let accontoLinkPrecomputato: string | undefined;
+
+      if (pagamentoRateAttivo && rateModalita === "acconto_saldo" && clienteCollegato()) {
+        const cliente = clienti.find((c) => c.id === clienteSelezionatoId);
+        if (!cliente) {
+          window.alert("Cliente non trovato.");
+          return;
+        }
+
+        const importoRate = importoAnteprima;
+        const accontoSaldo = calcolaAccontoSaldoPiano(importoRate, rateAccontoTipo, rateAccontoValore);
+        if (!accontoSaldo) {
+          window.alert("Importo acconto non valido.");
+          return;
+        }
+
+        const r = await creaPianoRateDaPreventivo({
+          cliente,
+          preventivoId: null,
+          importoTotale: importoRate,
+          numeroRateRaw: "2",
+          giornoScadenzaRaw: rateGiornoScadenza,
+          meseInizioRaw: rateMeseInizio,
+          importiPersonalizzati: [accontoSaldo.acconto, accontoSaldo.saldo],
+        });
+        if (r.esistente || !r.abbonamentoId) {
+          window.alert("Impossibile creare il piano acconto. Riprova.");
+          return;
+        }
+
+        const { data: rate, error: rateErr } = await supabase
+          .from("rate_abbonamento")
+          .select("id, mese, anno")
+          .eq("abbonamento_id", r.abbonamentoId)
+          .order("anno", { ascending: true })
+          .order("mese", { ascending: true });
+
+        if (rateErr || !rate?.length) {
+          window.alert("Impossibile creare il piano acconto. Riprova.");
+          return;
+        }
+
+        accontoAbbonamentoId = r.abbonamentoId;
+        const rataAcconto = rate[0];
+        const metodo = metodoPagamentoSelezionato;
+
+        if (metodo?.tipo === "stripe") {
+          accontoLinkPrecomputato = await creaLinkPagamentoRata(rataAcconto.id, cliente.nome, token);
+        } else if (metodo?.tipo === "paypal" && metodo.dati?.paypalme?.trim()) {
+          accontoLinkPrecomputato = generaLinkPaypalMe(metodo.dati.paypalme, accontoSaldo.acconto);
+        }
+      }
+
+      const testoFinale = await preparaTestoPerPdf(preventivo, accontoLinkPrecomputato);
       const data = await generaPDFFile({
         testo: testoFinale,
         template,
@@ -948,6 +997,12 @@ export default function Nuovo({ mode }: Props) {
       }
 
       if (idPerPiani) {
+        if (accontoAbbonamentoId) {
+          const agganciato = await agganciaPianoAPreventivo(accontoAbbonamentoId, idPerPiani);
+          if (!agganciato) {
+            window.alert("Preventivo salvato, ma collegamento al piano acconto non riuscito. Collegalo dalla cartella cliente.");
+          }
+        }
         await creaPianiDopoSalvataggio(idPerPiani);
       }
 

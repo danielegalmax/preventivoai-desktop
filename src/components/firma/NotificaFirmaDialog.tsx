@@ -112,6 +112,26 @@ export default function NotificaFirmaDialog({
     );
   }
 
+  if (notifica.tipo === "pagamento_ricevuto") {
+    return (
+      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <h2 className="text-lg font-semibold text-brand-navy">{notifica.titolo}</h2>
+          <p className="mt-2 text-sm text-brand-navy/70">{notifica.messaggio}</p>
+          <div className="mt-5 grid gap-2">
+            <button
+              type="button"
+              onClick={() => { onCompletata(); onClose(); }}
+              className="w-full rounded-xl bg-brand-teal py-3 text-sm font-semibold text-white"
+            >
+              Visto
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
