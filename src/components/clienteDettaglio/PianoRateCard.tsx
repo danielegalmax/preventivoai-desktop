@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { MESI_BREVI, MESI_FULL } from "../../lib/constants";
+import { useEffect, useMemo, useState } from "react";
+import { MESI_FULL } from "../../lib/constants";
 import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
@@ -8,13 +8,9 @@ import { creaLinkPagamentoRata } from "../../lib/pdf";
 import { titoloHeaderPiano, analizzaStatoPiano } from "preventivoai-shared";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 import PianoStatoBadge from "./PianoStatoBadge";
-import PreventivoMadreLink from "./PreventivoMadreLink";
-import RigaPiano from "./RigaPiano";
+import PianoEspanso from "./PianoEspanso";
+import PianoRateModals from "./PianoRateModals";
 import MenuTrePuntini from "../MenuTrePuntini";
-
-function labelScadenza(rata: RataAbbonamento) {
-  return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
-}
 
 function ordinaRate(a: RataAbbonamento, b: RataAbbonamento) {
   return a.anno - b.anno || a.mese - b.mese;
@@ -62,8 +58,6 @@ export default function PianoRateCard({
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [invioReminderLoading, setInvioReminderLoading] = useState<string | null>(null);
   const [pianoEspanso, setPianoEspanso] = useState(false);
-  const [futureAperte, setFutureAperte] = useState(true);
-  const [storicoAperto, setStoricoAperto] = useState(false);
   const [rataMiniAperta, setRataMiniAperta] = useState<string | null>(null);
   const [modificaImporto, setModificaImporto] = useState(false);
   const [personalizzaRate, setPersonalizzaRate] = useState(false);
@@ -72,6 +66,13 @@ export default function PianoRateCard({
   const [nuovoImportoTotale, setNuovoImportoTotale] = useState("");
   const [salvaImportoLoading, setSalvaImportoLoading] = useState(false);
   const [salvaPersonalizzaLoading, setSalvaPersonalizzaLoading] = useState(false);
+  const [messaggioSuccesso, setMessaggioSuccesso] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!messaggioSuccesso) return;
+    const id = window.setTimeout(() => setMessaggioSuccesso(null), 4000);
+    return () => clearTimeout(id);
+  }, [messaggioSuccesso]);
 
   const rateOrdinate = useMemo(() => [...rate].sort(ordinaRate), [rate]);
   const rateFuture = useMemo(() => rateOrdinate.filter((r) => r.stato !== "incassato"), [rateOrdinate]);
@@ -111,7 +112,6 @@ export default function PianoRateCard({
     setRatePinnate({});
     setPersonalizzaRate(true);
     setModificaImporto(false);
-    setPianoEspanso(true);
   }
 
   function ricalcolaRateLibere() {
@@ -176,7 +176,6 @@ export default function PianoRateCard({
     setNuovoImportoTotale(String(abbonamento.importo_default ?? importoPiano));
     setModificaImporto(true);
     setPersonalizzaRate(false);
-    setPianoEspanso(true);
   }
 
   async function salvaModificaImporto() {
@@ -191,7 +190,7 @@ export default function PianoRateCard({
     if (ok) {
       setModificaImporto(false);
       await onPianoAggiornato?.();
-      window.alert("Le rate non ancora pagate sono state ricalcolate.");
+      setMessaggioSuccesso("Le rate non ancora pagate sono state ricalcolate.");
     }
   }
 
@@ -222,124 +221,12 @@ export default function PianoRateCard({
     setRataMiniAperta((id) => (id === rata.id ? null : id));
   }
 
-  function renderAzioniPiano() {
-    if (personalizzaRate) {
-      return (
-        <div className="space-y-3 rounded-xl border border-black/10 bg-white p-4">
-          <p className="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">Importo per rata</p>
-          <p className="text-xs leading-relaxed text-brand-navy/60">
-            Fissa le rate che vuoi impostare tu, poi usa Ricalcola rate libere per ripartire il resto su €{formatImportoEuro(targetImportoPiano, 2)}.
-          </p>
-          {rateOrdinate.map((rata, index) => {
-            const pagata = rata.stato === "incassato";
-            const bloccataAcconto = !pagata && (rata.acconto || 0) > 0;
-            const pinnata = rataPinnataEffettiva(rata);
-            return (
-              <div key={rata.id} className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 text-sm text-brand-navy/70">
-                  Rata {index + 1} · {labelScadenza(rata)}
-                </span>
-                {pagata ? (
-                  <span className="w-24 text-right text-sm font-semibold text-brand-navy/40">
-                    €{formatImportoEuro(rata.importo, 2)}
-                  </span>
-                ) : (
-                  <>
-                    <input
-                      value={bozzaImporti[rata.id] ?? ""}
-                      onChange={(e) => setBozzaImporti((b) => ({ ...b, [rata.id]: e.target.value }))}
-                      className={`w-24 rounded-lg border px-2 py-1.5 text-right text-sm font-semibold ${
-                        pinnata ? "border-brand-teal bg-emerald-50" : "border-black/10 bg-brand-bg"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      disabled={bloccataAcconto}
-                      onClick={() => {
-                        if (bloccataAcconto) return;
-                        setRatePinnate((p) => ({ ...p, [rata.id]: !p[rata.id] }));
-                      }}
-                      className={`min-w-[52px] rounded-lg border px-2 py-1.5 text-[11px] font-semibold ${
-                        pinnata ? "border-brand-teal bg-emerald-50 text-brand-teal" : "border-black/10 text-brand-navy/40"
-                      }`}
-                    >
-                      {bloccataAcconto ? "Acconto" : pinnata ? "Fissa" : "Libera"}
-                    </button>
-                  </>
-                )}
-              </div>
-            );
-          })}
-          <p className={`text-center text-sm font-semibold ${bozzaSommaValida && bozzaImportiValidi ? "text-brand-teal" : "text-red-500"}`}>
-            Somma: €{formatImportoEuro(sommaBozzaTotale, 2)} / €{formatImportoEuro(targetImportoPiano, 2)}
-          </p>
-          <button
-            type="button"
-            onClick={ricalcolaRateLibere}
-            disabled={rateLibereCount === 0}
-            className="w-full rounded-xl border border-brand-teal bg-emerald-50 py-2.5 text-sm font-semibold text-brand-teal disabled:opacity-40"
-          >
-            Ricalcola rate libere
-          </button>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setPersonalizzaRate(false)} className="flex-1 rounded-xl border border-black/10 py-2 text-sm text-brand-navy/60">
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={() => void salvaPersonalizzaRate()}
-              disabled={salvaPersonalizzaLoading || !bozzaSommaValida || !bozzaImportiValidi}
-              className="flex-1 rounded-xl bg-brand-navy py-2 text-sm font-semibold text-white disabled:opacity-40"
-            >
-              {salvaPersonalizzaLoading ? "Salvataggio..." : "Salva rate"}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (modificaImporto) {
-      return (
-        <div className="space-y-3 rounded-xl border border-black/10 bg-white p-4">
-          <p className="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">Nuovo importo totale</p>
-          <input
-            value={nuovoImportoTotale}
-            onChange={(e) => setNuovoImportoTotale(e.target.value)}
-            className="w-full rounded-xl border border-black/10 bg-brand-bg px-3 py-2.5 text-sm"
-            placeholder="es. 3000"
-          />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setModificaImporto(false)} className="flex-1 rounded-xl border border-black/10 py-2 text-sm text-brand-navy/60">
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={() => void salvaModificaImporto()}
-              disabled={salvaImportoLoading}
-              className="flex-1 rounded-xl bg-brand-navy py-2 text-sm font-semibold text-white disabled:opacity-40"
-            >
-              {salvaImportoLoading ? "Salvataggio..." : "Salva"}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  }
-
   function togglePianoEspanso() {
     if (selezionePianoAttiva) {
       onToggleSelezionePiano?.(abbonamento.id);
       return;
     }
-    setPianoEspanso((v) => {
-      if (v) {
-        setModificaImporto(false);
-        setPersonalizzaRate(false);
-      }
-      return !v;
-    });
+    setPianoEspanso((v) => !v);
   }
 
   return (
@@ -375,6 +262,9 @@ export default function PianoRateCard({
                 {analisi.sottotitolo}
               </p>
             ) : null}
+            {messaggioSuccesso ? (
+              <p className="mt-1 text-sm text-brand-teal">{messaggioSuccesso}</p>
+            ) : null}
           </div>
           {!selezionePianoAttiva ? (
             <span className="shrink-0 text-[10px] text-brand-navy/40">{pianoEspanso ? "▲" : "▼"}</span>
@@ -395,90 +285,51 @@ export default function PianoRateCard({
       </div>
 
       {pianoEspanso && !selezionePianoAttiva ? (
-        <div className="space-y-3 pb-28 pl-1">
-          <div className="h-2 overflow-hidden rounded-full bg-black/5">
-            <div
-              className={`h-full rounded-full ${analisi.concluso ? "bg-emerald-700" : "bg-brand-teal"}`}
-              style={{ width: `${Math.min(100, analisi.progressoPct)}%` }}
-            />
-          </div>
-
-          <PreventivoMadreLink preventivo={preventivoMadre} onPress={onApriPreventivoMadre} />
-
-          {renderAzioniPiano()}
-
-          {rateFuture.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-              <button
-                type="button"
-                onClick={() => setFutureAperte((v) => !v)}
-                className="flex w-full items-center justify-between bg-brand-bg px-3.5 py-3 text-left"
-              >
-                <span className="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">
-                  Prossime scadenze ({rateFuture.length})
-                </span>
-                <span className="text-[10px] text-brand-navy/40">{futureAperte ? "▲" : "▼"}</span>
-              </button>
-              {futureAperte ? rateFuture.map((rata) => {
-                const index = rateOrdinate.findIndex((r) => r.id === rata.id);
-                return (
-                  <RigaPiano
-                    key={rata.id}
-                    rata={rata}
-                    variante="rate"
-                    layout="completa"
-                    indiceRata={index}
-                    aperta={rataMiniAperta === rata.id}
-                    invioReminderLoading={invioReminderLoading}
-                    mostraReminder={prossima?.id === rata.id}
-                    onToggle={() => setRataMiniAperta((id) => id === rata.id ? null : rata.id)}
-                    onOpenPagamento={onOpenPagamento}
-                    onAzzeraPagamento={onAzzeraPagamento}
-                    onReminder={() => void inviaReminder(rata)}
-                    onElimina={() => void handleEliminaRata(rata)}
-                  />
-                );
-              }) : null}
-            </div>
-          ) : null}
-
-          {rateStorico.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-              <button
-                type="button"
-                onClick={() => setStoricoAperto((v) => !v)}
-                className="flex w-full items-center justify-between bg-brand-bg px-3.5 py-3 text-left"
-              >
-                <span className="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">
-                  Storico ({rateStorico.length})
-                </span>
-                <span className="text-[10px] text-brand-navy/40">{storicoAperto ? "▲" : "▼"}</span>
-              </button>
-              {storicoAperto ? rateStorico.map((rata) => {
-                const index = rateOrdinate.findIndex((r) => r.id === rata.id);
-                return (
-                  <RigaPiano
-                    key={rata.id}
-                    rata={rata}
-                    variante="rate"
-                    layout="completa"
-                    indiceRata={index}
-                    aperta={rataMiniAperta === rata.id}
-                    invioReminderLoading={invioReminderLoading}
-                    mostraReminder={false}
-                    onToggle={() => setRataMiniAperta((id) => id === rata.id ? null : rata.id)}
-                    onOpenPagamento={onOpenPagamento}
-                    onAzzeraPagamento={onAzzeraPagamento}
-                    onReminder={() => void inviaReminder(rata)}
-                    onElimina={() => void handleEliminaRata(rata)}
-                  />
-                );
-              }) : null}
-            </div>
-          ) : null}
-        </div>
+        <PianoEspanso
+          abbonamento={abbonamento}
+          rate={rate}
+          preventivoMadre={preventivoMadre}
+          analisi={analisi}
+          mode="byStato"
+          varianteRiga="rate"
+          onApriPreventivoMadre={onApriPreventivoMadre}
+          invioReminderLoading={invioReminderLoading}
+          rataMiniAperta={rataMiniAperta}
+          onToggleRataMini={(rataId) => setRataMiniAperta((id) => id === rataId ? null : rataId)}
+          prossimaNonIncassataId={prossima?.id}
+          onOpenPagamento={onOpenPagamento}
+          onAzzeraPagamento={onAzzeraPagamento}
+          onReminder={(rata) => void inviaReminder(rata)}
+          onEliminaRata={(rata) => void handleEliminaRata(rata)}
+        />
       ) : null}
     </div>
+    <PianoRateModals
+      mostraModificaImporto={modificaImporto}
+      onCloseModificaImporto={() => setModificaImporto(false)}
+      nuovoImportoTotale={nuovoImportoTotale}
+      onChangeNuovoImportoTotale={setNuovoImportoTotale}
+      onSalvaModificaImporto={() => void salvaModificaImporto()}
+      salvaImportoLoading={salvaImportoLoading}
+      mostraPersonalizzaRate={personalizzaRate}
+      onClosePersonalizzaRate={() => setPersonalizzaRate(false)}
+      rateOrdinate={rateOrdinate}
+      bozzaImporti={bozzaImporti}
+      onChangeBozzaImporto={(rataId, v) => setBozzaImporti((b) => ({ ...b, [rataId]: v }))}
+      targetImportoPiano={targetImportoPiano}
+      sommaBozzaTotale={sommaBozzaTotale}
+      bozzaSommaValida={bozzaSommaValida}
+      bozzaImportiValidi={bozzaImportiValidi}
+      rataPinnataEffettiva={rataPinnataEffettiva}
+      onToggleRataPin={(rataId, bloccataAcconto) => {
+        if (bloccataAcconto) return;
+        setRatePinnate((p) => ({ ...p, [rataId]: !p[rataId] }));
+      }}
+      onRicalcolaRateLibere={ricalcolaRateLibere}
+      rateLibereCount={rateLibereCount}
+      onSalvaPersonalizzaRate={() => void salvaPersonalizzaRate()}
+      salvaPersonalizzaLoading={salvaPersonalizzaLoading}
+    />
     {confirmDialog}
     </>
   );
