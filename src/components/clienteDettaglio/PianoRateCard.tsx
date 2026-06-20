@@ -229,14 +229,16 @@ export default function PianoRateCard({
     setPianoEspanso((v) => !v);
   }
 
+  const cardEspansa = pianoEspanso && !selezionePianoAttiva;
+
   return (
     <>
-    <div className="space-y-3">
-      <div
-        className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-4 ${
-          pianoSelezionato ? "border-brand-teal bg-emerald-50" : analisi.concluso ? "border-emerald-200 bg-emerald-50/50" : "border-black/10 bg-white"
-        }`}
-      >
+    <div
+      className={`rounded-2xl border ${
+        pianoSelezionato ? "border-brand-teal bg-emerald-50" : analisi.concluso ? "border-emerald-200 bg-emerald-50/50" : "border-black/10 bg-white"
+      }${cardEspansa ? " border-l-[3px] border-l-brand-teal" : ""}`}
+    >
+      <div className="flex w-full items-center gap-3 px-4 py-4">
         <button type="button" onClick={togglePianoEspanso} className="flex min-w-0 flex-1 items-center gap-3 text-left">
           {selezionePianoAttiva ? (
             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
@@ -284,8 +286,9 @@ export default function PianoRateCard({
         ) : null}
       </div>
 
-      {pianoEspanso && !selezionePianoAttiva ? (
-        <PianoEspanso
+      {cardEspansa ? (
+        <div className="border-t border-black/5">
+          <PianoEspanso
           abbonamento={abbonamento}
           rate={rate}
           preventivoMadre={preventivoMadre}
@@ -301,7 +304,8 @@ export default function PianoRateCard({
           onAzzeraPagamento={onAzzeraPagamento}
           onReminder={(rata) => void inviaReminder(rata)}
           onEliminaRata={(rata) => void handleEliminaRata(rata)}
-        />
+          />
+        </div>
       ) : null}
     </div>
     <PianoRateModals

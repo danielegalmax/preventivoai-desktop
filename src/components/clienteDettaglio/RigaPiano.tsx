@@ -25,6 +25,10 @@ export type RigaPianoProps = {
   className?: string;
 };
 
+function btnReset(extra = "") {
+  return `m-0 border-0 bg-transparent p-0 shadow-none [font:inherit] ${extra}`.trim();
+}
+
 function labelScadenza(rata: RataAbbonamento) {
   return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
 }
@@ -235,7 +239,7 @@ export default function RigaPiano({
 
   return (
     <div className={`border-t border-black/5 px-3 py-3 ${className}`.trim()}>
-      <button type="button" onClick={onToggle} className="flex w-full items-center gap-2 text-left">
+      <button type="button" onClick={onToggle} className={btnReset("flex w-full items-center gap-2 text-left text-brand-navy")}>
         <span className="min-w-0 flex-1 text-sm font-medium text-brand-navy">{titolo}</span>
         <span className="text-sm font-semibold text-brand-navy">€{formatImportoEuro(rata.importo, 2)}</span>
         <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${badge.className}`}>{badge.label}</span>

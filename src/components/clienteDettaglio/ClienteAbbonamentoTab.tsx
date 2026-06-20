@@ -101,13 +101,15 @@ function AbbonamentoPianoCard({
     setRataMiniAperta((id) => (id === rata.id ? null : id));
   }
 
+  const cardEspansa = espanso && !selezionePianoAttiva;
+
   return (
-    <div className="space-y-3">
-      <div
-        className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-4 ${
-          pianoSelezionato ? "border-brand-teal bg-emerald-50" : analisi.concluso ? "border-emerald-200 bg-emerald-50/50" : "border-black/10 bg-white"
-        }`}
-      >
+    <div
+      className={`rounded-2xl border ${
+        pianoSelezionato ? "border-brand-teal bg-emerald-50" : analisi.concluso ? "border-emerald-200 bg-emerald-50/50" : "border-black/10 bg-white"
+      }${cardEspansa ? " border-l-[3px] border-l-brand-teal" : ""}`}
+    >
+      <div className="flex w-full items-center gap-3 px-4 py-4">
         <button
           type="button"
           onClick={() => {
@@ -163,8 +165,9 @@ function AbbonamentoPianoCard({
         ) : null}
       </div>
 
-      {espanso && !selezionePianoAttiva ? (
-        <PianoEspanso
+      {cardEspansa ? (
+        <div className="border-t border-black/5">
+          <PianoEspanso
           abbonamento={abbonamento}
           rate={rate}
           preventivoMadre={preventivoMadre}
@@ -183,7 +186,8 @@ function AbbonamentoPianoCard({
           onReminder={(rata) => void onSendReminder(rata)}
           onEliminaRata={(rata) => void eliminaRataDaDettaglio(rata)}
           onAggiungiCanone={onOpenAddRata}
-        />
+          />
+        </div>
       ) : null}
     </div>
   );

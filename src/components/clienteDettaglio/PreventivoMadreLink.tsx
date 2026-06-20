@@ -10,9 +10,10 @@ export type PreventivoMadreInfo = {
 type Props = {
   preventivo: PreventivoMadreInfo | null;
   onPress?: (preventivoId: string) => void;
+  embedded?: boolean;
 };
 
-export default function PreventivoMadreLink({ preventivo, onPress }: Props) {
+export default function PreventivoMadreLink({ preventivo, onPress, embedded = false }: Props) {
   const content = (
     <div className="min-w-0 flex-1">
       <p className="text-[11px] font-semibold tracking-wide text-brand-navy/40 uppercase">Preventivo madre</p>
@@ -35,6 +36,27 @@ export default function PreventivoMadreLink({ preventivo, onPress }: Props) {
       )}
     </div>
   );
+
+  if (embedded) {
+    if (onPress && preventivo) {
+      return (
+        <button
+          type="button"
+          onClick={() => onPress(preventivo.id)}
+          className="flex w-full items-center gap-3 border-t border-black/5 py-2.5 text-left hover:opacity-80"
+        >
+          {content}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-brand-teal">→</span>
+        </button>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-3 border-t border-black/5 py-2.5">
+        {content}
+      </div>
+    );
+  }
 
   if (onPress && preventivo) {
     return (

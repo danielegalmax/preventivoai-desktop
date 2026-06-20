@@ -178,7 +178,7 @@ function GruppoRateCollassabile({
 
   return (
 
-    <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+    <div className="border-t border-black/5">
 
       <button
 
@@ -186,7 +186,7 @@ function GruppoRateCollassabile({
 
         onClick={() => setAperto((v) => !v)}
 
-        className="flex w-full items-center justify-between bg-brand-bg px-3.5 py-3 text-left"
+        className="m-0 flex w-full items-center justify-between border-0 bg-transparent p-0 py-2.5 text-left shadow-none [font:inherit]"
 
       >
 
@@ -196,7 +196,11 @@ function GruppoRateCollassabile({
 
       </button>
 
-      {aperto ? rate.map((rata) => {
+      {aperto ? (
+
+        <div>
+
+          {rate.map((rata) => {
 
         const index = rateOrdinate.findIndex((r) => r.id === rata.id);
 
@@ -236,7 +240,11 @@ function GruppoRateCollassabile({
 
         );
 
-      }) : null}
+      })}
+
+        </div>
+
+      ) : null}
 
     </div>
 
@@ -342,7 +350,7 @@ export default function PianoEspanso({
 
   return (
 
-    <div className={`space-y-3 pb-28 pl-1 ${className}`.trim()}>
+    <div className={`space-y-2.5 px-4 pb-4 pt-3 ${className}`.trim()}>
 
       <div className="h-2 overflow-hidden rounded-full bg-black/5">
 
@@ -358,29 +366,29 @@ export default function PianoEspanso({
 
 
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
 
-        <div className="rounded-xl border border-black/10 bg-white px-3 py-2.5 text-center">
+        <div className="rounded-lg bg-brand-bg px-2 py-2 text-center">
 
           <p className="text-[10px] font-semibold tracking-wide text-brand-navy/50 uppercase">Totale</p>
 
-          <p className="mt-1 text-sm font-bold text-brand-navy">€{formatImportoEuro(importoPiano, 2)}</p>
+          <p className="mt-0.5 text-sm font-bold text-brand-navy">€{formatImportoEuro(importoPiano, 2)}</p>
 
         </div>
 
-        <div className="rounded-xl border border-black/10 bg-white px-3 py-2.5 text-center">
+        <div className="rounded-lg bg-brand-bg px-2 py-2 text-center">
 
           <p className="text-[10px] font-semibold tracking-wide text-brand-navy/50 uppercase">Incassato</p>
 
-          <p className="mt-1 text-sm font-bold text-brand-teal">€{formatImportoEuro(analisi.importoRaccolto, 2)}</p>
+          <p className="mt-0.5 text-sm font-bold text-brand-teal">€{formatImportoEuro(analisi.importoRaccolto, 2)}</p>
 
         </div>
 
-        <div className="rounded-xl border border-black/10 bg-white px-3 py-2.5 text-center">
+        <div className="rounded-lg bg-brand-bg px-2 py-2 text-center">
 
           <p className="text-[10px] font-semibold tracking-wide text-brand-navy/50 uppercase">Residuo</p>
 
-          <p className="mt-1 text-sm font-bold text-brand-navy">€{formatImportoEuro(analisi.residuo, 2)}</p>
+          <p className="mt-0.5 text-sm font-bold text-brand-navy">€{formatImportoEuro(analisi.residuo, 2)}</p>
 
         </div>
 
@@ -388,13 +396,15 @@ export default function PianoEspanso({
 
 
 
-      <PreventivoMadreLink preventivo={preventivoMadre} onPress={onApriPreventivoMadre} />
+      <PreventivoMadreLink preventivo={preventivoMadre} onPress={onApriPreventivoMadre} embedded />
 
 
 
       {mode === "byCalendario" && partizioneCalendario ? (
 
         <>
+
+          <div className="border-t border-black/5 pt-2.5">
 
           {partizioneCalendario.corrente ? (
 
@@ -418,7 +428,7 @@ export default function PianoEspanso({
 
               onClick={onAggiungiCanone}
 
-              className="w-full rounded-xl border border-black/10 bg-brand-bg py-2.5 text-sm font-medium text-brand-teal"
+              className="w-full rounded-lg bg-brand-bg py-2.5 text-sm font-medium text-brand-teal"
 
             >
 
@@ -427,6 +437,8 @@ export default function PianoEspanso({
             </button>
 
           ) : null}
+
+          </div>
 
 
 
@@ -470,7 +482,7 @@ export default function PianoEspanso({
 
           {onAggiungiCanone ? (
 
-            <button type="button" onClick={onAggiungiCanone} className="w-full py-2 text-sm font-medium text-brand-teal">
+            <button type="button" onClick={onAggiungiCanone} className="w-full border-t border-black/5 py-2.5 text-sm font-medium text-brand-teal">
 
               + Aggiungi canone (mese/anno)
 
