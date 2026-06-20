@@ -1,4 +1,4 @@
-﻿import { supabase } from "./supabase";
+import { supabase } from "./supabase";
 import { queryConFiltroCestino } from "preventivoai-shared";
 
 type RataRow = {

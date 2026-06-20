@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { Navigate } from "react-router";
 import { useAuth } from "../app/useAuth";

@@ -1,4 +1,4 @@
-﻿import { formatImportoEuroVisuale } from "preventivoai-shared";
+import { formatImportoEuroVisuale } from "preventivoai-shared";
 
 export const statoStile: Record<string, string> = {
   bozza: "bg-gray-100 text-gray-600",

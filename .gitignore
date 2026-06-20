@@ -27,3 +27,4 @@ src-tauri/target
 *.key
 *.key.pub
 latest.json
+.expo/
