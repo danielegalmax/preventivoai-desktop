@@ -8,7 +8,7 @@ import {
   calcolaAccontoSaldoPiano,
   type RateAccontoTipo,
   type RateModalitaPiano,
-} from "../../lib/calcolaAccontoSaldoPiano";
+} from "preventivoai-shared";
 
 type ModalShellProps = {
   title: string;

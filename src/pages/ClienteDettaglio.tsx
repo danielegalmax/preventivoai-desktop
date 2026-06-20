@@ -14,12 +14,7 @@ import { messaggioEliminaPiano } from "../lib/confermeElimina";
 import { useConfirmDialog } from "../lib/hooks/useConfirmDialog";
 import { useAnnullaSelezioneOnEscape } from "../lib/hooks/useAnnullaSelezioneOnEscape";
 import { useAbbonamento } from "../lib/hooks/useAbbonamento";
-import { parseImportoEuro } from "preventivoai-shared";
-import {
-  calcolaAccontoSaldoPiano,
-  type RateAccontoTipo,
-  type RateModalitaPiano,
-} from "../lib/calcolaAccontoSaldoPiano";
+import { parseImportoEuro, calcolaAccontoSaldoPiano, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
 import { caricaMetodiPagamento, type MetodoPagamento } from "../lib/pagamenti";
 import { supabase } from "../lib/supabase";
 import type { Cliente, Preventivo, RataAbbonamento } from "../lib/types";

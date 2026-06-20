@@ -1,3 +1,4 @@
+import type { RateAccontoTipo, RateModalitaPiano } from "preventivoai-shared";
 import { supabase } from "./supabase";
 import { erroreColonnaDeletedAt } from "preventivoai-shared";
 import { creaLinkPagamento } from "./pdf";
@@ -74,6 +75,7 @@ export async function creaPianoRateDaPreventivo(params: {
   numeroRateRaw: string;
   giornoScadenzaRaw: string;
   meseInizioRaw: string;
+  importiPersonalizzati?: number[];
 }) {
   return creaPianoRateCore(preventivoPianiDb, params);
 }
@@ -91,6 +93,9 @@ type TestoConPagamentoParams = {
   rateNumero?: number;
   rateGiornoScadenza?: number;
   rateMeseInizio?: number;
+  rateModalita?: RateModalitaPiano;
+  rateAccontoTipo?: RateAccontoTipo;
+  rateAccontoValore?: string;
   metodoPagamento: MetodoPagamento | null;
   token: string;
 };

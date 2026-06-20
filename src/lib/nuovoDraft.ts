@@ -1,6 +1,7 @@
 import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";
+import type { RateAccontoTipo, RateModalitaPiano } from "preventivoai-shared";
 
 const CHAT_KEY = "preventivoai-nuovo-chat";
 const MANUALE_KEY = "preventivoai-nuovo-manuale";
@@ -41,6 +42,9 @@ export type NuovoManualeDraft = {
   rateGiornoScadenza: string;
   rateMeseInizio: string;
   rateVisibileNelPDF: boolean;
+  rateModalita: RateModalitaPiano;
+  rateAccontoTipo: RateAccontoTipo;
+  rateAccontoValore: string;
 };
 
 function load<T>(key: string): T | null {

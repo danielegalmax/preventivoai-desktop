@@ -18,9 +18,8 @@ import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
 import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
 import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale } from "../lib/pdf";
-import { importoDaTesto } from "preventivoai-shared";
+import { calcolaAccontoSaldoPiano, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
 import { confermaPagamentoEsclusivo } from "../lib/confermaPagamentoEsclusivo";
-import { meseCorrenteString, validaPianiPagamento } from "preventivoai-shared";
 import {
   creaAbbonamentoDaPreventivo,
   creaPianoRateDaPreventivo,
@@ -161,6 +160,15 @@ export default function Nuovo({ mode }: Props) {
   const [rateVisibileNelPDF, setRateVisibileNelPDF] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.rateVisibileNelPDF : undefined) ?? true,
   );
+  const [rateModalita, setRateModalita] = useState<RateModalitaPiano>(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.rateModalita : undefined) ?? "rate_uguali",
+  );
+  const [rateAccontoTipo, setRateAccontoTipo] = useState<RateAccontoTipo>(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.rateAccontoTipo : undefined) ?? "fisso",
+  );
+  const [rateAccontoValore, setRateAccontoValore] = useState(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.rateAccontoValore : undefined) ?? "",
+  );
 
   const [clienti, setClienti] = useState<{ id: string; nome: string }[]>([]);
   const [clienteSelezionatoId, setClienteSelezionatoId] = useState(() => {
@@ -227,6 +235,9 @@ export default function Nuovo({ mode }: Props) {
       rateGiornoScadenza,
       rateMeseInizio,
       rateVisibileNelPDF,
+      rateModalita,
+      rateAccontoTipo,
+      rateAccontoValore,
       ...override,
     };
   }
@@ -321,6 +332,9 @@ export default function Nuovo({ mode }: Props) {
     rateGiornoScadenza,
     rateMeseInizio,
     rateVisibileNelPDF,
+    rateModalita,
+    rateAccontoTipo,
+    rateAccontoValore,
     inModifica,
   ]);
 
@@ -441,6 +455,9 @@ export default function Nuovo({ mode }: Props) {
     rateNumero,
     rateGiornoScadenza,
     rateMeseInizio,
+    rateModalita,
+    rateAccontoTipo,
+    rateAccontoValore,
     metodoPagamentoSelezionato,
     totaleConIva,
     versionePadreId,
@@ -498,6 +515,9 @@ export default function Nuovo({ mode }: Props) {
       rateNumero: parseInt(rateNumero, 10) || 0,
       rateGiornoScadenza: parseInt(rateGiornoScadenza, 10) || 0,
       rateMeseInizio: parseInt(rateMeseInizio, 10) || 0,
+      rateModalita,
+      rateAccontoTipo,
+      rateAccontoValore,
       metodoPagamento: metodoPagamentoSelezionato,
       token,
     });
@@ -525,13 +545,20 @@ export default function Nuovo({ mode }: Props) {
       const importoRate = mode === "manuale"
         ? totaleConIva
         : (importoDaTesto(preventivo) || 0);
+      const accontoSaldo =
+        rateModalita === "acconto_saldo"
+          ? calcolaAccontoSaldoPiano(importoRate, rateAccontoTipo, rateAccontoValore)
+          : null;
       const r = await creaPianoRateDaPreventivo({
         cliente,
         preventivoId,
         importoTotale: importoRate,
-        numeroRateRaw: rateNumero,
+        numeroRateRaw: rateModalita === "acconto_saldo" ? "2" : rateNumero,
         giornoScadenzaRaw: rateGiornoScadenza,
         meseInizioRaw: rateMeseInizio,
+        ...(accontoSaldo
+          ? { importiPersonalizzati: [accontoSaldo.acconto, accontoSaldo.saldo] }
+          : {}),
       });
       if (r.esistente) {
         window.alert("Questo preventivo ha già un piano a rate collegato. Gestiscilo dalla cartella cliente.");
@@ -782,6 +809,10 @@ export default function Nuovo({ mode }: Props) {
       rateMeseInizio,
       abGiorno,
       abMeseInizio,
+      rateModalita,
+      rateAccontoTipo,
+      rateAccontoValore,
+      rateImportoTotale: totaleConIva,
     });
     if (errPiani) {
       setErrore(errPiani);
@@ -842,6 +873,10 @@ export default function Nuovo({ mode }: Props) {
       rateMeseInizio,
       abGiorno,
       abMeseInizio,
+      rateModalita,
+      rateAccontoTipo,
+      rateAccontoValore,
+      rateImportoTotale: importoAnteprima,
     });
     if (errPiani) {
       setErrore(errPiani);
@@ -1159,12 +1194,18 @@ export default function Nuovo({ mode }: Props) {
 
           <BuilderPagamentoRateCard
             attivo={pagamentoRateAttivo}
+            modalita={rateModalita}
+            accontoTipo={rateAccontoTipo}
+            accontoValore={rateAccontoValore}
             numeroRate={rateNumero}
             giornoScadenza={rateGiornoScadenza}
             meseInizio={rateMeseInizio}
             visibileNelPDF={rateVisibileNelPDF}
             importoTotale={totaleConIva}
             onChangeAttivo={onChangePagamentoRateAttivo}
+            onChangeModalita={setRateModalita}
+            onChangeAccontoTipo={setRateAccontoTipo}
+            onChangeAccontoValore={setRateAccontoValore}
             onChangeNumeroRate={setRateNumero}
             onChangeGiornoScadenza={setRateGiornoScadenza}
             onChangeMeseInizio={setRateMeseInizio}
@@ -1255,12 +1296,18 @@ export default function Nuovo({ mode }: Props) {
 
                 <BuilderPagamentoRateCard
                   attivo={pagamentoRateAttivo}
+                  modalita={rateModalita}
+                  accontoTipo={rateAccontoTipo}
+                  accontoValore={rateAccontoValore}
                   numeroRate={rateNumero}
                   giornoScadenza={rateGiornoScadenza}
                   meseInizio={rateMeseInizio}
                   visibileNelPDF={rateVisibileNelPDF}
                   importoTotale={importoAnteprima}
                   onChangeAttivo={onChangePagamentoRateAttivo}
+                  onChangeModalita={setRateModalita}
+                  onChangeAccontoTipo={setRateAccontoTipo}
+                  onChangeAccontoValore={setRateAccontoValore}
                   onChangeNumeroRate={setRateNumero}
                   onChangeGiornoScadenza={setRateGiornoScadenza}
                   onChangeMeseInizio={setRateMeseInizio}
