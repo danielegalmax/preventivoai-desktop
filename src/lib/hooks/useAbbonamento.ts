@@ -321,12 +321,33 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     }
   }
 
-  async function aggiornaAbbonamento(abbonamentoId: string, importo: number, giornoScadenza: number) {
+  async function aggiornaAbbonamento(
+    abbonamentoId: string,
+    importo: number,
+    giornoScadenza: number,
+    applicaEsistenti = false,
+  ) {
     const { error } = await supabase
       .from("abbonamenti")
       .update({ importo_default: importo, giorno_scadenza: giornoScadenza })
       .eq("id", abbonamentoId);
     if (error) { alertErrore("Errore", error.message); return; }
+
+    if (applicaEsistenti) {
+      const { error: rateError } = await supabase
+        .from("rate_abbonamento")
+        .update({ importo })
+        .eq("abbonamento_id", abbonamentoId)
+        .neq("stato", "incassato");
+      if (rateError) { alertErrore("Errore", rateError.message); return; }
+      aggiornaRatePiano(abbonamentoId, (rs) =>
+        rs.map((x) => {
+          if (x.stato === "incassato") return x;
+          return { ...x, importo, saldo_residuo: importo - (x.acconto || 0) };
+        }),
+      );
+    }
+
     setAbbonamentiAttivi((lista) =>
       lista.map((a) => a.id === abbonamentoId
         ? { ...a, importo_default: importo, giorno_scadenza: giornoScadenza }

@@ -48,6 +48,7 @@ export default function ClienteDettaglio() {
   const [mostraModalNuovoAb, setMostraModalNuovoAb] = useState(false);
   const [mostraModalNuovoRate, setMostraModalNuovoRate] = useState(false);
   const [mostraModalModificaAb, setMostraModalModificaAb] = useState(false);
+  const [mostraSceltaApplicaCanone, setMostraSceltaApplicaCanone] = useState(false);
   const [mostraModalRinominaAb, setMostraModalRinominaAb] = useState(false);
   const [mostraModalAggiungiRata, setMostraModalAggiungiRata] = useState(false);
   const [abImporto, setAbImporto] = useState("");
@@ -239,10 +240,28 @@ export default function ClienteDettaglio() {
 
   async function salvaModificaAbbonamento() {
     if (!abbonamentoSelezionatoId) return;
+    const ab = abbonamentoCanone.abbonamentiAttivi.find((a) => a.id === abbonamentoSelezionatoId);
+    if (!ab) return;
     const importo = parseImportoEuro(abImporto);
     const giorno = parseInt(abGiorno, 10);
     if (!importo || importo <= 0) { window.alert("Inserisci un importo valido"); return; }
-    await abbonamentoCanone.aggiornaAbbonamento(abbonamentoSelezionatoId, importo, giorno);
+    const importoNormalizzato = Math.round(importo * 100) / 100;
+    const importoOriginale = Math.round(Number(ab.importo_default) * 100) / 100;
+    if (importoNormalizzato === importoOriginale) {
+      await abbonamentoCanone.aggiornaAbbonamento(abbonamentoSelezionatoId, importo, giorno);
+      setMostraModalModificaAb(false);
+      return;
+    }
+    setMostraSceltaApplicaCanone(true);
+  }
+
+  async function confermaModificaAbbonamento(applicaEsistenti: boolean) {
+    if (!abbonamentoSelezionatoId) return;
+    const importo = parseImportoEuro(abImporto);
+    const giorno = parseInt(abGiorno, 10);
+    if (!importo || importo <= 0) return;
+    await abbonamentoCanone.aggiornaAbbonamento(abbonamentoSelezionatoId, importo, giorno, applicaEsistenti);
+    setMostraSceltaApplicaCanone(false);
     setMostraModalModificaAb(false);
   }
 
@@ -585,8 +604,15 @@ export default function ClienteDettaglio() {
         onSelectPreventivoRate={selezionaPreventivoRate}
         onCreaPianoRate={() => void salvaNuovoPianoRate()}
         mostraModifica={mostraModalModificaAb}
-        onCloseModifica={() => setMostraModalModificaAb(false)}
+        onCloseModifica={() => {
+          setMostraSceltaApplicaCanone(false);
+          setMostraModalModificaAb(false);
+        }}
         onAggiornaAbbonamento={() => void salvaModificaAbbonamento()}
+        mostraSceltaApplicaCanone={mostraSceltaApplicaCanone}
+        onCloseSceltaApplicaCanone={() => setMostraSceltaApplicaCanone(false)}
+        onApplicaSoloProssimiCanoni={() => void confermaModificaAbbonamento(false)}
+        onApplicaAncheCanoniEsistenti={() => void confermaModificaAbbonamento(true)}
         rataSelezionata={rataSelezionata}
         onCloseRata={() => setRataSelezionata(null)}
         rataImporto={rataImporto}

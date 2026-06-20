@@ -9,9 +9,10 @@ type ModalShellProps = {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  zClass?: string;
 };
 
-function ModalShell({ title, onClose, children }: ModalShellProps) {
+function ModalShell({ title, onClose, children, zClass = "z-50" }: ModalShellProps) {
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   function handleBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
@@ -28,7 +29,7 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className={`fixed inset-0 ${zClass} flex items-center justify-center bg-black/40 p-4`}
       onMouseDown={handleBackdropMouseDown}
       onMouseUp={handleBackdropMouseUp}
     >
@@ -88,6 +89,10 @@ type Props = {
   mostraModifica: boolean;
   onCloseModifica: () => void;
   onAggiornaAbbonamento: () => void;
+  mostraSceltaApplicaCanone: boolean;
+  onCloseSceltaApplicaCanone: () => void;
+  onApplicaSoloProssimiCanoni: () => void;
+  onApplicaAncheCanoniEsistenti: () => void;
 
   rataSelezionata: RataAbbonamento | null;
   onCloseRata: () => void;
@@ -146,6 +151,10 @@ export default function ClienteAbbonamentoModals({
   mostraModifica,
   onCloseModifica,
   onAggiornaAbbonamento,
+  mostraSceltaApplicaCanone,
+  onCloseSceltaApplicaCanone,
+  onApplicaSoloProssimiCanoni,
+  onApplicaAncheCanoniEsistenti,
   rataSelezionata,
   onCloseRata,
   rataImporto,
@@ -247,6 +256,32 @@ export default function ClienteAbbonamentoModals({
             Salva
           </button>
           <button type="button" onClick={onCloseModifica} className="w-full py-2 text-sm text-brand-navy/50">Annulla</button>
+        </ModalShell>
+      ) : null}
+
+      {mostraSceltaApplicaCanone ? (
+        <ModalShell title="Applica nuovo importo" onClose={onCloseSceltaApplicaCanone} zClass="z-[60]">
+          <p className="text-sm leading-relaxed text-brand-navy/70">
+            Stai modificando l&apos;importo del canone. I canoni già incassati non vengono mai modificati.
+            Come vuoi applicare il nuovo importo?
+          </p>
+          <button
+            type="button"
+            onClick={onApplicaSoloProssimiCanoni}
+            className="w-full rounded-xl border border-brand-teal py-3 text-sm font-semibold text-brand-teal"
+          >
+            Applica solo ai prossimi canoni
+          </button>
+          <button
+            type="button"
+            onClick={onApplicaAncheCanoniEsistenti}
+            className="w-full rounded-xl bg-brand-navy py-3 text-sm font-semibold text-white"
+          >
+            Applica anche ai canoni già generati
+          </button>
+          <button type="button" onClick={onCloseSceltaApplicaCanone} className="w-full py-2 text-sm text-brand-navy/50">
+            Annulla
+          </button>
         </ModalShell>
       ) : null}
 
