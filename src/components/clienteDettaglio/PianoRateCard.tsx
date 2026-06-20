@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { MESI_BREVI, MESI_FULL } from "../../lib/constants";
-import { messaggioEliminaPiano } from "../../lib/confermeElimina";
+import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
 import { formatImportoEuro, parseImportoEuro, ricalcolaImportiRateLibere } from "preventivoai-shared";
@@ -40,6 +40,7 @@ type RataRowProps = {
   onOpenPagamento: (rata: RataAbbonamento) => void;
   onAzzeraPagamento: (rataId: string) => void;
   onReminder: () => void;
+  onElimina: () => void;
 };
 
 function RataRow({
@@ -52,6 +53,7 @@ function RataRow({
   onOpenPagamento,
   onAzzeraPagamento,
   onReminder,
+  onElimina,
 }: RataRowProps) {
   const badge = badgeRata(rata.stato);
   const pagata = rata.stato === "incassato";
@@ -116,6 +118,13 @@ function RataRow({
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={onElimina}
+            className="w-full rounded-xl border border-red-200 py-2 text-sm font-medium text-red-600"
+          >
+            Elimina
+          </button>
         </div>
       ) : null}
     </div>
@@ -132,6 +141,7 @@ export type PianoRateCardProps = {
   onPianoAggiornato?: () => void | Promise<void>;
   onOpenPagamento: (rata: RataAbbonamento) => void;
   onAzzeraPagamento: (rataId: string) => void;
+  eliminaRate: (rataIds: string[]) => Promise<boolean>;
   modificaImportoPianoRate: (abbonamentoId: string, importo: number) => Promise<boolean>;
   salvaImportiRatePersonalizzati: (abbonamentoId: string, importi: Record<string, number>) => Promise<boolean>;
   eliminaAbbonamento: (abbonamentoId: string) => Promise<void>;
@@ -151,6 +161,7 @@ export default function PianoRateCard({
   onPianoAggiornato,
   onOpenPagamento,
   onAzzeraPagamento,
+  eliminaRate,
   modificaImportoPianoRate,
   salvaImportiRatePersonalizzati,
   eliminaAbbonamento,
@@ -178,11 +189,6 @@ export default function PianoRateCard({
   const rateStorico = useMemo(() => rateOrdinate.filter((r) => r.stato === "incassato"), [rateOrdinate]);
   const ratePagate = rateStorico.length;
   const importoPiano = rate.reduce((a, r) => a + r.importo, 0);
-  const importoRaccolto = useMemo(() => {
-    const incassato = rate.filter((r) => r.stato === "incassato").reduce((a, r) => a + r.importo, 0);
-    const parziale = rate.filter((r) => r.stato === "parziale").reduce((a, r) => a + (r.acconto || 0), 0);
-    return incassato + parziale;
-  }, [rate]);
   const analisi = useMemo(() => analizzaStatoPiano(abbonamento, rate), [abbonamento, rate]);
   const defaultNome = `Piano a rate N.${indice + 1}`;
   const prossima = rateFuture[0];
@@ -311,6 +317,20 @@ export default function PianoRateCard({
     setModificaImporto(false);
     setPersonalizzaRate(false);
     setPianoEspanso(false);
+  }
+
+  async function handleEliminaRata(rata: RataAbbonamento) {
+    const { titolo, messaggio } = messaggioEliminaRata(rata, "rate");
+    const ok = await confirm({
+      title: titolo,
+      message: messaggio,
+      confirmLabel: "Elimina",
+      cancelLabel: "Annulla",
+      destructive: true,
+    });
+    if (!ok) return;
+    await eliminaRate([rata.id]);
+    setRataMiniAperta((id) => (id === rata.id ? null : id));
   }
 
   function renderAzioniPiano() {
@@ -458,8 +478,8 @@ export default function PianoRateCard({
             </div>
             <p className="mt-1 text-sm text-brand-navy/70">
               {analisi.concluso
-                ? `${rate.length}/${rate.length} rate pagate · €${formatImportoEuro(importoRaccolto, 2)} raccolti`
-                : `${ratePagate}/${rate.length} rate pagate · €${formatImportoEuro(importoRaccolto, 2)} su €${formatImportoEuro(importoPiano, 2)}`}
+                ? `${rate.length}/${rate.length} rate pagate · €${formatImportoEuro(analisi.importoRaccolto, 2)} raccolti`
+                : `${ratePagate}/${rate.length} rate pagate · €${formatImportoEuro(analisi.importoRaccolto, 2)} su €${formatImportoEuro(importoPiano, 2)}`}
             </p>
             {analisi.sottotitolo ? (
               <p className={`mt-1 text-xs ${analisi.concluso ? "font-medium text-emerald-700" : "text-brand-navy/40"}`}>
@@ -524,6 +544,7 @@ export default function PianoRateCard({
                     onOpenPagamento={onOpenPagamento}
                     onAzzeraPagamento={onAzzeraPagamento}
                     onReminder={() => void inviaReminder(rata)}
+                    onElimina={() => void handleEliminaRata(rata)}
                   />
                 );
               }) : null}
@@ -556,6 +577,7 @@ export default function PianoRateCard({
                     onOpenPagamento={onOpenPagamento}
                     onAzzeraPagamento={onAzzeraPagamento}
                     onReminder={() => void inviaReminder(rata)}
+                    onElimina={() => void handleEliminaRata(rata)}
                   />
                 );
               }) : null}

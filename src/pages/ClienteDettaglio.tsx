@@ -474,6 +474,7 @@ export default function ClienteDettaglio() {
             onPianoAggiornato={aggiornaCollegamentiPiano}
             onOpenPagamento={apriModalPagamento}
             onAzzeraPagamento={abbonamentoRate.azzeraPagamento}
+            eliminaRate={abbonamentoRate.eliminaRate}
             modificaImportoPianoRate={abbonamentoRate.modificaImportoPianoRate}
             salvaImportiRatePersonalizzati={abbonamentoRate.salvaImportiRatePersonalizzati}
             eliminaAbbonamento={abbonamentoRate.eliminaAbbonamento}
@@ -512,6 +513,7 @@ export default function ClienteDettaglio() {
             onOpenAddRata={apriModalAggiungiRata}
             onOpenPagamento={apriModalPagamento}
             onAzzeraPagamento={abbonamentoCanone.azzeraPagamento}
+            eliminaRate={abbonamentoCanone.eliminaRate}
             onEditCanone={(abbonamentoId) => {
               const ab = abbonamentoCanone.abbonamentiAttivi.find((a) => a.id === abbonamentoId);
               if (!ab) return;

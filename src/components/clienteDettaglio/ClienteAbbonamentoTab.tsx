@@ -1,6 +1,6 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { MESI_BREVI, MESI_FULL } from "../../lib/constants";
-import { messaggioEliminaPiano } from "../../lib/confermeElimina";
+import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
 import { formatImportoEuro } from "preventivoai-shared";
@@ -27,6 +27,7 @@ type Props = {
   onOpenAddRata: (abbonamentoId: string) => void;
   onOpenPagamento: (rata: RataAbbonamento) => void;
   onAzzeraPagamento: (rataId: string) => void;
+  eliminaRate: (rataIds: string[]) => Promise<boolean>;
   onEditCanone: (abbonamentoId: string) => void;
   onDeleteAbbonamento: (abbonamentoId: string) => void;
   selezionePianoAttiva: boolean;
@@ -66,6 +67,7 @@ type PianoCardProps = {
   onOpenPagamento: (rata: RataAbbonamento) => void;
   onSendReminder: (rata: RataAbbonamento) => void;
   onAzzeraPagamento: (rataId: string) => void;
+  onEliminaRata: (rata: RataAbbonamento) => Promise<void>;
   onEditCanone: () => void;
   onDeleteAbbonamento: () => void;
   selezionePianoAttiva: boolean;
@@ -89,6 +91,7 @@ function AbbonamentoPianoCard({
   onOpenPagamento,
   onSendReminder,
   onAzzeraPagamento,
+  onEliminaRata,
   onEditCanone,
   onDeleteAbbonamento,
   selezionePianoAttiva,
@@ -105,16 +108,13 @@ function AbbonamentoPianoCard({
     [rateStoriche],
   );
   const analisi = useMemo(() => analizzaStatoPiano(abbonamento, rate), [abbonamento, rate]);
-  const importoRaccolto = useMemo(
-    () => rate.reduce((a, r) => {
-      if (r.stato === "incassato") return a + r.importo;
-      if (r.stato === "parziale") return a + (r.acconto || 0);
-      return a;
-    }, 0),
-    [rate],
-  );
   const badgeCorrente = rataMeseCorrente ? badgeCanone(rataMeseCorrente.stato) : null;
   const defaultNome = `Abbonamento N.${indice + 1}`;
+
+  async function eliminaRataDaDettaglio(rata: RataAbbonamento) {
+    await onEliminaRata(rata);
+    setRataMiniAperta((id) => (id === rata.id ? null : id));
+  }
 
   function renderRataDetail(rata: RataAbbonamento) {
     return (
@@ -158,6 +158,13 @@ function AbbonamentoPianoCard({
             </button>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => void eliminaRataDaDettaglio(rata)}
+          className="w-full rounded-xl border border-red-200 py-2 text-sm font-medium text-red-600"
+        >
+          Elimina
+        </button>
       </div>
     );
   }
@@ -196,15 +203,15 @@ function AbbonamentoPianoCard({
             </div>
             <p className="mt-1 text-xs text-brand-navy/50">
               {analisi.concluso
-                ? `Canone completato · €${formatImportoEuro(importoRaccolto, 2)} incassati`
+                ? `Canone completato · €${formatImportoEuro(analisi.importoRaccolto, 2)} incassati`
                 : `Canone mensile · €${formatImportoEuro(abbonamento.importo_default, 2)}/mese · giorno ${abbonamento.giorno_scadenza}`}
             </p>
             {analisi.sottotitolo ? (
               <p className={`mt-1 text-xs ${analisi.concluso ? "font-medium text-emerald-700" : "text-brand-teal"}`}>
                 {analisi.sottotitolo}
               </p>
-            ) : importoRaccolto > 0 && !analisi.concluso ? (
-              <p className="mt-1 text-xs font-medium text-brand-teal">€{formatImportoEuro(importoRaccolto, 2)} incassati</p>
+            ) : analisi.importoRaccolto > 0 && !analisi.concluso ? (
+              <p className="mt-1 text-xs font-medium text-brand-teal">€{formatImportoEuro(analisi.importoRaccolto, 2)} incassati</p>
             ) : null}
           </div>
           {!selezionePianoAttiva ? (
@@ -309,6 +316,7 @@ export default function ClienteAbbonamentoTab({
   onOpenAddRata,
   onOpenPagamento,
   onAzzeraPagamento,
+  eliminaRate,
   onEditCanone,
   onDeleteAbbonamento,
   selezionePianoAttiva,
@@ -338,6 +346,19 @@ export default function ClienteAbbonamentoTab({
       pianoEspansoId === abbonamentoId
       || (pianoEspansoId === null && pianiAttivi[0]?.id === abbonamentoId);
     setPianoEspansoId(espansoOra ? "" : abbonamentoId);
+  }
+
+  async function handleEliminaRata(rata: RataAbbonamento) {
+    const { titolo, messaggio } = messaggioEliminaRata(rata, "canone");
+    const ok = await confirm({
+      title: titolo,
+      message: messaggio,
+      confirmLabel: "Elimina",
+      cancelLabel: "Annulla",
+      destructive: true,
+    });
+    if (!ok) return;
+    await eliminaRate([rata.id]);
   }
 
   async function inviaReminder(rata: RataAbbonamento) {
@@ -395,6 +416,7 @@ export default function ClienteAbbonamentoTab({
         onOpenPagamento={onOpenPagamento}
         onSendReminder={(r) => void inviaReminder(r)}
         onAzzeraPagamento={onAzzeraPagamento}
+        onEliminaRata={handleEliminaRata}
         onEditCanone={() => onEditCanone(abbonamento.id)}
         onDeleteAbbonamento={async () => {
           const ok = await confirm({
