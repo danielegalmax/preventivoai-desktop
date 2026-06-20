@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import PageContainer from "../components/PageContainer";
+import ToggleSwitch from "../components/ToggleSwitch";
 import { useSegnalazioneFeedback } from "../components/SegnalazioneProvider";
+import { sonoNotificheAbilitate, setNotificheAbilitate } from "../lib/notifications";
 import {
   aggiornaPasswordAccount,
   caricaProfiloUtente,
@@ -28,6 +30,7 @@ export default function Profilo() {
 
   const [errore, setErrore] = useState("");
   const [messaggio, setMessaggio] = useState("");
+  const [notificheOs, setNotificheOs] = useState(() => sonoNotificheAbilitate());
 
   const iniziale = useMemo(() => (nomeAzienda?.trim()?.charAt(0)?.toUpperCase() || "?"), [nomeAzienda]);
 
@@ -280,10 +283,21 @@ export default function Profilo() {
       </div>
 
       <div className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold text-brand-navy">Notifiche</p>
-        <p className="mt-2 text-sm text-brand-navy/60">
-          Su desktop le notifiche push non sono ancora disponibili. (Su mobile sono i promemoria e gli aggiornamenti.)
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-brand-navy">Notifiche</p>
+            <p className="mt-1 text-sm text-brand-navy/60">
+              Ricevi un avviso del sistema operativo quando arriva una nuova notifica.
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={notificheOs}
+            onChange={(checked) => {
+              setNotificheAbilitate(checked);
+              setNotificheOs(checked);
+            }}
+          />
+        </div>
       </div>
 
       <div className="mt-3 rounded-2xl bg-white p-5 shadow-sm">

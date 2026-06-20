@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
 import { supabase } from "./supabase";
+import { isDesktopApp } from "./appSettings";
+import { sonoNotificheAbilitate } from "./notifications";
 
 export type Notifica = {
   id: string;
-  tipo: "firma_ricevuta" | "reminder_firma";
+  tipo: "firma_ricevuta" | "reminder_firma" | "rata_in_scadenza" | "pagamento_ricevuto" | string;
   preventivo_id: string | null;
   invio_id: string | null;
   titolo: string;
@@ -22,6 +25,38 @@ export type Notifica = {
 };
 
 const ORE_RIMANDA_DEFAULT = 24;
+
+function titoloNotificaDaTipo(tipo: string) {
+  const map: Record<string, string> = {
+    firma_ricevuta: "Preventivo firmato",
+    reminder_firma: "Promemoria firma",
+    rata_in_scadenza: "Rata in scadenza",
+    pagamento_ricevuto: "Pagamento ricevuto",
+  };
+  return map[tipo] || "Notifica";
+}
+
+async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | undefined) {
+  if (!isDesktopApp()) return;
+  if (!sonoNotificheAbilitate()) return;
+  if (!n) return;
+  const body = typeof n.messaggio === "string" ? n.messaggio : "";
+  if (!body) return;
+  try {
+    const granted = await isPermissionGranted();
+    if (!granted) return;
+    const title = typeof n.titolo === "string" && n.titolo.trim()
+      ? n.titolo.trim()
+      : titoloNotificaDaTipo(String(n.tipo || ""));
+    console.log("[notifiche-os] tentativo invio", {
+      abilitate: sonoNotificheAbilitate(),
+      granted: await isPermissionGranted(),
+    });
+    sendNotification({ title, body });
+  } catch (e) {
+    console.error("[notifiche-os] errore:", e);
+  }
+}
 
 export function notificaInRimando(n: Notifica, now = Date.now()) {
   if (!n.snooze_until) return false;
@@ -115,8 +150,11 @@ export function useNotifiche() {
       .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifiche" },
-        () => { void ricaricaRef.current(); },
+        { event: "INSERT", schema: "public", table: "notifiche" },
+        (payload) => {
+          void ricaricaRef.current();
+          void mostraNotificaOsSePossibile((payload as { new?: Partial<Notifica> }).new);
+        },
       )
       .subscribe();
 
