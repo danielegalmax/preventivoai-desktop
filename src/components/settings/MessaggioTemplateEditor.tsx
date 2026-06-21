@@ -3,10 +3,11 @@ import {
   MESSAGGI_VARIABILI,
   inserisciVariabileMessaggio,
   parseMessaggioSegmenti,
-  proteggiModificaMessaggio,
   serializzaMessaggioSegmenti,
+  variabileBloccataInTemplate,
   type TipoMessaggioCliente,
 } from "preventivoai-shared";
+import MessaggioMultilineChipEditor from "./MessaggioMultilineChipEditor";
 
 type Props = {
   tipo: TipoMessaggioCliente;
@@ -25,6 +26,8 @@ export default function MessaggioTemplateEditor({ tipo, value, onChange, multili
   }
 
   function rimuoviVariabile(index: number) {
+    const seg = segments[index];
+    if (seg?.type === "var" && variabileBloccataInTemplate(value, tipo, seg.name)) return;
     onChange(serializzaMessaggioSegmenti(segments.filter((_, i) => i !== index)));
   }
 
@@ -49,8 +52,16 @@ export default function MessaggioTemplateEditor({ tipo, value, onChange, multili
                 key={`v-${i}`}
                 type="button"
                 onClick={() => rimuoviVariabile(i)}
-                className="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700"
-                title="Rimuovi variabile"
+                className={
+                  variabileBloccataInTemplate(value, tipo, seg.name)
+                    ? "rounded-md border border-brand-teal/30 bg-brand-teal/10 px-2 py-0.5 text-xs font-semibold text-brand-teal"
+                    : "rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700"
+                }
+                title={
+                  variabileBloccataInTemplate(value, tipo, seg.name)
+                    ? "Variabile bloccata"
+                    : "Rimuovi variabile"
+                }
               >
                 {`{${seg.name}}`}
               </button>
@@ -63,30 +74,12 @@ export default function MessaggioTemplateEditor({ tipo, value, onChange, multili
   }
 
   return (
-    <div className="space-y-2">
-      <textarea
-        value={value}
-        onChange={(e) => onChange(proteggiModificaMessaggio(value, e.target.value, variabili))}
-        rows={6}
-        className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
-      />
-      <VariabiliInTesto value={value} variabili={variabili} />
-      <VariabiliBar variabili={variabili} value={value} onInsert={inserisci} />
-    </div>
-  );
-}
-
-function VariabiliInTesto({ value, variabili }: { value: string; variabili: string[] }) {
-  const presenti = variabili.filter((v) => value.includes(v));
-  if (!presenti.length) return null;
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {presenti.map((v) => (
-        <span key={v} className="rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">
-          {v}
-        </span>
-      ))}
-    </div>
+    <MessaggioMultilineChipEditor
+      tipo={tipo}
+      value={value}
+      onChange={onChange}
+      variabili={variabili}
+    />
   );
 }
 
