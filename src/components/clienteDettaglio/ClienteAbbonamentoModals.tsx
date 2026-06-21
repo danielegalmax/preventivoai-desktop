@@ -101,6 +101,8 @@ type Props = {
   onChangeRataImporto: (v: string) => void;
   pagamentoImporto: string;
   onChangePagamentoImporto: (v: string) => void;
+  pagamentoDataIncasso: string;
+  onChangePagamentoDataIncasso: (v: string) => void;
   pagamentoNota: string;
   onChangePagamentoNota: (v: string) => void;
   onConfermaPagamento: () => void;
@@ -170,6 +172,8 @@ export default function ClienteAbbonamentoModals({
   onChangeRataImporto,
   pagamentoImporto,
   onChangePagamentoImporto,
+  pagamentoDataIncasso,
+  onChangePagamentoDataIncasso,
   pagamentoNota,
   onChangePagamentoNota,
   onConfermaPagamento,
@@ -196,6 +200,14 @@ export default function ClienteAbbonamentoModals({
     }
     return calcolaAccontoSaldoPiano(importoTotaleParsed, rateAccontoTipo, rateAccontoValore);
   }, [rateModalita, importoTotaleParsed, rateAccontoTipo, rateAccontoValore]);
+
+  const pagamentoSaldaRata = useMemo(() => {
+    if (!rataSelezionata) return false;
+    const importo = parseImportoEuro(pagamentoImporto);
+    const importoRata = parseImportoEuro(rataImporto) || rataSelezionata.importo;
+    if (!importo || importo <= 0) return false;
+    return importoRata - ((rataSelezionata.acconto || 0) + importo) <= 0;
+  }, [rataSelezionata, pagamentoImporto, rataImporto]);
 
   return (
     <>
@@ -390,6 +402,16 @@ export default function ClienteAbbonamentoModals({
             <FieldLabel>IMPORTO RICEVUTO ORA (€)</FieldLabel>
             <FieldInput value={pagamentoImporto} onChange={(e) => onChangePagamentoImporto(e.target.value)} autoFocus />
           </div>
+          {pagamentoSaldaRata ? (
+            <div className="space-y-1">
+              <FieldLabel>DATA INCASSO</FieldLabel>
+              <FieldInput
+                type="date"
+                value={pagamentoDataIncasso}
+                onChange={(e) => onChangePagamentoDataIncasso(e.target.value)}
+              />
+            </div>
+          ) : null}
           <div className="space-y-1">
             <FieldLabel>NOTA (opzionale)</FieldLabel>
             <FieldInput value={pagamentoNota} onChange={(e) => onChangePagamentoNota(e.target.value)} placeholder="es. Bonifico 10 giugno" />

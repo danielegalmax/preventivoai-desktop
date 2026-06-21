@@ -3,6 +3,7 @@ import { spostaAbbonamentiInCestino } from "../cestino";
 import { MESI_BREVI } from "../constants";
 import { erroreColonnaDeletedAt } from "preventivoai-shared";
 import { supabase } from "../supabase";
+import { eventBus } from "../eventBus";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
 import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "preventivoai-shared";
 import { nomePianoDaPreventivo } from "preventivoai-shared";
@@ -451,7 +452,12 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     await carica();
   }
 
-  async function registraPagamento(rataId: string, importoPagato: number, nota?: string) {
+  async function registraPagamento(
+    rataId: string,
+    importoPagato: number,
+    nota?: string,
+    dataIncasso?: string,
+  ) {
     const found = trovaRata(rataId);
     if (!found) return;
     const { rata, abbonamentoId } = found;
@@ -470,7 +476,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       note: nota || rata.note || null,
     };
     if (nuovoStato === "incassato") {
-      aggiornamento.data_incasso = new Date().toISOString();
+      aggiornamento.data_incasso = dataIncasso || new Date().toISOString();
     }
 
     const { error } = await supabase
@@ -482,6 +488,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     aggiornaRatePiano(abbonamentoId, (rs) =>
       rs.map((x) => x.id === rataId ? { ...x, ...aggiornamento, saldo_residuo: nuovoSaldo } : x),
     );
+    eventBus.emit("aggiorna-home");
   }
 
   async function azzeraPagamento(rataId: string) {
@@ -500,6 +507,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     aggiornaRatePiano(found.abbonamentoId, (rs) =>
       rs.map((x) => x.id === rataId ? { ...x, ...aggiornamento, saldo_residuo: x.importo } : x),
     );
+    eventBus.emit("aggiorna-home");
   }
 
   async function aggiungiRataMese(abbonamentoId: string, mese: number, anno: number, importo: number) {

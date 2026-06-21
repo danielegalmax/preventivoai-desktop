@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Preventivo } from "../lib/types";
 import { STATI_PREVENTIVO, statoPreventivoIcon } from "../lib/preventivo";
+import { formatData } from "../lib/format";
 import ToggleSwitch from "./ToggleSwitch";
 import { useAppModalKeyboard } from "./ModalShell";
 
@@ -8,9 +9,17 @@ type Props = {
   preventivo: Preventivo | null;
   onClose: () => void;
   onChangeStato: (stato: string) => Promise<void>;
-  onTogglePagato: (pagato: boolean) => Promise<void>;
+  onTogglePagato: (pagato: boolean, dataPagamento?: string) => Promise<void>;
   mostraTogglePagato?: boolean;
 };
+
+function oggiInputDate() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+function inputDateToIso(date: string) {
+  return new Date(`${date}T12:00:00`).toISOString();
+}
 
 export default function PreventivoStatoModal({
   preventivo,
@@ -20,15 +29,42 @@ export default function PreventivoStatoModal({
   mostraTogglePagato = true,
 }: Props) {
   const [salvandoPagato, setSalvandoPagato] = useState(false);
+  const [mostraDataPagamento, setMostraDataPagamento] = useState(false);
+  const [dataPagamento, setDataPagamento] = useState(oggiInputDate);
+  const [pagatoLocale, setPagatoLocale] = useState(preventivo?.pagato ?? false);
 
   useAppModalKeyboard(onClose, { enabled: !!preventivo });
+
+  useEffect(() => {
+    setPagatoLocale(preventivo?.pagato ?? false);
+    setMostraDataPagamento(false);
+  }, [preventivo?.id, preventivo?.pagato]);
 
   if (!preventivo) return null;
 
   async function handleTogglePagato(value: boolean) {
+    if (value) {
+      setDataPagamento(oggiInputDate());
+      setMostraDataPagamento(true);
+      return;
+    }
     setSalvandoPagato(true);
     try {
       await onTogglePagato(value);
+      setPagatoLocale(value);
+      setMostraDataPagamento(false);
+    } finally {
+      setSalvandoPagato(false);
+    }
+  }
+
+  async function confermaPagato() {
+    const dataIso = inputDateToIso(dataPagamento);
+    setSalvandoPagato(true);
+    try {
+      await onTogglePagato(true, dataIso);
+      setPagatoLocale(true);
+      setMostraDataPagamento(false);
     } finally {
       setSalvandoPagato(false);
     }
@@ -68,11 +104,46 @@ export default function PreventivoStatoModal({
                 <p className="text-xs text-brand-navy/50">Registra l&apos;incasso del preventivo accettato</p>
               </div>
               <ToggleSwitch
-                checked={preventivo.pagato}
+                checked={pagatoLocale}
                 onChange={handleTogglePagato}
                 disabled={salvandoPagato}
               />
             </div>
+            {pagatoLocale && preventivo.data_pagamento && !mostraDataPagamento ? (
+              <p className="mt-2 text-xs text-brand-navy/50">
+                Pagato il {formatData(preventivo.data_pagamento)}
+              </p>
+            ) : null}
+            {mostraDataPagamento ? (
+              <div className="mt-3 rounded-xl bg-brand-bg p-3">
+                <label className="text-xs font-semibold tracking-wide text-brand-navy/50">
+                  DATA PAGAMENTO
+                </label>
+                <input
+                  type="date"
+                  value={dataPagamento}
+                  onChange={(e) => setDataPagamento(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none focus:border-brand-teal"
+                />
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMostraDataPagamento(false)}
+                    className="rounded-xl border border-black/10 px-3 py-2 text-sm font-medium text-brand-navy/60"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confermaPagato}
+                    disabled={salvandoPagato}
+                    className="rounded-xl bg-brand-teal px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    Conferma
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
 

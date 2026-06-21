@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { caricaServizi, eliminaServizi, eliminaServizio, inserisciServizi } from "../lib/listino";
 import type { ServizioDraft } from "../lib/listinoSmart";
@@ -9,9 +9,25 @@ import { useSelezione } from "../lib/hooks/useSelezione";
 import { useAnnullaSelezioneOnEscape } from "../lib/hooks/useAnnullaSelezioneOnEscape";
 import ServizioModal from "../components/ServizioModal";
 import PageContainer from "../components/PageContainer";
-import DataTable from "../components/DataTable";
 import CheckboxSelezione from "../components/CheckboxSelezione";
 import BarraSelezione from "../components/BarraSelezione";
+
+function IconEdit() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path strokeLinecap="round" d="m14 7 3 3" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 13h8l1-13" />
+    </svg>
+  );
+}
 
 export default function ListinoServizi() {
   const [servizi, setServizi] = useState<Servizio[]>([]);
@@ -20,8 +36,17 @@ export default function ListinoServizi() {
   const [servizioInEdit, setServizioInEdit] = useState<Servizio | null>(null);
   const [importando, setImportando] = useState(false);
   const [msgImport, setMsgImport] = useState("");
+  const [ricerca, setRicerca] = useState("");
 
   const ids = servizi.map((s) => s.id);
+  const serviziFiltrati = useMemo(() => {
+    const q = ricerca.trim().toLowerCase();
+    if (!q) return servizi;
+    return servizi.filter((s) =>
+      s.nome.toLowerCase().includes(q) || (s.descrizione || "").toLowerCase().includes(q),
+    );
+  }, [ricerca, servizi]);
+
   const {
     selezionati,
     selezioneAttiva,
@@ -132,67 +157,99 @@ export default function ListinoServizi() {
       {!loading && servizi.length === 0 && <p className="mt-4 text-brand-navy/60">Nessun servizio ancora.</p>}
 
       {!loading && servizi.length > 0 && (
-        <div className="mt-4 pb-20">
-          <DataTable>
-            <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="bg-brand-bg text-brand-navy/60">
-                <tr>
-                  <th className="w-10 px-3 py-3">
+        <div className="mt-6 pb-20">
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-bold text-brand-teal">Servizi salvati</h2>
+                <p className="mt-0.5 text-sm text-brand-navy/55">
+                  {servizi.length} {servizi.length === 1 ? "voce nel listino" : "voci nel listino"}
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <label className="flex items-center gap-2 text-sm text-brand-navy/60">
+                  <CheckboxSelezione
+                    checked={tuttiSelezionati}
+                    indeterminate={parziale}
+                    onChange={toggleTutti}
+                    ariaLabel="Seleziona tutti i servizi"
+                  />
+                  Seleziona tutti
+                </label>
+                <input
+                  type="search"
+                  value={ricerca}
+                  onChange={(e) => setRicerca(e.target.value)}
+                  placeholder="Cerca per nome o descrizione"
+                  className="w-full rounded-xl border border-black/10 bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-teal sm:w-72"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {serviziFiltrati.map((s) => {
+                const selezionato = selezionati.includes(s.id);
+                return (
+                  <div
+                    key={s.id}
+                    className={`flex items-center gap-3 rounded-2xl border p-4 transition ${
+                      selezionato
+                        ? "border-brand-teal bg-brand-teal/5"
+                        : "border-black/10 bg-white hover:border-brand-teal/30"
+                    }`}
+                  >
                     <CheckboxSelezione
-                      checked={tuttiSelezionati}
-                      indeterminate={parziale}
-                      onChange={toggleTutti}
-                      ariaLabel="Seleziona tutti i servizi"
+                      checked={selezionato}
+                      onChange={() => toggle(s.id)}
+                      ariaLabel={`Seleziona ${s.nome}`}
                     />
-                  </th>
-                  <th className="px-5 py-3 font-medium">Nome</th>
-                  <th className="px-5 py-3 font-medium">Descrizione</th>
-                  <th className="px-5 py-3 font-medium">Unità</th>
-                  <th className="px-5 py-3 font-medium text-right">Costo</th>
-                  <th className="px-5 py-3 font-medium text-right">Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {servizi.map((s) => {
-                  const selezionato = selezionati.includes(s.id);
-                  return (
-                    <tr
-                      key={s.id}
-                      className={`border-t border-black/5 ${selezionato ? "bg-brand-teal/5" : "hover:bg-brand-bg/40"}`}
-                    >
-                      <td className="px-3 py-3">
-                        <CheckboxSelezione
-                          checked={selezionato}
-                          onChange={() => toggle(s.id)}
-                          ariaLabel={`Seleziona ${s.nome}`}
-                        />
-                      </td>
-                      <td className="px-5 py-3 text-brand-navy">{s.nome}</td>
-                      <td className="px-5 py-3 text-brand-navy/70">{s.descrizione || "-"}</td>
-                      <td className="px-5 py-3 text-brand-navy/70">{s.unita}</td>
-                      <td className="px-5 py-3 text-right text-brand-navy/70">{formatImporto(s.costo)}</td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => apriModifica(s)}
-                          className="mr-3 text-brand-teal hover:underline"
-                        >
-                          Modifica
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => eliminaSingolo(s.id)}
-                          className="text-red-600 hover:underline"
-                        >
-                          Elimina
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </DataTable>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-brand-navy">{s.nome}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-brand-navy/60">
+                        {s.descrizione || "Nessuna descrizione"}
+                      </p>
+                    </div>
+
+                    <span className="hidden shrink-0 rounded-full border border-black/10 bg-brand-bg px-2.5 py-1 text-xs font-semibold text-brand-navy/65 sm:inline-flex">
+                      {s.unita}
+                    </span>
+
+                    <div className="w-28 shrink-0 text-right text-sm font-bold text-brand-navy">
+                      {formatImporto(s.costo)}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => apriModifica(s)}
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-brand-navy/45 hover:bg-brand-teal/10 hover:text-brand-teal"
+                        aria-label={`Modifica ${s.nome}`}
+                        title="Modifica"
+                      >
+                        <IconEdit />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => eliminaSingolo(s.id)}
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-brand-navy/35 hover:bg-red-50 hover:text-red-600"
+                        aria-label={`Elimina ${s.nome}`}
+                        title="Elimina"
+                      >
+                        <IconTrash />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {serviziFiltrati.length === 0 && (
+                <p className="rounded-2xl border border-dashed border-black/10 bg-brand-bg p-6 text-center text-sm text-brand-navy/55">
+                  Nessun servizio trovato.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

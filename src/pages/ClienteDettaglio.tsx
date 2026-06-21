@@ -29,6 +29,14 @@ import ClienteAbbonamentoTab from "../components/clienteDettaglio/ClienteAbbonam
 import ClienteAbbonamentoModals from "../components/clienteDettaglio/ClienteAbbonamentoModals";
 import ClienteStats from "../components/clienteDettaglio/ClienteStats";
 
+function oggiInputDate() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+function inputDateToIso(date: string) {
+  return new Date(`${date}T12:00:00`).toISOString();
+}
+
 export default function ClienteDettaglio() {
   const { id } = useParams();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -69,6 +77,7 @@ export default function ClienteDettaglio() {
   const [rataSelezionata, setRataSelezionata] = useState<RataAbbonamento | null>(null);
   const [rataImporto, setRataImporto] = useState("");
   const [pagamentoImporto, setPagamentoImporto] = useState("");
+  const [pagamentoDataIncasso, setPagamentoDataIncasso] = useState(oggiInputDate);
   const [pagamentoNota, setPagamentoNota] = useState("");
   const [nomeAbTemp, setNomeAbTemp] = useState("");
   const [nuovaRataMese, setNuovaRataMese] = useState(String(meseCorrente));
@@ -97,6 +106,11 @@ export default function ClienteDettaglio() {
     ];
     return rate.map((r) => `${r.id}:${r.stato}:${r.importo}:${r.acconto ?? 0}`).join("|");
   }, [abbonamentoCanone.ratePerPiano, abbonamentoRate.ratePerPiano]);
+
+  const preventiviIncassoSignature = useMemo(
+    () => preventivi.map((p) => `${p.id}:${p.pagato}:${p.importo_totale ?? 0}`).join("|"),
+    [preventivi],
+  );
 
   const giornoScadenzaRataSelezionata = useMemo(() => {
     if (!rataSelezionata) return null;
@@ -144,7 +158,7 @@ export default function ClienteDettaglio() {
       setFatturatoLoading(true);
     }
     void ricaricaFatturato(id);
-  }, [id, ricaricaFatturato, preventivi.length, rateIncassoSignature]);
+  }, [id, ricaricaFatturato, preventiviIncassoSignature, rateIncassoSignature]);
 
   useEffect(() => {
     setPianoSelezioneAttiva(false);
@@ -313,6 +327,7 @@ export default function ClienteDettaglio() {
     setRataSelezionata(rata);
     setRataImporto(String(rata.importo).replace(".", ","));
     setPagamentoImporto(String(rata.importo - (rata.acconto || 0)).replace(".", ","));
+    setPagamentoDataIncasso(oggiInputDate());
     setPagamentoNota("");
   }
 
@@ -325,7 +340,10 @@ export default function ClienteDettaglio() {
     if (nuovoImportoRata && nuovoImportoRata !== rataSelezionata.importo) {
       await hook.modificaImportoRata(rataSelezionata.id, nuovoImportoRata);
     }
-    await hook.registraPagamento(rataSelezionata.id, importo, pagamentoNota || undefined);
+    const importoRataEffettivo = nuovoImportoRata || rataSelezionata.importo;
+    const saldoDopoPagamento = importoRataEffettivo - ((rataSelezionata.acconto || 0) + importo);
+    const dataIncasso = saldoDopoPagamento <= 0 ? inputDateToIso(pagamentoDataIncasso) : undefined;
+    await hook.registraPagamento(rataSelezionata.id, importo, pagamentoNota || undefined, dataIncasso);
     await ricaricaPreventivi();
     setRataSelezionata(null);
   }
@@ -673,6 +691,8 @@ export default function ClienteDettaglio() {
         onChangeRataImporto={setRataImporto}
         pagamentoImporto={pagamentoImporto}
         onChangePagamentoImporto={setPagamentoImporto}
+        pagamentoDataIncasso={pagamentoDataIncasso}
+        onChangePagamentoDataIncasso={setPagamentoDataIncasso}
         pagamentoNota={pagamentoNota}
         onChangePagamentoNota={setPagamentoNota}
         onConfermaPagamento={() => void confermaPagamentoRata()}

@@ -23,12 +23,12 @@ export default function ClienteStats({
     },
     {
       label: "Fatturato",
-      value: fatturatoLoading ? "..." : `€${formatImportoEuro(fatturato, 0)}`,
+      value: fatturatoLoading ? "..." : `€${formatImportoEuro(fatturato, 2)}`,
       accent: true,
     },
     {
       label: "Abbonamento",
-      value: abbonamentoAttivo ? `€${formatImportoEuro(abbonamentoTotale, 0)}` : "€0",
+      value: abbonamentoAttivo ? `€${formatImportoEuro(abbonamentoTotale, 2)}` : "€0,00",
       accent: abbonamentoAttivo,
     },
   ];

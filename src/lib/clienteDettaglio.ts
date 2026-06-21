@@ -4,7 +4,7 @@ import type { Cliente, Preventivo } from "./types";
 
 export async function caricaClienteDettaglio(clienteId: string) {
   const select =
-    "id, titolo, stato, importo_totale, created_at, pagato, pdf_url, cliente_id, testo_preventivo, versione, preventivo_padre_id";
+    "id, titolo, stato, importo_totale, created_at, pagato, data_pagamento, pdf_url, cliente_id, testo_preventivo, versione, preventivo_padre_id";
 
   const [{ data: cliente }, preventiviRes] = await Promise.all([
     supabase.from("clienti").select("*").eq("id", clienteId).single(),

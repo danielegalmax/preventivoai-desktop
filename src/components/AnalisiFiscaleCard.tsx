@@ -44,9 +44,17 @@ export default function AnalisiFiscaleCard({
   const totaleAttuale = () => calcolaTotaleVoci(voci);
 
   return (
-    <div className="mt-5 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+    <div className="mt-8 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-brand-navy">Analisi fiscale</p>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-teal/10 text-sm font-semibold text-brand-teal">
+            =
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold text-brand-teal">Analisi fiscale</p>
+            <p className="mt-0.5 text-xs text-brand-navy/50">Stima netto, imposte e lordo necessario</p>
+          </div>
+        </div>
         <ToggleSwitch checked={mostraFiscale} onChange={setMostraFiscale} />
       </div>
 

@@ -15,53 +15,11 @@ type Props = {
   onRiordinaVoci: (fromIndex: number, toIndex: number) => void;
 };
 
-function CampiQuantitaUnitaCosto({
-  voce,
-  onAggiorna,
-  inputClass = "",
-  selectClass = "",
-}: {
-  voce: VoceBuilder;
-  onAggiorna: (campo: keyof VoceBuilder, valore: string) => void;
-  inputClass?: string;
-  selectClass?: string;
-}) {
-  return (
-    <>
-      <input
-        value={voce.quantita}
-        onChange={(e) => onAggiorna("quantita", e.target.value)}
-        placeholder={PLACEHOLDER.quantita}
-        className={`w-16 rounded-lg border border-black/10 px-2 py-2 text-sm outline-none focus:border-brand-teal ${inputClass}`}
-      />
-      <select
-        value={voce.unita}
-        onChange={(e) => onAggiorna("unita", e.target.value)}
-        className={`rounded-lg border border-black/10 px-2 py-2 text-sm outline-none focus:border-brand-teal ${selectClass}`}
-      >
-        {UNITA.map((u) => (
-          <option key={u} value={u}>
-            {u}
-          </option>
-        ))}
-      </select>
-      <input
-        value={voce.costo}
-        onChange={(e) => onAggiorna("costo", e.target.value)}
-        placeholder={PLACEHOLDER.costoServizio}
-        className={`w-24 rounded-lg border border-black/10 px-2 py-2 text-sm outline-none focus:border-brand-teal ${inputClass}`}
-      />
-    </>
-  );
+function FieldLabel({ children }: { children: string }) {
+  return <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy/45">{children}</span>;
 }
 
-function ManigliaTrascina({
-  onStart,
-  className = "",
-}: {
-  onStart: () => void;
-  className?: string;
-}) {
+function ManigliaTrascina({ onStart }: { onStart: () => void }) {
   return (
     <button
       type="button"
@@ -69,11 +27,11 @@ function ManigliaTrascina({
         e.preventDefault();
         onStart();
       }}
-      className={`shrink-0 cursor-grab touch-none text-brand-navy/30 active:cursor-grabbing ${className}`}
+      className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-full border border-black/10 bg-white text-brand-navy/35 active:cursor-grabbing"
       title="Trascina per riordinare"
       aria-label="Trascina per riordinare"
     >
-      ⠿
+      ⋮⋮
     </button>
   );
 }
@@ -146,11 +104,11 @@ export default function VociPreventivoSection({
   }, [trascinato]);
 
   return (
-    <div className="mt-5 space-y-3">
+    <div className="mt-8 space-y-3 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
       <div>
-        <p className="text-sm font-medium text-brand-navy">Voci dal listino</p>
+        <p className="text-base font-bold text-brand-teal">Voci nel preventivo</p>
         {voci.length > 1 && (
-          <p className="mt-0.5 text-xs text-brand-navy/50">Tieni premuto ⠿ e trascina per riordinare</p>
+          <p className="mt-0.5 text-xs text-brand-navy/50">Tieni premuto il controllo a sinistra e trascina per riordinare</p>
         )}
       </div>
 
@@ -164,93 +122,95 @@ export default function VociPreventivoSection({
           <div
             key={v.id}
             data-voce-index={index}
-            className={`py-1 transition-opacity ${
-              inTrascinamento ? "opacity-40" : ""
-            } ${evidenziato ? "rounded-xl ring-2 ring-brand-teal/40" : ""}`}
+            className={`rounded-2xl border bg-brand-bg/40 p-4 transition ${
+              evidenziato ? "border-brand-teal ring-2 ring-brand-teal/20" : "border-black/10"
+            } ${inTrascinamento ? "opacity-40" : ""}`}
           >
-            {custom ? (
-              <div className="rounded-xl border border-black/10 bg-brand-bg/40 p-3 space-y-3">
-                <div className="flex items-end gap-2">
-                  <ManigliaTrascina
-                    onStart={() => iniziaTrascinamento(index)}
-                    className="mb-2"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
+            <div className="flex items-start gap-3">
+              <ManigliaTrascina onStart={() => iniziaTrascinamento(index)} />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <FieldLabel>Servizio</FieldLabel>
                     <input
                       value={v.nome}
                       onChange={(e) => aggiorna("nome", e.target.value)}
                       placeholder={PLACEHOLDER.nomeServizio}
-                      className="min-w-[160px] flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                      className="mt-1 w-full rounded-xl border border-black/10 bg-brand-bg px-3 py-2 text-sm font-semibold text-brand-navy outline-none focus:border-brand-teal"
                     />
-                    <input
-                      value={v.descrizione}
-                      onChange={(e) => aggiorna("descrizione", e.target.value)}
-                      placeholder={PLACEHOLDER.descrizioneServizio}
-                      className="min-w-[160px] flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                    />
-                    <CampiQuantitaUnitaCosto
-                      voce={v}
-                      onAggiorna={aggiorna}
-                      inputClass="bg-white"
-                      selectClass="bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => onRimuoviVoce(v.id)}
-                      className="px-2 text-brand-navy/40 hover:text-red-600"
-                      aria-label="Rimuovi voce"
-                    >
-                      ×
-                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 border-t border-black/5 pt-3">
-                  <ToggleSwitch
-                    checked={v.salvaNelListino ?? false}
-                    onChange={(salva) => onSalvaNelListinoChange(v.id, salva)}
-                    disabled={v.salvataNelListino}
-                  />
-                  <div>
-                    <p className="text-sm text-brand-navy">Salva nel mio listino</p>
-                    <p className="text-xs text-brand-navy/50">
-                      {v.salvataNelListino
-                        ? "Salvata tra i tuoi servizi"
-                        : "La voce resta usa e getta se lasci spento"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-end gap-2">
-                <ManigliaTrascina
-                  onStart={() => iniziaTrascinamento(index)}
-                  className="mb-2"
-                />
-                <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
-                  <input
-                    value={v.nome}
-                    onChange={(e) => aggiorna("nome", e.target.value)}
-                    placeholder={PLACEHOLDER.nomeServizio}
-                    className="min-w-[160px] flex-1 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                  <input
-                    value={v.descrizione}
-                    onChange={(e) => aggiorna("descrizione", e.target.value)}
-                    placeholder={PLACEHOLDER.descrizioneServizio}
-                    className="min-w-[160px] flex-1 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                  <CampiQuantitaUnitaCosto voce={v} onAggiorna={aggiorna} />
                   <button
                     type="button"
                     onClick={() => onRimuoviVoce(v.id)}
-                    className="px-2 text-brand-navy/40 hover:text-red-600"
+                    className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 text-brand-navy/40 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                     aria-label="Rimuovi voce"
                   >
                     ×
                   </button>
                 </div>
+
+                <div>
+                  <FieldLabel>Descrizione</FieldLabel>
+                  <input
+                    value={v.descrizione}
+                    onChange={(e) => aggiorna("descrizione", e.target.value)}
+                    placeholder={PLACEHOLDER.descrizioneServizio}
+                    className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label>
+                    <FieldLabel>Quantità</FieldLabel>
+                    <input
+                      value={v.quantita}
+                      onChange={(e) => aggiorna("quantita", e.target.value)}
+                      placeholder={PLACEHOLDER.quantita}
+                      className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                    />
+                  </label>
+                  <label>
+                    <FieldLabel>Unità</FieldLabel>
+                    <select
+                      value={v.unita}
+                      onChange={(e) => aggiorna("unita", e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                    >
+                      {UNITA.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <FieldLabel>Prezzo</FieldLabel>
+                    <input
+                      value={v.costo}
+                      onChange={(e) => aggiorna("costo", e.target.value)}
+                      placeholder={PLACEHOLDER.costoServizio}
+                      className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                    />
+                  </label>
+                </div>
+
+                {custom && (
+                  <div className="flex items-center gap-3 rounded-xl border border-black/5 bg-brand-bg px-3 py-2">
+                    <ToggleSwitch
+                      checked={v.salvaNelListino ?? false}
+                      onChange={(salva) => onSalvaNelListinoChange(v.id, salva)}
+                      disabled={v.salvataNelListino}
+                    />
+                    <div>
+                      <p className="text-sm text-brand-navy">Salva nel mio listino</p>
+                      <p className="text-xs text-brand-navy/50">
+                        {v.salvataNelListino ? "Salvata tra i tuoi servizi" : "La voce resta usa e getta se lasci spento"}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}
@@ -258,7 +218,7 @@ export default function VociPreventivoSection({
       <button
         type="button"
         onClick={onAggiungiVoceCustom}
-        className="w-full rounded-lg border border-dashed border-brand-teal px-4 py-2 text-sm font-medium text-brand-teal hover:bg-brand-teal/5"
+        className="w-full rounded-xl border border-dashed border-brand-teal px-4 py-3 text-sm font-medium text-brand-teal hover:bg-brand-teal/5"
       >
         + Aggiungi voce personalizzata
       </button>

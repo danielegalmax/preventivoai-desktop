@@ -50,11 +50,16 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
   }
 
   return (
-    <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
+    <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-brand-navy">Trasferte e rimborsi</p>
-          <p className="text-xs text-brand-navy/50">Km e spese vive — esenti o imponibili</p>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg text-xs font-semibold text-brand-navy">
+            km
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold text-brand-teal">Trasferte e rimborsi</p>
+            <p className="text-xs text-brand-navy/50">Km e spese vive - esenti o imponibili</p>
+          </div>
         </div>
         <ToggleSwitch checked={mostraTrasferte} onChange={setMostraTrasferte} />
       </div>
@@ -73,7 +78,7 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
                   className="text-brand-navy/40 hover:text-brand-navy"
                   aria-label="Rimuovi"
                 >
-                  ✕
+                  ×
                 </button>
               </div>
               <div className="mt-2 flex items-center justify-between">
@@ -106,7 +111,7 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
                 placeholder={PLACEHOLDER.kmRimborso}
                 className="min-w-0 flex-1 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
               />
-              <span className="text-xs text-brand-navy/40">× €0.25</span>
+              <span className="text-xs text-brand-navy/40">x €0.25</span>
               <button
                 type="button"
                 onClick={aggiungiKm}
@@ -115,7 +120,7 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
                 + Aggiungi
               </button>
             </div>
-            <p className="mt-1 text-xs text-brand-navy/40">Tariffa ACI €0.25/km · Default: esente</p>
+            <p className="mt-1 text-xs text-brand-navy/40">Tariffa ACI €0.25/km - Default: esente</p>
           </div>
 
           <div>

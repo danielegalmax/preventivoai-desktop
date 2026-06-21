@@ -1,5 +1,6 @@
 import { formatImportoEuro, labelScadenzaRataDaPiano } from "preventivoai-shared";
 import type { RataAbbonamento } from "../../lib/types";
+import { formatData } from "../../lib/format";
 
 export type VariantePiano = "rate" | "canone";
 export type RigaPianoLayout = "completa" | "dettaglio" | "hero";
@@ -31,6 +32,15 @@ function btnReset(extra = "") {
 
 function residuoRata(rata: RataAbbonamento) {
   return rata.importo - (rata.acconto || 0);
+}
+
+function PagatoIl({ rata, className = "" }: { rata: RataAbbonamento; className?: string }) {
+  if (rata.stato !== "incassato" || !rata.data_incasso) return null;
+  return (
+    <span className={`text-[11px] leading-none text-brand-navy/45 ${className}`.trim()}>
+      Pagato il {formatData(rata.data_incasso)}
+    </span>
+  );
 }
 
 export function badgeStato(stato: RataAbbonamento["stato"], variante: VariantePiano) {
@@ -119,6 +129,7 @@ function DettaglioPiano({
           </div>
         </div>
       ) : null}
+      <PagatoIl rata={rata} />
       {rata.note ? <p className="text-xs text-brand-navy/40">{rata.note}</p> : null}
       <div className="flex gap-2">
         {!pagata ? (
@@ -227,6 +238,7 @@ export default function RigaPiano({
             <span className={`mt-1 inline-block rounded-lg px-2 py-0.5 text-[10px] font-semibold ${badge.className}`}>
               {badge.label}
             </span>
+            <PagatoIl rata={rata} className="mt-1 block text-right" />
           </div>
         </div>
         <div className="mt-3">
@@ -246,6 +258,7 @@ export default function RigaPiano({
           <span className="text-[10px] text-brand-navy/40">{aperta ? "▲" : "▼"}</span>
         ) : null}
       </button>
+      <PagatoIl rata={rata} className="mt-1 block text-right" />
       {aperta ? (
         <div className="mt-3">
           <DettaglioPiano {...dettaglioProps} />

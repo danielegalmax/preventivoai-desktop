@@ -21,7 +21,7 @@ export default function PagamentoCard({
       : "Scegli metodo di pagamento";
 
   const icona = metodoPagamentoNessuno
-    ? "—"
+    ? "-"
     : iconaMetodoPagamento(metodoPagamentoSelezionato?.tipo);
 
   const testoClasse = metodoPagamentoNessuno
@@ -31,13 +31,21 @@ export default function PagamentoCard({
       : "font-medium text-brand-navy/50";
 
   return (
-    <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
-      <p className="text-sm font-semibold text-brand-navy">Pagamento</p>
-      <p className="text-xs text-brand-navy/50">Come vuoi essere pagato</p>
+    <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg text-sm font-semibold text-brand-navy">
+          €
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-bold text-brand-teal">Pagamento</p>
+          <p className="text-xs text-brand-navy/50">Come vuoi essere pagato</p>
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={onOpen}
-        className="mt-3 flex w-full items-center justify-between rounded-xl border border-black/10 bg-brand-bg px-3 py-2.5 text-left text-sm"
+        className="mt-4 flex w-full items-center justify-between rounded-xl border border-black/10 bg-brand-bg px-3 py-2.5 text-left text-sm"
       >
         <span className={`flex items-center gap-2 ${testoClasse}`}>
           <span className={metodoPagamentoNessuno ? "text-brand-navy/40" : undefined}>{icona}</span>
@@ -45,6 +53,7 @@ export default function PagamentoCard({
         </span>
         <span className="text-brand-navy/40">⌄</span>
       </button>
+
       {metodiPagamento.length <= 1 && (
         <Link
           to="/impostazioni/pagamenti"

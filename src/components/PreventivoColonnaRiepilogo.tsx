@@ -1,4 +1,4 @@
-import { formatImporto } from "../lib/format";
+import { formatData, formatImporto } from "../lib/format";
 import type { Preventivo } from "../lib/types";
 import MenuTrePuntini, { type VoceMenuAzione } from "./MenuTrePuntini";
 import PreventivoStatoBadge from "./PreventivoStatoBadge";
@@ -53,6 +53,11 @@ export default function PreventivoColonnaRiepilogo({
           pagamentoGestitoDalPiano={collegamentoPiano}
           onClick={azioniDisabilitate ? undefined : onStatoPress}
         />
+        {p.pagato && p.data_pagamento && !collegamentoPiano ? (
+          <span className="text-right text-[11px] leading-none text-brand-navy/45">
+            Pagato il {formatData(p.data_pagamento)}
+          </span>
+        ) : null}
 
         {azioniDisabilitate ? (
           <span className="flex h-5 w-5 items-center justify-center text-brand-teal/40" aria-hidden>

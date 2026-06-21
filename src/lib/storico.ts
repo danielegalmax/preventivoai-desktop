@@ -13,7 +13,7 @@ export async function caricaStorico(): Promise<Preventivo[]> {
   if (!user) return [];
 
   const select =
-    "id, titolo, stato, importo_totale, created_at, pagato, cliente_id, nome_cliente, pdf_url, testo_preventivo, versione, preventivo_padre_id, clienti(nome)";
+    "id, titolo, stato, importo_totale, created_at, pagato, data_pagamento, cliente_id, nome_cliente, pdf_url, testo_preventivo, versione, preventivo_padre_id, clienti(nome)";
 
   const { data, error } = await queryConFiltroCestino(
     () =>
@@ -74,7 +74,7 @@ export async function caricaCronologiaPreventivo(padreId: string | null): Promis
   while (currentId) {
     const { data } = await supabase
       .from("preventivi")
-      .select("id, titolo, stato, importo_totale, created_at, pagato, pdf_url, testo_preventivo, versione, preventivo_padre_id")
+      .select("id, titolo, stato, importo_totale, created_at, pagato, data_pagamento, pdf_url, testo_preventivo, versione, preventivo_padre_id")
       .eq("id", currentId)
       .single();
     const row = data as Preventivo | null;

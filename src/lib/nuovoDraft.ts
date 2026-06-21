@@ -34,6 +34,7 @@ export type NuovoManualeDraft = {
   preventivo: string;
   template: string;
   pdfUrl: string;
+  nascondiPrezzi: boolean;
   pianoPagamentoTipo: PianoPagamentoTipo;
   abImporto: string;
   abGiorno: string;

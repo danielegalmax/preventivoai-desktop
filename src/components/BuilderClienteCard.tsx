@@ -123,7 +123,7 @@ export default function BuilderClienteCard({
 
   const wrapperClass = compact
     ? "space-y-3"
-    : "mb-5 rounded-2xl border border-black/10 bg-white p-4";
+    : "mb-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm";
 
   return (
     <div className={wrapperClass}>
@@ -132,7 +132,7 @@ export default function BuilderClienteCard({
           <IconUser />
         </span>
         <div>
-          <p className="text-sm font-semibold text-brand-navy">Cliente</p>
+          <p className="text-base font-bold text-brand-teal">Cliente</p>
           {!compact && <p className="text-xs text-brand-navy/50">Opzionale — i dati appariranno nel PDF</p>}
         </div>
       </div>

@@ -52,9 +52,10 @@ export async function cambiaStatoPreventivo(
 export async function segnaPreventivoPagato(
   id: string,
   pagato: boolean,
+  dataPagamento?: string,
 ): Promise<{ error: string | null }> {
   const update = pagato
-    ? { pagato: true, data_pagamento: new Date().toISOString() }
+    ? { pagato: true, data_pagamento: dataPagamento || new Date().toISOString() }
     : { pagato: false, data_pagamento: null };
   const { error } = await supabase.from("preventivi").update(update).eq("id", id);
   return { error: error?.message || null };

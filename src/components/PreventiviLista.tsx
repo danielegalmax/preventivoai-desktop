@@ -39,6 +39,7 @@ import { useModificaPreventivoScelta } from "../lib/modificaPreventivo/useModifi
 import InviaFirmaModal from "./firma/InviaFirmaModal";
 import FirmaDettaglioModal from "./firma/FirmaDettaglioModal";
 import FirmaStatoBadge from "./firma/FirmaStatoBadge";
+import { eventBus } from "../lib/eventBus";
 import {
   caricaContattiCliente,
   registraFirmaManuale,
@@ -212,9 +213,9 @@ export default function PreventiviLista({
     );
   }
 
-  async function handleTogglePagato(pagato: boolean) {
+  async function handleTogglePagato(pagato: boolean, dataPagamento?: string) {
     if (!preventivoModale) return;
-    const { error } = await segnaPreventivoPagato(preventivoModale.id, pagato);
+    const { error } = await segnaPreventivoPagato(preventivoModale.id, pagato, dataPagamento);
     if (error) {
       window.alert(error);
       return;
@@ -222,10 +223,11 @@ export default function PreventiviLista({
     setPreventivi((lista) =>
       lista.map((p) =>
         p.id === preventivoModale.id
-          ? { ...p, pagato, data_pagamento: pagato ? new Date().toISOString() : null }
+          ? { ...p, pagato, data_pagamento: pagato ? dataPagamento || new Date().toISOString() : null }
           : p,
       ),
     );
+    eventBus.emit("aggiorna-home");
   }
 
   async function segnaFirmatoSuCarta(p: Preventivo) {

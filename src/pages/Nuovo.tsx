@@ -43,6 +43,7 @@ import PreventivoPdfTemplatePicker from "../components/PreventivoPdfTemplatePick
 import PreventivoPdfPreview from "../components/PreventivoPdfPreview";
 import PreventivoSuccessModal, { type PdfSuccessAzioni, type PdfSuccessInvio } from "../components/PreventivoSuccessModal";
 import ServiziListinoCard from "../components/ServiziListinoCard";
+import ToggleSwitch from "../components/ToggleSwitch";
 import TrasferteCard from "../components/TrasferteCard";
 import VociPreventivoSection from "../components/VociPreventivoSection";
 import PageContainer from "../components/PageContainer";
@@ -202,6 +203,9 @@ export default function Nuovo({ mode }: Props) {
     if (mode === "chat") return caricaBozzaChat()?.template ?? "pulito";
     return caricaBozzaManuale()?.template ?? "pulito";
   });
+  const [nascondiPrezzi, setNascondiPrezzi] = useState(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.nascondiPrezzi : undefined) ?? false,
+  );
   const [htmlPreview, setHtmlPreview] = useState("");
   const [caricandoPreview, setCaricandoPreview] = useState(false);
   const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -229,6 +233,7 @@ export default function Nuovo({ mode }: Props) {
       preventivo,
       template,
       pdfUrl,
+      nascondiPrezzi,
       pianoPagamentoTipo,
       abImporto,
       abGiorno,
@@ -318,6 +323,7 @@ export default function Nuovo({ mode }: Props) {
     clienteSelezionatoId,
     template,
     pdfUrl,
+    nascondiPrezzi,
     voci,
     includiIva,
     noteExtra,
@@ -471,6 +477,7 @@ export default function Nuovo({ mode }: Props) {
     metodoPagamentoSelezionato,
     totaleConIva,
     versionePadreId,
+    nascondiPrezzi,
   ]);
 
   function clienteCollegato() {
@@ -565,6 +572,7 @@ export default function Nuovo({ mode }: Props) {
         token,
         cliente_id: clienteSelezionatoId,
         versione_padre_id: versionePadreId,
+        nascondi_prezzi: nascondiPrezzi,
       });
       if (data.html) setHtmlPreview(aggiornaLogoCacheInHtml(data.html));
     } catch (err) {
@@ -935,6 +943,7 @@ export default function Nuovo({ mode }: Props) {
         token,
         cliente_id: clienteSelezionatoId,
         versione_padre_id: versionePadreId,
+        nascondi_prezzi: nascondiPrezzi,
       });
 
       let urlCaricato = "";
@@ -1241,14 +1250,22 @@ export default function Nuovo({ mode }: Props) {
             setMostraTrasferte={setMostraTrasferte}
           />
 
-          <div className="mt-3 space-y-1">
-            <label className="text-sm text-brand-navy/70">Note</label>
+          <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg text-sm font-semibold text-brand-navy">
+                N
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-bold text-brand-teal">Note</p>
+                <p className="text-xs text-brand-navy/50">Dettagli aggiuntivi da inserire nel preventivo</p>
+              </div>
+            </div>
             <textarea
               value={noteExtra}
               onChange={(e) => setNoteExtra(e.target.value)}
               rows={2}
               placeholder={PLACEHOLDER.notePreventivo}
-              className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+              className="mt-4 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
             />
           </div>
 
@@ -1319,6 +1336,20 @@ export default function Nuovo({ mode }: Props) {
                   onChangeAbVisibileNelPDF={setAbVisibileNelPDF}
                 />
               </div>
+
+              {mode === "manuale" && (
+                <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-brand-navy">Tariffa a corpo</h3>
+                      <p className="mt-0.5 text-xs text-brand-navy/50">
+                        Nasconde i prezzi delle singole voci - mostra solo il totale
+                      </p>
+                    </div>
+                    <ToggleSwitch checked={nascondiPrezzi} onChange={setNascondiPrezzi} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="shrink-0 border-t border-black/5 p-5">
