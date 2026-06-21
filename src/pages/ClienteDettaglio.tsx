@@ -98,6 +98,13 @@ export default function ClienteDettaglio() {
     return rate.map((r) => `${r.id}:${r.stato}:${r.importo}:${r.acconto ?? 0}`).join("|");
   }, [abbonamentoCanone.ratePerPiano, abbonamentoRate.ratePerPiano]);
 
+  const giornoScadenzaRataSelezionata = useMemo(() => {
+    if (!rataSelezionata) return null;
+    const abbonamenti =
+      tab === "pagamento_rate" ? abbonamentoRate.abbonamentiAttivi : abbonamentoCanone.abbonamentiAttivi;
+    return abbonamenti.find((a) => a.id === rataSelezionata.abbonamento_id)?.giorno_scadenza ?? null;
+  }, [rataSelezionata, tab, abbonamentoRate.abbonamentiAttivi, abbonamentoCanone.abbonamentiAttivi]);
+
   const ricaricaFatturato = useCallback(async (clienteId = id) => {
     if (!clienteId) return;
     const reqId = ++fatturatoReqRef.current;
@@ -669,6 +676,7 @@ export default function ClienteDettaglio() {
         pagamentoNota={pagamentoNota}
         onChangePagamentoNota={setPagamentoNota}
         onConfermaPagamento={() => void confermaPagamentoRata()}
+        giornoScadenzaPiano={giornoScadenzaRataSelezionata}
         mostraRinomina={mostraModalRinominaAb}
         onCloseRinomina={() => setMostraModalRinominaAb(false)}
         nomeAbTemp={nomeAbTemp}

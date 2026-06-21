@@ -7,6 +7,7 @@ type ConfirmOptions = {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  zClass?: string;
 };
 
 type PendingConfirm = ConfirmOptions & {
@@ -34,6 +35,7 @@ export function useConfirmDialog() {
       confirmLabel={pending.confirmLabel}
       cancelLabel={pending.cancelLabel}
       destructive={pending.destructive ?? true}
+      zClass={pending.zClass}
       onConfirm={() => handleClose(true)}
       onCancel={() => handleClose(false)}
     />
