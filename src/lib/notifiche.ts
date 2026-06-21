@@ -20,6 +20,7 @@ export type Notifica = {
     telefonoCliente?: string;
   };
   letta: boolean;
+  archiviata: boolean;
   snooze_until: string | null;
   created_at: string;
 };
@@ -75,7 +76,8 @@ export async function caricaNotificheCampanella(): Promise<Notifica[]> {
     .from("notifiche")
     .select("*")
     .eq("user_id", user.id)
-    .eq("letta", false)
+    .eq("archiviata", false)
+    .order("letta", { ascending: true })
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) {
@@ -103,6 +105,23 @@ export async function caricaNotificaById(id: string): Promise<Notifica | null> {
 
 export async function segnaNotificaLetta(id: string) {
   const { error } = await supabase.from("notifiche").update({ letta: true }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function segnaTutteLette() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { error } = await supabase
+    .from("notifiche")
+    .update({ letta: true })
+    .eq("user_id", user.id)
+    .eq("archiviata", false)
+    .eq("letta", false);
+  if (error) throw new Error(error.message);
+}
+
+export async function archiviaNotifica(id: string) {
+  const { error } = await supabase.from("notifiche").update({ archiviata: true }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -145,18 +164,31 @@ export function useNotifiche() {
   useEffect(() => {
     void ricaricaRef.current();
 
-    const channelName = `notifiche-artigiano-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifiche" },
-        (payload) => {
-          void ricaricaRef.current();
-          void mostraNotificaOsSePossibile((payload as { new?: Partial<Notifica> }).new);
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      const channelName = `notifiche-artigiano-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifiche",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            void ricaricaRef.current();
+            void mostraNotificaOsSePossibile((payload as { new?: Partial<Notifica> }).new);
+          },
+        )
+        .subscribe();
+    })();
 
     const onVisible = () => {
       if (document.visibilityState === "visible") void ricaricaRef.current();
@@ -165,14 +197,20 @@ export function useNotifiche() {
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      cancelled = true;
       window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, []);
 
   const segnaLetta = useCallback(async (id: string) => {
     await segnaNotificaLetta(id);
+    await ricarica();
+  }, [ricarica]);
+
+  const segnaTutteLetteHook = useCallback(async () => {
+    await segnaTutteLette();
     await ricarica();
   }, [ricarica]);
 
@@ -182,9 +220,9 @@ export function useNotifiche() {
   }, [ricarica]);
 
   const archivia = useCallback(async (id: string) => {
-    await segnaNotificaLetta(id);
+    await archiviaNotifica(id);
     await ricarica();
   }, [ricarica]);
 
-  return { notifiche, loading, ricarica, segnaLetta, rimanda, archivia, count };
+  return { notifiche, loading, ricarica, segnaLetta, segnaTutteLette: segnaTutteLetteHook, rimanda, archivia, count };
 }
