@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { creaCliente } from "../lib/clienti";
 import { PLACEHOLDER } from "../lib/placeholders";
