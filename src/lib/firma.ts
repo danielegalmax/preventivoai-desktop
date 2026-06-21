@@ -227,8 +227,13 @@ export async function apriWhatsAppFirma(telefono: string | null | undefined, tes
   window.open(url, '_blank')
 }
 
-export async function copiaLinkFirma(url: string) {
-  await navigator.clipboard.writeText(url);
+export async function copiaLinkFirma(url: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(url);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function apriEmailFirma(email: string | null | undefined, testo: string, oggetto: string) {

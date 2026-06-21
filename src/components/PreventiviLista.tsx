@@ -41,6 +41,7 @@ import FirmaDettaglioModal from "./firma/FirmaDettaglioModal";
 import FirmaStatoBadge from "./firma/FirmaStatoBadge";
 import {
   caricaContattiCliente,
+  registraFirmaManuale,
   statoFirmaInvio,
 } from "../lib/firma";
 import { useInviiFirma } from "../lib/hooks/useInviiFirma";
@@ -225,6 +226,27 @@ export default function PreventiviLista({
           : p,
       ),
     );
+  }
+
+  async function segnaFirmatoSuCarta(p: Preventivo) {
+    const ok = await confirm({
+      title: "Firma su carta",
+      message:
+        "Segnare questo preventivo come firmato su carta? Non verrà inviato alcun link online.",
+      confirmLabel: "Segna firmato",
+      destructive: false,
+    });
+    if (!ok) return;
+
+    try {
+      await registraFirmaManuale(p.id);
+      ricaricaInviiFirma();
+      setPreventivi((prev) =>
+        prev.map((x) => (x.id === p.id ? { ...x, stato: "accettato" } : x)),
+      );
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Operazione non riuscita.");
+    }
   }
 
   async function eliminaSingolo(id: string) {
@@ -498,6 +520,9 @@ export default function PreventiviLista({
                           { label: "Rinomina", onClick: () => setModalRinominaId(p.id) },
                           { label: MODIFICA_VERSIONE_ALTERNATIVA_LABEL, onClick: () => apriDaPreventivo(p) },
                           { label: "Sposta", onClick: () => apriSpostaSingolo(p.id) },
+                          ...(p.pdf_url && sfFirma !== "firmato"
+                            ? [{ label: "Segna firmato su carta", onClick: () => void segnaFirmatoSuCarta(p) }]
+                            : []),
                           { label: "Elimina", onClick: () => eliminaSingolo(p.id), danger: true },
                         ]}
                       />
@@ -670,7 +695,14 @@ export default function PreventiviLista({
               ),
             );
           }}
-          onFirmaManuale={() => setFirmaDettaglioPreventivo(firmaModalPreventivo)}
+          onFirmaSuCarta={() => {
+            ricaricaInviiFirma();
+            setPreventivi((prev) =>
+              prev.map((x) =>
+                x.id === firmaModalPreventivo.id ? { ...x, stato: "accettato" } : x,
+              ),
+            );
+          }}
         />
       ) : null}
     </>
