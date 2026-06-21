@@ -1,3 +1,4 @@
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
 export function signInWithEmail(email: string, password: string) {
@@ -20,12 +21,12 @@ export function signOut() {
 
 export async function getInitialSession() {
   const { data: { session } } = await supabase.auth.getSession();
-  return !!session;
+  return session;
 }
 
-export function onAuthStateChange(callback: (hasSession: boolean) => void) {
+export function onAuthStateChange(callback: (session: Session | null) => void) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(!!session);
+    callback(session);
   });
   return () => subscription.unsubscribe();
 }

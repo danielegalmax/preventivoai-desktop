@@ -1,5 +1,6 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getInitialSession, onAuthStateChange } from "../lib/auth";
+import { syncNativeNotificationSession } from "../lib/nativeNotificationSession";
 import { richiediPermessoNotifiche } from "../lib/notifications";
 
 export function useAuth() {
@@ -7,12 +8,18 @@ export function useAuth() {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    getInitialSession().then((has) => {
+    getInitialSession().then((session) => {
+      const has = !!session;
       setAuthenticated(has);
       if (has) void richiediPermessoNotifiche();
+      void syncNativeNotificationSession(session);
       setLoading(false);
     });
-    return onAuthStateChange((has) => setAuthenticated(has));
+
+    return onAuthStateChange((session) => {
+      setAuthenticated(!!session);
+      void syncNativeNotificationSession(session);
+    });
   }, []);
 
   useEffect(() => {

@@ -8,6 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isTauri } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   archiviaNotifica,
   caricaNotificheCampanella,
@@ -25,6 +27,27 @@ const ORE_RIMANDA_DEFAULT = 24;
 const MAX_TOASTS = 3;
 const TOAST_TTL_MS = 5000;
 const TOAST_FADE_MS = 300;
+
+async function isFinestraInForeground() {
+  if (!isTauri()) return true;
+
+  try {
+    const window = getCurrentWindow();
+    const [visible, focused, minimized] = await Promise.all([
+      window.isVisible(),
+      window.isFocused(),
+      window.isMinimized(),
+    ]);
+    return visible && focused && !minimized;
+  } catch {
+    return true;
+  }
+}
+
+async function mostraNotificaOsSoloSeForeground(n: Partial<Notifica> | null | undefined) {
+  if (!(await isFinestraInForeground())) return;
+  await mostraNotificaOsSePossibile(n);
+}
 
 export type NotificaToast = {
   id: string;
@@ -219,7 +242,7 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
           },
           (payload) => {
             void ricaricaRef.current();
-            void mostraNotificaOsSePossibile((payload as { new?: Partial<Notifica> }).new);
+            void mostraNotificaOsSoloSeForeground((payload as { new?: Partial<Notifica> }).new);
             enqueueToastRef.current((payload as { new?: Partial<Notifica> }).new);
           },
         )
