@@ -23,6 +23,7 @@ export type NuovoManualeDraft = {
   trasferte: TrasfertaBuilder[];
   mostraTrasferte: boolean;
   metodoPagamentoSelezionato: MetodoPagamento | null;
+  metodoPagamentoNessuno: boolean;
   includiIva: boolean;
   noteExtra: string;
   mostraFiscale: boolean;

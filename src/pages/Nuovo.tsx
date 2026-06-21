@@ -126,6 +126,9 @@ export default function Nuovo({ mode }: Props) {
   const [metodoPagamentoSelezionato, setMetodoPagamentoSelezionato] = useState<MetodoPagamento | null>(
     () => (mode === "manuale" ? caricaBozzaManuale()?.metodoPagamentoSelezionato : undefined) ?? null,
   );
+  const [metodoPagamentoNessuno, setMetodoPagamentoNessuno] = useState(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.metodoPagamentoNessuno : undefined) ?? false,
+  );
   const [mostraModalPagamento, setMostraModalPagamento] = useState(false);
 
   const [pianoPagamentoTipo, setPianoPagamentoTipo] = useState<PianoPagamentoTipo>(() => {
@@ -215,6 +218,7 @@ export default function Nuovo({ mode }: Props) {
       trasferte,
       mostraTrasferte,
       metodoPagamentoSelezionato,
+      metodoPagamentoNessuno,
       includiIva,
       noteExtra,
       mostraFiscale,
@@ -271,7 +275,11 @@ export default function Nuovo({ mode }: Props) {
     if (mode === "manuale") {
       caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito }) => {
         setMetodiPagamento(metodi);
-        if (predefinito && !caricaBozzaManuale()?.metodoPagamentoSelezionato) {
+        if (
+          predefinito &&
+          !caricaBozzaManuale()?.metodoPagamentoSelezionato &&
+          !caricaBozzaManuale()?.metodoPagamentoNessuno
+        ) {
           setMetodoPagamentoSelezionato(predefinito);
         }
       });
@@ -320,6 +328,7 @@ export default function Nuovo({ mode }: Props) {
     trasferte,
     mostraTrasferte,
     metodoPagamentoSelezionato,
+    metodoPagamentoNessuno,
     pianoPagamentoTipo,
     abImporto,
     abGiorno,
@@ -375,7 +384,10 @@ export default function Nuovo({ mode }: Props) {
     if (!testoModifica || metodiPagamento.length === 0) return;
     const parsed = parsePreventivoTesto(testoModifica);
     const trovato = trovaMetodoPagamentoDaNome(metodiPagamento, parsed.pagamentoNome);
-    if (trovato) setMetodoPagamentoSelezionato(trovato);
+    if (trovato) {
+      setMetodoPagamentoSelezionato(trovato);
+      setMetodoPagamentoNessuno(false);
+    }
   }, [testoModifica, metodiPagamento]);
 
   useEffect(() => {
@@ -412,7 +424,10 @@ export default function Nuovo({ mode }: Props) {
   useEffect(() => {
     if (!pagamentoImportato.current || metodiPagamento.length <= 1) return;
     const trovato = trovaMetodoPagamentoDaNome(metodiPagamento, pagamentoImportato.current);
-    if (trovato) setMetodoPagamentoSelezionato(trovato);
+    if (trovato) {
+      setMetodoPagamentoSelezionato(trovato);
+      setMetodoPagamentoNessuno(false);
+    }
   }, [metodiPagamento]);
 
   const risultatoFiscale = useMemo(
@@ -1061,6 +1076,7 @@ export default function Nuovo({ mode }: Props) {
     setTrasferte([]);
     setMostraTrasferte(false);
     setMetodoPagamentoSelezionato(null);
+    setMetodoPagamentoNessuno(false);
     setMetodiPagamento([]);
     setMostraModalPagamento(false);
     setPianoPagamentoTipo("nessuno");
@@ -1212,6 +1228,7 @@ export default function Nuovo({ mode }: Props) {
           <PagamentoCard
             metodiPagamento={metodiPagamento}
             metodoPagamentoSelezionato={metodoPagamentoSelezionato}
+            metodoPagamentoNessuno={metodoPagamentoNessuno}
             onOpen={() => setMostraModalPagamento(true)}
           />
 
@@ -1366,8 +1383,16 @@ export default function Nuovo({ mode }: Props) {
           open={mostraModalPagamento}
           metodiPagamento={metodiPagamento}
           metodoPagamentoSelezionato={metodoPagamentoSelezionato}
+          metodoPagamentoNessuno={metodoPagamentoNessuno}
           onClose={() => setMostraModalPagamento(false)}
-          onSelect={setMetodoPagamentoSelezionato}
+          onSelect={(metodo) => {
+            setMetodoPagamentoSelezionato(metodo);
+            setMetodoPagamentoNessuno(false);
+          }}
+          onSelectNessuno={() => {
+            setMetodoPagamentoSelezionato(null);
+            setMetodoPagamentoNessuno(true);
+          }}
         />
       )}
 
