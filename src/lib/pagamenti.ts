@@ -70,8 +70,9 @@ export async function caricaMetodiPagamento(): Promise<MetodoPagamento[]> {
 export async function caricaMetodiPagamentoBuilder() {
   const data = await caricaMetodiPagamento();
   const predefinito = data.find((m) => m.predefinito) || null;
+  const haContantiDb = data.some((m) => m.tipo === "contanti");
   return {
-    metodiPagamento: [metodoContantiDefault, ...data],
+    metodiPagamento: haContantiDb ? data : [metodoContantiDefault, ...data],
     predefinito,
   };
 }
