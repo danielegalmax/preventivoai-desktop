@@ -12,9 +12,41 @@ import NotificaFirmaDialog from "./firma/NotificaFirmaDialog";
 
 export default function NotificheBell() {
   const navigate = useNavigate();
-  const { notifiche, count, segnaLetta, rimanda, archivia } = useNotifiche();
+  const { notifiche, count, segnaTutteLette, rimanda, archivia } = useNotifiche();
   const [open, setOpen] = useState(false);
+  const [nonAncoraNotate, setNonAncoraNotate] = useState<Set<string>>(() => new Set());
+  const [nonAncoraAperte, setNonAncoraAperte] = useState<Set<string>>(() => new Set());
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setNonAncoraNotate((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const n of notifiche) {
+        if (!n.letta && !next.has(n.id)) {
+          next.add(n.id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setNonAncoraAperte((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const n of notifiche) {
+        if (!n.letta && !next.has(n.id)) {
+          next.add(n.id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [notifiche]);
+
+  useEffect(() => {
+    if (!open) return;
+    void segnaTutteLette();
+  }, [open, segnaTutteLette]);
 
   useEffect(() => {
     if (!open) return;
@@ -25,9 +57,23 @@ export default function NotificheBell() {
     return () => document.removeEventListener("mousedown", chiudi);
   }, [open]);
 
-  async function apriNotifica(n: Notifica) {
+  function handleMouseEnterNotifica(n: Notifica) {
+    setNonAncoraNotate((prev) => {
+      if (!prev.has(n.id)) return prev;
+      const next = new Set(prev);
+      next.delete(n.id);
+      return next;
+    });
+  }
+
+  function apriNotifica(n: Notifica) {
+    setNonAncoraAperte((prev) => {
+      if (!prev.has(n.id)) return prev;
+      const next = new Set(prev);
+      next.delete(n.id);
+      return next;
+    });
     setOpen(false);
-    await segnaLetta(n.id);
     if (n.preventivo_id) {
       navigate(`/storico?focus=${n.preventivo_id}&notifica=${n.id}`);
       eventBus.emitApriNotifica({ notifica: n });
@@ -79,21 +125,38 @@ export default function NotificheBell() {
             <ul className="max-h-80 overflow-y-auto">
               {notifiche.map((n) => {
                 const rimandata = notificaInRimando(n);
+                const mostraDot = nonAncoraNotate.has(n.id) && !rimandata;
+                const titoloBold = nonAncoraAperte.has(n.id) && !rimandata;
                 return (
-                  <li key={n.id} className="border-b border-edge-faint">
+                  <li
+                    key={n.id}
+                    className={`border-b border-edge-faint ${!mostraDot && !titoloBold ? "opacity-60" : ""}`}
+                    onMouseEnter={() => handleMouseEnterNotifica(n)}
+                  >
                     <div className="flex items-start gap-2 px-4 py-3">
                       <button
                         type="button"
                         onClick={() => void apriNotifica(n)}
                         className="flex min-w-0 flex-1 gap-3 text-left hover:opacity-80"
                       >
-                        <span
-                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${rimandata ? "bg-ink/25" : "bg-brand-teal"}`}
-                          aria-hidden
-                        />
+                        {mostraDot ? (
+                          <span
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-teal"
+                            aria-hidden
+                          />
+                        ) : rimandata ? (
+                          <span
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-ink/25"
+                            aria-hidden
+                          />
+                        ) : null}
                         <span className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-ink">{n.titolo}</p>
+                            <p
+                              className={`text-sm text-ink ${titoloBold ? "font-semibold" : "font-normal"}`}
+                            >
+                              {n.titolo}
+                            </p>
                             {rimandata ? (
                               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                                 Rimandata
