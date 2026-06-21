@@ -3,9 +3,9 @@ import type { RataAbbonamento } from "../../lib/types";
 import { formatData } from "../../lib/format";
 
 export type VariantePiano = "rate" | "canone";
-export type RigaPianoLayout = "completa" | "dettaglio" | "hero";
+type RigaPianoLayout = "completa" | "dettaglio" | "hero";
 
-export type RigaPianoProps = {
+type RigaPianoProps = {
   rata: RataAbbonamento;
   variante: VariantePiano;
   layout?: RigaPianoLayout;
@@ -43,7 +43,7 @@ function PagatoIl({ rata, className = "" }: { rata: RataAbbonamento; className?:
   );
 }
 
-export function badgeStato(stato: RataAbbonamento["stato"], variante: VariantePiano) {
+function badgeStato(stato: RataAbbonamento["stato"], variante: VariantePiano) {
   if (stato === "incassato") {
     return {
       label: variante === "rate" ? "Pagata" : "Incassato",

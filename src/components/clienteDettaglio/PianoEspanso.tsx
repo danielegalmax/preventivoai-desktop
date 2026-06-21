@@ -14,7 +14,7 @@ import RigaPiano, { type VariantePiano } from "./RigaPiano";
 
 
 
-export type PianoEspansoMode = "byStato" | "byCalendario";
+type PianoEspansoMode = "byStato" | "byCalendario";
 
 
 

@@ -37,15 +37,3 @@ export function invalidaCacheMessaggiCliente() {
   cacheUserId = null;
 }
 
-export async function salvaMessaggiCliente(messaggi: MessaggiClienteTemplates) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: new Error("Non autenticato"), user: null };
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ messaggi_cliente: messaggi })
-    .eq("id", user.id);
-
-  if (!error) invalidaCacheMessaggiCliente();
-  return { error, user };
-}

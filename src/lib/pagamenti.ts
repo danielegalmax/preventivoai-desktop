@@ -2,18 +2,6 @@ import { supabase } from "./supabase";
 
 export type TipoPagamento = "bonifico" | "paypal" | "contanti" | "carta" | "stripe";
 
-/** Campi in `dati` quando `tipo === "paypal"` */
-export type DatiPayPal = {
-  email?: string;
-  paypalme?: string;
-};
-
-/** Campi in `dati` quando `tipo === "bonifico"` */
-export type DatiBonifico = {
-  iban?: string;
-  intestatario?: string;
-};
-
 export type MetodoPagamento = {
   id: string;
   user_id?: string;

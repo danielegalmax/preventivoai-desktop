@@ -126,9 +126,3 @@ export function dimensioniPaginaPreview(availW: number, availH: number) {
   };
 }
 
-export function altezzaPaginaScalata(larghezza: number): number {
-  const scale = larghezza / PDF_TEMPLATE_WIDTH;
-  return Math.round(PDF_PAGE_HEIGHT * scale);
-}
-
-export { PDF_PAGE_HEIGHT, PDF_TEMPLATE_WIDTH };

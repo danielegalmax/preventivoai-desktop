@@ -48,10 +48,6 @@ export async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | 
     const title = typeof n.titolo === "string" && n.titolo.trim()
       ? n.titolo.trim()
       : titoloNotificaDaTipo(String(n.tipo || ""));
-    console.log("[notifiche-os] tentativo invio", {
-      abilitate: sonoNotificheAbilitate(),
-      granted: await isPermissionGranted(),
-    });
     sendNotification({ title, body });
   } catch (e) {
     console.error("[notifiche-os] errore:", e);

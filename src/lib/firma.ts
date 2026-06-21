@@ -202,10 +202,8 @@ export async function ottieniUrlFirma(preventivoId: string, invio?: PreventivoIn
 export {
   buildMessaggioFirmaInvio,
   buildMessaggioFirmaReminder,
-  buildMessaggioCondividiPdf,
   buildOggettoFirmaInvio,
   buildOggettoFirmaReminder,
-  testoInvioFirma,
 } from "preventivoai-shared";
 export { caricaMessaggiCliente } from "./messaggiCliente";
 

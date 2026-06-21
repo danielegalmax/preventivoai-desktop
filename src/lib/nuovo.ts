@@ -126,6 +126,3 @@ export async function salvaPreventivoGenerato({
   return { error, id: data?.id || null };
 }
 
-export async function aggiornaPdfUrlPreventivo(preventivoId: string, pdfUrl: string) {
-  return supabase.from("preventivi").update({ pdf_url: pdfUrl }).eq("id", preventivoId);
-}

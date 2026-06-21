@@ -14,21 +14,17 @@ export function setNotificheAbilitate(abilitate: boolean) {
   localStorage.setItem(NOTIFICHE_OS_KEY, String(abilitate));
 }
 
-export async function richiediPermessoNotifiche() {  if (!isDesktopApp()) return;
+export async function richiediPermessoNotifiche() {
+  if (!isDesktopApp()) return;
   if (sessionStorage.getItem(NOTIFICATION_PERMISSION_KEY) === "1") return;
   sessionStorage.setItem(NOTIFICATION_PERMISSION_KEY, "1");
 
   try {
     const granted = await isPermissionGranted();
-    if (granted) {
-      console.log("[notifiche] permesso già concesso");
-      return;
-    }
+    if (granted) return;
 
-    const result = await requestPermission();
-    console.log(`[notifiche] permesso ${result === "granted" ? "concesso" : "negato"}`);
+    await requestPermission();
   } catch (err) {
     console.warn("[notifiche] richiesta permesso fallita", err);
   }
 }
-

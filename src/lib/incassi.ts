@@ -32,12 +32,6 @@ export function sommaImportoRate(rate: Pick<RataRow, "importo" | "acconto" | "st
   }, 0);
 }
 
-function clienteIdDaRata(r: RataRow) {
-  const ab = r.abbonamenti;
-  if (Array.isArray(ab)) return ab[0]?.cliente_id;
-  return ab?.cliente_id;
-}
-
 function incassoSingoliPreventivi(
   preventivi: PreventivoRow[],
   preventiviConPiano: Set<string>,
@@ -145,24 +139,3 @@ export async function calcolaIncassatoTotale(userId: string): Promise<number> {
   return sommaPreventivi + totaleRate;
 }
 
-export async function caricaIncassiPerCliente(userId: string): Promise<Record<string, number>> {
-  const { preventiviPagati, preventiviConPiano, rate } = await caricaDatiIncassiUser(userId);
-  const map: Record<string, number> = {};
-
-  function add(clienteId: string | null | undefined, amount: number) {
-    if (!clienteId || amount <= 0) return;
-    map[clienteId] = (map[clienteId] || 0) + amount;
-  }
-
-  for (const p of preventiviPagati) {
-    if (!preventiviConPiano.has(p.id)) {
-      add(p.cliente_id, p.importo_totale || 0);
-    }
-  }
-
-  for (const r of rate) {
-    add(clienteIdDaRata(r), sommaImportoRate([r]));
-  }
-
-  return map;
-}

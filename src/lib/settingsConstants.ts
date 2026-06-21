@@ -31,7 +31,3 @@ export const COLORI_BRAND = [
 export function normalizzaHexColore(val: string): string {
   return val.replace(/^#/, "").replace(/[^0-9A-Fa-f]/g, "").slice(0, 6).toUpperCase();
 }
-
-export function hexColoreValido(val: string): boolean {
-  return /^[0-9A-F]{6}$/.test(normalizzaHexColore(val));
-}

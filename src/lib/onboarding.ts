@@ -16,8 +16,6 @@ export const ONBOARDING_CATEGORIE = [
   "altro",
 ] as const;
 
-export type OnboardingCategoria = (typeof ONBOARDING_CATEGORIE)[number];
-
 const DEMO_NOME_AZIENDA: Record<string, string> = {
   videomaker: "Studio Visivo Productions",
   fotografo: "Foto Art Studio",

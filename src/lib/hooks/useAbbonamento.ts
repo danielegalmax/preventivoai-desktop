@@ -457,7 +457,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     importoPagato: number,
     nota?: string,
     dataIncasso?: string,
-  ) {
+  ): Promise<void> {
     const found = trovaRata(rataId);
     if (!found) return;
     const { rata, abbonamentoId } = found;

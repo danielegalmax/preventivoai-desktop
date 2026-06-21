@@ -68,11 +68,6 @@ export function rememberPath(pathname: string) {
   saveMemory(memory);
 }
 
-export function getRememberedPath(section: NavSection): string {
-  const memory = loadMemory();
-  return memory[section] ?? SECTION_ROOTS[section];
-}
-
 export function resolveSidebarTarget(
   section: NavSection,
   _currentPathname: string,

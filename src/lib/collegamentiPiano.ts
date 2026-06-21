@@ -1,6 +1,5 @@
-import { supabase } from "./supabase";
-import { rimuoviDataDaNomePiano } from "preventivoai-shared";
 import { queryConFiltroCestino } from "preventivoai-shared";
+import { supabase } from "./supabase";
 
 export type CollegamentoPiano = {
   tipo: "canone" | "rate";
@@ -33,18 +32,6 @@ export function normalizzaTipoPiano(
 export function etichettaPianoCollegato(collegamento: CollegamentoPiano): string {
   const tipo = normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano);
   return tipo === "rate" ? "Piano a rate collegato" : "Abbonamento collegato";
-}
-
-/** Etichetta estesa con titolo preventivo madre, se disponibile nel nome piano. */
-export function etichettaPianoCollegatoDettaglio(collegamento: CollegamentoPiano): string {
-  const tipo = normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano);
-  const nome = collegamento.nomePiano?.trim();
-  if (nome) {
-    const pulito = rimuoviDataDaNomePiano(nome);
-    if (pulito.startsWith("Rate ·") || pulito.startsWith("Canone ·")) return pulito;
-    return tipo === "rate" ? `Rate · ${pulito}` : `Canone · ${pulito}`;
-  }
-  return etichettaPianoCollegato(collegamento);
 }
 
 async function caricaCollegamentiPiano(opts: { clienteId?: string; userId?: string }) {
