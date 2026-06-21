@@ -6,6 +6,7 @@ type Props = {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  zClass?: string;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -16,6 +17,7 @@ export default function ConfirmDialog({
   confirmLabel = "Elimina",
   cancelLabel = "Annulla",
   destructive = true,
+  zClass = "z-[60]",
   onConfirm,
   onCancel,
 }: Props) {
@@ -26,7 +28,7 @@ export default function ConfirmDialog({
       onClose={onCancel}
       onConfirm={onConfirm}
       onBackdropClick={onCancel}
-      zClass="z-[60]"
+      zClass={zClass}
       panelClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg"
       contentClassName="mt-4"
     >
