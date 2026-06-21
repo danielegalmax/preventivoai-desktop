@@ -48,11 +48,14 @@ const preventivoPianiDb: PreventivoPianiDb = {
     return data ?? null;
   },
   async insertAbbonamento(row) {
-    const { data } = await supabase.from("abbonamenti").insert(row).select().single();
-    return data ? { id: data.id as string } : null;
+    const { data, error } = await supabase.from("abbonamenti").insert(row).select().single();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Inserimento abbonamento fallito.");
+    return { id: data.id as string };
   },
   async insertRate(rows) {
-    await supabase.from("rate_abbonamento").insert(rows);
+    const { error } = await supabase.from("rate_abbonamento").insert(rows);
+    if (error) throw new Error(error.message);
   },
   async agganciaPianoAPreventivo(abbonamentoId, preventivoId) {
     const { error } = await supabase

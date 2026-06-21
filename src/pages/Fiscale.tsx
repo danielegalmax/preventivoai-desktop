@@ -73,9 +73,13 @@ export default function Fiscale() {
   async function salva() {
     setSaving(true);
     setMessaggio("");
-    const id = await salvaProfiloFiscale(profilo, featureAttiva);
-    if (id) setProfilo((p) => ({ ...p, id }));
+    const { id, error } = await salvaProfiloFiscale(profilo, featureAttiva);
     setSaving(false);
+    if (error) {
+      setMessaggio(error);
+      return;
+    }
+    if (id) setProfilo((p) => ({ ...p, id }));
     setModificheNonSalvate(false);
     setMessaggio("Profilo fiscale aggiornato.");
   }
@@ -260,7 +264,11 @@ export default function Fiscale() {
           </p>
         </div>
 
-        {messaggio && <p className="text-sm text-brand-teal">{messaggio}</p>}
+        {messaggio && (
+          <p className={`text-sm ${messaggio === "Profilo fiscale aggiornato." ? "text-brand-teal" : "text-red-500"}`}>
+            {messaggio}
+          </p>
+        )}
 
         <button
           type="button"

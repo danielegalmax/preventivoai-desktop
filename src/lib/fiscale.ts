@@ -86,7 +86,7 @@ export async function caricaProfiloFiscaleAttivo(): Promise<ProfiloFiscale | nul
 
 export async function salvaProfiloFiscale(profilo: ProfiloFiscaleForm, featureAttiva: boolean) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { id: null, error: "Utente non autenticato." };
 
   const payload = {
     user_id: user.id,
@@ -108,14 +108,17 @@ export async function salvaProfiloFiscale(profilo: ProfiloFiscaleForm, featureAt
   };
 
   if (profilo.id) {
-    await supabase.from("profili_fiscali").update(payload).eq("id", profilo.id);
-    return profilo.id;
+    const { error } = await supabase.from("profili_fiscali").update(payload).eq("id", profilo.id);
+    if (error) return { id: null, error: error.message };
+    return { id: profilo.id, error: null };
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profili_fiscali")
     .insert(payload)
     .select()
     .single();
-  return data?.id || null;
+  if (error) return { id: null, error: error.message };
+  if (!data?.id) return { id: null, error: "Inserimento profilo fiscale fallito." };
+  return { id: data.id as string, error: null };
 }

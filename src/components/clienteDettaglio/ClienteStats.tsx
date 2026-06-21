@@ -4,6 +4,7 @@ type Props = {
   preventiviCount: number;
   fatturato: number;
   fatturatoLoading?: boolean;
+  fatturatoErrore?: string | null;
   abbonamentoTotale: number;
   abbonamentoAttivo: boolean;
 };
@@ -12,6 +13,7 @@ export default function ClienteStats({
   preventiviCount,
   fatturato,
   fatturatoLoading = false,
+  fatturatoErrore = null,
   abbonamentoTotale,
   abbonamentoAttivo,
 }: Props) {
@@ -23,8 +25,13 @@ export default function ClienteStats({
     },
     {
       label: "Fatturato",
-      value: fatturatoLoading ? "..." : `€${formatImportoEuro(fatturato, 2)}`,
-      accent: true,
+      value: fatturatoErrore
+        ? "Non disponibile"
+        : fatturatoLoading
+          ? "..."
+          : `€${formatImportoEuro(fatturato, 2)}`,
+      accent: !fatturatoErrore,
+      hint: fatturatoErrore,
     },
     {
       label: "Abbonamento",
@@ -41,6 +48,9 @@ export default function ClienteStats({
             {card.value}
           </p>
           <p className="mt-1 text-xs text-brand-navy/50">{card.label}</p>
+          {"hint" in card && card.hint ? (
+            <p className="mt-1 text-[10px] leading-tight text-red-500">{card.hint}</p>
+          ) : null}
         </div>
       ))}
     </div>

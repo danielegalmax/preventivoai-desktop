@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { spostaAbbonamentiInCestino } from "../cestino";
 import { MESI_BREVI } from "../constants";
 import { erroreColonnaDeletedAt } from "preventivoai-shared";
@@ -60,6 +60,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   const [preventiviMadreStorico, setPreventiviMadreStorico] = useState<Record<string, PreventivoMadre>>({});
   const [ratePerPiano, setRatePerPiano] = useState<Record<string, RataAbbonamento[]>>({});
   const [loading, setLoading] = useState(true);
+  const pagamentiInCorso = useRef(new Set<string>());
 
   useEffect(() => { void carica(); }, [clienteId, opts?.soloTipo]);
 
@@ -193,16 +194,26 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
 
     if (error) { alertErrore("Errore", error.message); return; }
 
+    let erroreRate: string | null = null;
     if (opzioni?.numeroMensilita && opzioni.numeroMensilita > 0) {
-      await generaRateMultiple(data.id, importo, opzioni.numeroMensilita);
+      erroreRate = await generaRateMultiple(data.id, importo, opzioni.numeroMensilita);
     } else {
-      await generaRataMeseCorrente(data.id, importo);
+      erroreRate = await generaRataMeseCorrente(data.id, importo);
+    }
+
+    if (erroreRate) {
+      alertErrore(
+        "Piano incompleto",
+        `L'abbonamento è stato creato ma le rate non sono state salvate: ${erroreRate}`,
+      );
+      await carica();
+      return;
     }
 
     await carica();
   }
 
-  async function generaRataMeseCorrente(abbonamentoId: string, importo: number) {
+  async function generaRataMeseCorrente(abbonamentoId: string, importo: number): Promise<string | null> {
     const ora = new Date();
     const mese = ora.getMonth() + 1;
     const anno = ora.getFullYear();
@@ -213,8 +224,8 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       .eq("mese", mese)
       .eq("anno", anno)
       .single();
-    if (esistente) return;
-    await supabase.from("rate_abbonamento").insert({
+    if (esistente) return null;
+    const { error } = await supabase.from("rate_abbonamento").insert({
       abbonamento_id: abbonamentoId,
       mese,
       anno,
@@ -222,9 +233,10 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       acconto: 0,
       stato: "da_incassare",
     });
+    return error ? error.message : null;
   }
 
-  async function generaRateMultiple(abbonamentoId: string, importo: number, numeroMesi: number) {
+  async function generaRateMultiple(abbonamentoId: string, importo: number, numeroMesi: number): Promise<string | null> {
     const ora = new Date();
     const inserimenti = [];
     for (let i = 0; i < numeroMesi; i++) {
@@ -238,7 +250,8 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
         stato: "da_incassare",
       });
     }
-    await supabase.from("rate_abbonamento").insert(inserimenti);
+    const { error } = await supabase.from("rate_abbonamento").insert(inserimenti);
+    return error ? error.message : null;
   }
 
   async function generaRateConImporti(
@@ -458,6 +471,13 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     nota?: string,
     dataIncasso?: string,
   ): Promise<void> {
+    if (!Number.isFinite(importoPagato) || importoPagato <= 0) {
+      alertErrore("Importo non valido", "Inserisci un importo maggiore di zero.");
+      return;
+    }
+
+    if (pagamentiInCorso.current.has(rataId)) return;
+
     const found = trovaRata(rataId);
     if (!found) return;
     const { rata, abbonamentoId } = found;
@@ -466,6 +486,8 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       return;
     }
 
+    pagamentiInCorso.current.add(rataId);
+    try {
     const nuovoAcconto = Math.min(rata.acconto + importoPagato, rata.importo);
     const nuovoSaldo = rata.importo - nuovoAcconto;
     const nuovoStato = nuovoSaldo <= 0 ? "incassato" : "parziale";
@@ -489,6 +511,9 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       rs.map((x) => x.id === rataId ? { ...x, ...aggiornamento, saldo_residuo: nuovoSaldo } : x),
     );
     eventBus.emit("aggiorna-home");
+    } finally {
+      pagamentiInCorso.current.delete(rataId);
+    }
   }
 
   async function azzeraPagamento(rataId: string) {

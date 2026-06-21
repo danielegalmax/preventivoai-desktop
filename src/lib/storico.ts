@@ -86,6 +86,27 @@ export async function caricaCronologiaPreventivo(padreId: string | null): Promis
 }
 
 export async function ripristinaVersionePreventivo(preventivoCorrenteId: string, versioneId: string) {
-  await supabase.from("preventivi").update({ is_ultimo: false }).eq("id", preventivoCorrenteId);
-  return supabase.from("preventivi").update({ is_ultimo: true }).eq("id", versioneId);
+  const { error: errCorrente } = await supabase
+    .from("preventivi")
+    .update({ is_ultimo: false })
+    .eq("id", preventivoCorrenteId);
+
+  if (errCorrente) return { error: errCorrente };
+
+  const { error: errVersione } = await supabase
+    .from("preventivi")
+    .update({ is_ultimo: true })
+    .eq("id", versioneId);
+
+  if (errVersione) {
+    return {
+      error: {
+        message:
+          "Ripristino interrotto: la versione corrente potrebbe non essere più contrassegnata come ultima. "
+          + errVersione.message,
+      },
+    };
+  }
+
+  return { error: null };
 }

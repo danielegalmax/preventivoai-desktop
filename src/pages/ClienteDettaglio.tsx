@@ -92,6 +92,7 @@ export default function ClienteDettaglio() {
   const [fatturatoLoading, setFatturatoLoading] = useState(
     () => getFatturatoClienteCached(id || "") === undefined,
   );
+  const [fatturatoErrore, setFatturatoErrore] = useState<string | null>(null);
   const [metodoPredefinito, setMetodoPredefinito] = useState<MetodoPagamento | null>(null);
 
   const preventiviSenzaPiano = useMemo(
@@ -128,11 +129,18 @@ export default function ClienteDettaglio() {
     const hasCached = getFatturatoClienteCached(clienteId) !== undefined;
     if (!hasCached) setFatturatoLoading(true);
 
-    const value = await calcolaIncassoCliente(user.id, clienteId);
+    const risultato = await calcolaIncassoCliente(user.id, clienteId);
     if (reqId !== fatturatoReqRef.current) return;
 
-    setFatturatoClienteCached(clienteId, value);
-    setFatturato(value);
+    if (!risultato.ok) {
+      setFatturatoErrore(risultato.error);
+      setFatturatoLoading(false);
+      return;
+    }
+
+    setFatturatoErrore(null);
+    setFatturatoClienteCached(clienteId, risultato.value);
+    setFatturato(risultato.value);
     setFatturatoLoading(false);
   }, [id]);
 
@@ -491,6 +499,7 @@ export default function ClienteDettaglio() {
           preventiviCount={preventivi.length}
           fatturato={fatturato}
           fatturatoLoading={fatturatoLoading}
+          fatturatoErrore={fatturatoErrore}
           abbonamentoTotale={abbonamentoTotale}
           abbonamentoAttivo={abbonamentoAttivo}
         />

@@ -280,7 +280,7 @@ export async function caricaHomeData(userId: string): Promise<HomeData | null> {
     profiloRes,
     ultimiPreventivi,
     collegamentiPiano,
-    incassatoTotale,
+    incassatoTotaleRes,
     preventiviMese,
     preventiviMeseScorso,
     clientiTotali,
@@ -302,6 +302,7 @@ export async function caricaHomeData(userId: string): Promise<HomeData | null> {
     caricaRateInRitardo(userId),
   ]);
 
+  const incassatoTotale = incassatoTotaleRes.ok ? incassatoTotaleRes.value : 0;
   const nomeBreve = getNomeBreve(profiloRes.data?.nome_azienda || "");
   const minutiRisparmiati = preventiviTotali * 23;
 

@@ -529,35 +529,40 @@ export default function Nuovo({ mode }: Props) {
     const cliente = clienti.find((c) => c.id === clienteSelezionatoId);
     if (!cliente) return;
 
-    if (abbonamentoAttivo) {
-      const r = await creaAbbonamentoDaPreventivo({
-        cliente,
-        preventivoId,
-        importoRaw: abImporto,
-        giornoRaw: abGiorno,
-        meseInizioRaw: abMeseInizio,
-        mensilitaRaw: abMensilita,
-      });
-      if (r.esistente) {
-        window.alert("Questo preventivo ha già un piano collegato. Gestiscilo dalla cartella cliente.");
+    try {
+      if (abbonamentoAttivo) {
+        const r = await creaAbbonamentoDaPreventivo({
+          cliente,
+          preventivoId,
+          importoRaw: abImporto,
+          giornoRaw: abGiorno,
+          meseInizioRaw: abMeseInizio,
+          mensilitaRaw: abMensilita,
+        });
+        if (r.esistente) {
+          window.alert("Questo preventivo ha già un piano collegato. Gestiscilo dalla cartella cliente.");
+        }
       }
-    }
 
-    if (pagamentoRateAttivo && rateModalita !== "acconto_saldo") {
-      const importoRate = mode === "manuale"
-        ? totaleConIva
-        : (importoDaTesto(preventivo) || 0);
-      const r = await creaPianoRateDaPreventivo({
-        cliente,
-        preventivoId,
-        importoTotale: importoRate,
-        numeroRateRaw: rateNumero,
-        giornoScadenzaRaw: rateGiornoScadenza,
-        meseInizioRaw: rateMeseInizio,
-      });
-      if (r.esistente) {
-        window.alert("Questo preventivo ha già un piano a rate collegato. Gestiscilo dalla cartella cliente.");
+      if (pagamentoRateAttivo && rateModalita !== "acconto_saldo") {
+        const importoRate = mode === "manuale"
+          ? totaleConIva
+          : (importoDaTesto(preventivo) || 0);
+        const r = await creaPianoRateDaPreventivo({
+          cliente,
+          preventivoId,
+          importoTotale: importoRate,
+          numeroRateRaw: rateNumero,
+          giornoScadenzaRaw: rateGiornoScadenza,
+          meseInizioRaw: rateMeseInizio,
+        });
+        if (r.esistente) {
+          window.alert("Questo preventivo ha già un piano a rate collegato. Gestiscilo dalla cartella cliente.");
+        }
       }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Errore nella creazione del piano.";
+      window.alert(`Piano incompleto: ${msg}`);
     }
   }
 
@@ -907,7 +912,15 @@ export default function Nuovo({ mode }: Props) {
           giornoScadenzaRaw: rateGiornoScadenza,
           meseInizioRaw: rateMeseInizio,
           importiPersonalizzati: [accontoSaldo.acconto, accontoSaldo.saldo],
+        }).catch((e: unknown) => {
+          window.alert(
+            e instanceof Error
+              ? `Piano incompleto: ${e.message}`
+              : "Impossibile creare il piano acconto. Riprova.",
+          );
+          return null;
         });
+        if (!r) return;
         if (r.esistente || !r.abbonamentoId) {
           window.alert("Impossibile creare il piano acconto. Riprova.");
           return;

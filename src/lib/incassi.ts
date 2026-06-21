@@ -14,6 +14,10 @@ type PreventivoRow = {
   cliente_id: string | null;
 };
 
+export type RisultatoIncasso =
+  | { ok: true; value: number }
+  | { ok: false; error: string };
+
 const fatturatoClienteCache = new Map<string, number>();
 
 export function getFatturatoClienteCached(clienteId: string): number | undefined {
@@ -54,8 +58,9 @@ async function caricaAbbonamentiConPreventivo(userId: string, clienteId?: string
     if (clienteId) q = q.eq("cliente_id", clienteId);
     return q;
   };
-  const { data } = await queryConFiltroCestino(() => build(true), () => build(false));
-  return data || [];
+  const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
+  if (error) return { data: [] as { preventivo_id: string | null }[], error: error.message };
+  return { data: data || [], error: null as string | null };
 }
 
 async function caricaPreventiviPagati(userId: string, clienteId?: string) {
@@ -71,8 +76,9 @@ async function caricaPreventiviPagati(userId: string, clienteId?: string) {
     if (clienteId) q = q.eq("cliente_id", clienteId);
     return q;
   };
-  const { data } = await queryConFiltroCestino(() => build(true), () => build(false));
-  return (data || []) as PreventivoRow[];
+  const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
+  if (error) return { data: [] as PreventivoRow[], error: error.message };
+  return { data: (data || []) as PreventivoRow[], error: null as string | null };
 }
 
 async function caricaRateIncasso(userId: string, clienteId?: string) {
@@ -90,52 +96,62 @@ async function caricaRateIncasso(userId: string, clienteId?: string) {
     if (clienteId) q = q.eq("abbonamenti.cliente_id", clienteId);
     return q;
   };
-  const { data } = await queryConFiltroCestino(() => build(true), () => build(false));
-  return (data || []) as RataRow[];
+  const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
+  if (error) return { data: [] as RataRow[], error: error.message };
+  return { data: (data || []) as RataRow[], error: null as string | null };
 }
 
 async function caricaDatiIncassiUser(userId: string) {
-  const [abbonamenti, pagati, rate] = await Promise.all([
+  const [abbonamentiRes, pagatiRes, rateRes] = await Promise.all([
     caricaAbbonamentiConPreventivo(userId),
     caricaPreventiviPagati(userId),
     caricaRateIncasso(userId),
   ]);
 
+  const error = abbonamentiRes.error || pagatiRes.error || rateRes.error;
+  if (error) {
+    return { error, preventiviPagati: [] as PreventivoRow[], preventiviConPiano: new Set<string>(), rate: [] as RataRow[] };
+  }
+
   const preventiviConPiano = new Set(
-    abbonamenti.map((a) => a.preventivo_id).filter(Boolean) as string[],
+    abbonamentiRes.data.map((a) => a.preventivo_id).filter(Boolean) as string[],
   );
 
   return {
-    preventiviPagati: pagati,
+    error: null as string | null,
+    preventiviPagati: pagatiRes.data,
     preventiviConPiano,
-    rate,
+    rate: rateRes.data,
   };
 }
 
 /** Incasso totale per cliente: preventivi singoli accettati+pagati + ogni pagamento su rate/abbonamento (anche parziale). */
-export async function calcolaIncassoCliente(userId: string, clienteId: string): Promise<number> {
-  const [abbonamenti, pagati, rate] = await Promise.all([
+export async function calcolaIncassoCliente(userId: string, clienteId: string): Promise<RisultatoIncasso> {
+  const [abbonamentiRes, pagatiRes, rateRes] = await Promise.all([
     caricaAbbonamentiConPreventivo(userId, clienteId),
     caricaPreventiviPagati(userId, clienteId),
     caricaRateIncasso(userId, clienteId),
   ]);
 
+  const error = abbonamentiRes.error || pagatiRes.error || rateRes.error;
+  if (error) return { ok: false, error };
+
   const preventiviConPiano = new Set(
-    abbonamenti.map((a) => a.preventivo_id).filter(Boolean) as string[],
+    abbonamentiRes.data.map((a) => a.preventivo_id).filter(Boolean) as string[],
   );
 
-  const partePreventivi = incassoSingoliPreventivi(pagati, preventiviConPiano);
-  const parteRate = sommaImportoRate(rate);
+  const partePreventivi = incassoSingoliPreventivi(pagatiRes.data, preventiviConPiano);
+  const parteRate = sommaImportoRate(rateRes.data);
 
-  return partePreventivi + parteRate;
+  return { ok: true, value: partePreventivi + parteRate };
 }
 
-export async function calcolaIncassatoTotale(userId: string): Promise<number> {
-  const { preventiviPagati, preventiviConPiano, rate } = await caricaDatiIncassiUser(userId);
+export async function calcolaIncassatoTotale(userId: string): Promise<RisultatoIncasso> {
+  const { error, preventiviPagati, preventiviConPiano, rate } = await caricaDatiIncassiUser(userId);
+  if (error) return { ok: false, error };
 
   const sommaPreventivi = incassoSingoliPreventivi(preventiviPagati, preventiviConPiano);
   const totaleRate = sommaImportoRate(rate);
 
-  return sommaPreventivi + totaleRate;
+  return { ok: true, value: sommaPreventivi + totaleRate };
 }
-
