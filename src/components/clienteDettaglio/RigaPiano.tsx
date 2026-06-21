@@ -1,5 +1,4 @@
-import { MESI_BREVI } from "../../lib/constants";
-import { formatImportoEuro } from "preventivoai-shared";
+import { formatImportoEuro, labelScadenzaRataDaPiano } from "preventivoai-shared";
 import type { RataAbbonamento } from "../../lib/types";
 
 export type VariantePiano = "rate" | "canone";
@@ -23,14 +22,11 @@ export type RigaPianoProps = {
   onElimina: () => void;
   messaggioConfermaAzzera?: string;
   className?: string;
+  giornoScadenzaPiano: number;
 };
 
 function btnReset(extra = "") {
   return `m-0 border-0 bg-transparent p-0 shadow-none [font:inherit] ${extra}`.trim();
-}
-
-function labelScadenza(rata: RataAbbonamento) {
-  return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
 }
 
 function residuoRata(rata: RataAbbonamento) {
@@ -62,14 +58,16 @@ export function badgeStato(stato: RataAbbonamento["stato"], variante: VariantePi
 function titoloHeader(
   rata: RataAbbonamento,
   variante: VariantePiano,
+  giornoScadenzaPiano: number,
   indiceRata?: number,
   titoloCustom?: string,
 ) {
   if (titoloCustom) return titoloCustom;
+  const scadenza = labelScadenzaRataDaPiano(rata, giornoScadenzaPiano);
   if (variante === "rate" && indiceRata != null) {
-    return `Rata ${indiceRata + 1} · ${labelScadenza(rata)}`;
+    return `Rata ${indiceRata + 1} · ${scadenza}`;
   }
-  return labelScadenza(rata);
+  return scadenza;
 }
 
 function messaggioAzzeraDefault(variante: VariantePiano) {
@@ -184,9 +182,10 @@ export default function RigaPiano({
   onElimina,
   messaggioConfermaAzzera,
   className = "",
+  giornoScadenzaPiano,
 }: RigaPianoProps) {
   const badge = badgeStato(rata.stato, variante);
-  const titolo = titoloHeader(rata, variante, indiceRata, titoloCustom);
+  const titolo = titoloHeader(rata, variante, giornoScadenzaPiano, indiceRata, titoloCustom);
   const chevron = mostraChevron ?? layout === "completa";
   const dettaglioProps = {
     rata,

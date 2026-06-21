@@ -4,7 +4,7 @@ import { MESI_BREVI } from "../../lib/constants";
 
 import type { AnalisiPiano } from "preventivoai-shared";
 
-import { formatImportoEuro } from "preventivoai-shared";
+import { formatImportoEuro, labelScadenzaRataDaPiano } from "preventivoai-shared";
 
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 
@@ -21,14 +21,6 @@ export type PianoEspansoMode = "byStato" | "byCalendario";
 function ordinaRate(a: RataAbbonamento, b: RataAbbonamento) {
 
   return a.anno - b.anno || a.mese - b.mese;
-
-}
-
-
-
-function labelScadenza(rata: RataAbbonamento) {
-
-  return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
 
 }
 
@@ -140,6 +132,8 @@ function GruppoRateCollassabile({
 
   titoloCustom,
 
+  giornoScadenzaPiano,
+
 }: {
 
   titolo: string;
@@ -169,6 +163,8 @@ function GruppoRateCollassabile({
   onEliminaRata: (rata: RataAbbonamento) => void;
 
   titoloCustom?: (rata: RataAbbonamento) => string | undefined;
+
+  giornoScadenzaPiano: number;
 
 }) {
 
@@ -236,6 +232,8 @@ function GruppoRateCollassabile({
 
             onElimina={() => onEliminaRata(rata)}
 
+            giornoScadenzaPiano={giornoScadenzaPiano}
+
           />
 
         );
@@ -255,6 +253,8 @@ function GruppoRateCollassabile({
 
 
 export default function PianoEspanso({
+
+  abbonamento,
 
   rate,
 
@@ -331,6 +331,8 @@ export default function PianoEspanso({
     rata,
 
     variante: varianteRiga,
+
+    giornoScadenzaPiano: abbonamento.giorno_scadenza,
 
     invioReminderLoading,
 
@@ -472,7 +474,9 @@ export default function PianoEspanso({
 
               onEliminaRata={onEliminaRata}
 
-              titoloCustom={labelScadenza}
+              titoloCustom={(rata) => labelScadenzaRataDaPiano(rata, abbonamento.giorno_scadenza)}
+
+              giornoScadenzaPiano={abbonamento.giorno_scadenza}
 
             />
 
@@ -527,6 +531,8 @@ export default function PianoEspanso({
           onReminder={onReminder}
 
           onEliminaRata={onEliminaRata}
+
+          giornoScadenzaPiano={abbonamento.giorno_scadenza}
 
         />
 

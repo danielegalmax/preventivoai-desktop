@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { Preventivo, RataAbbonamento } from "../../lib/types";
-import { MESI_BREVI } from "../../lib/constants";
-import { formatImportoEuro, parseImportoEuro } from "preventivoai-shared";
+import { formatImportoEuro, labelScadenzaRataDaPiano, parseImportoEuro } from "preventivoai-shared";
 import { AnnoSelect, GiornoScadenzaSelect, MeseInizioSelect } from "../pickers/DatePartPickers";
 import PreventivoPicker from "./PreventivoPicker";
 import {
@@ -106,6 +105,8 @@ type Props = {
   onChangePagamentoNota: (v: string) => void;
   onConfermaPagamento: () => void;
 
+  giornoScadenzaPiano?: number | null;
+
   mostraRinomina: boolean;
   onCloseRinomina: () => void;
   nomeAbTemp: string;
@@ -172,6 +173,7 @@ export default function ClienteAbbonamentoModals({
   pagamentoNota,
   onChangePagamentoNota,
   onConfermaPagamento,
+  giornoScadenzaPiano,
   mostraRinomina,
   onCloseRinomina,
   nomeAbTemp,
@@ -354,7 +356,11 @@ export default function ClienteAbbonamentoModals({
 
       {rataSelezionata ? (
         <ModalShell
-          title={`${MESI_BREVI[rataSelezionata.mese - 1]} ${rataSelezionata.anno}`}
+          title={
+            giornoScadenzaPiano != null
+              ? labelScadenzaRataDaPiano(rataSelezionata, giornoScadenzaPiano)
+              : `${rataSelezionata.mese}/${rataSelezionata.anno}`
+          }
           onClose={onCloseRata}
           onConfirm={onConfermaPagamento}
         >

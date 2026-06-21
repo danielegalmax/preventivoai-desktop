@@ -1,9 +1,8 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { MESI_FULL } from "../../lib/constants";
 import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
-import { formatImportoEuro, generaLinkPaypalMe, generaTestoReminderPagamento } from "preventivoai-shared";
+import { formatImportoEuro, generaLinkPaypalMe, generaTestoReminderPagamento, labelScadenzaRataDaPiano } from "preventivoai-shared";
 import { creaLinkPagamentoRata } from "../../lib/pdf";
 import type { MetodoPagamento } from "../../lib/pagamenti";
 import { titoloHeaderPiano, analizzaStatoPiano, ordinaPianiPerStato } from "preventivoai-shared";
@@ -260,14 +259,15 @@ export default function ClienteAbbonamentoTab({
     try {
       setInvioReminderLoading(rata.id);
       const residuo = rata.importo - (rata.acconto || 0);
-      const periodoLabel = `${MESI_FULL[rata.mese - 1]} ${rata.anno}`;
+      const abbonamento = abbonamentiAttivi.find((a) => a.id === rata.abbonamento_id);
+      const periodoLabel = `il canone del ${labelScadenzaRataDaPiano(rata, abbonamento?.giorno_scadenza ?? 1)}`;
       let testo: string;
 
       if (!metodoPredefinito) {
         const session = await sessioneClienteDettaglio();
         if (!session) return;
         const link = await creaLinkPagamentoRata(rata.id, clienteNome, session.access_token);
-        testo = `Ciao ${clienteNome}, ti ricordo il pagamento di €${formatImportoEuro(residuo, 2)} per il canone di ${periodoLabel}. Puoi pagare qui: ${link}`;
+        testo = `Ciao ${clienteNome}, ti ricordo il pagamento di €${formatImportoEuro(residuo, 2)} per ${periodoLabel}. Puoi pagare qui: ${link}`;
       } else if (metodoPredefinito.tipo === "stripe") {
         const session = await sessioneClienteDettaglio();
         if (!session) return;

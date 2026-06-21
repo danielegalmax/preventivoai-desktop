@@ -1,5 +1,4 @@
-import { MESI_BREVI } from "../../lib/constants";
-import { formatImportoEuro } from "preventivoai-shared";
+import { formatImportoEuro, labelScadenzaRataDaPiano } from "preventivoai-shared";
 import type { RataAbbonamento } from "../../lib/types";
 import ModalShell from "../ModalShell";
 
@@ -14,10 +13,6 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
       className="w-full rounded-xl border border-black/10 bg-brand-bg px-3 py-2.5 text-sm text-brand-navy outline-none focus:border-brand-teal"
     />
   );
-}
-
-function labelScadenza(rata: RataAbbonamento) {
-  return `${MESI_BREVI[rata.mese - 1]} ${rata.anno}`;
 }
 
 export type PianoRateModalsProps = {
@@ -43,6 +38,7 @@ export type PianoRateModalsProps = {
   rateLibereCount: number;
   onSalvaPersonalizzaRate: () => void;
   salvaPersonalizzaLoading: boolean;
+  giornoScadenzaPiano: number;
 };
 
 export default function PianoRateModals({
@@ -67,6 +63,7 @@ export default function PianoRateModals({
   rateLibereCount,
   onSalvaPersonalizzaRate,
   salvaPersonalizzaLoading,
+  giornoScadenzaPiano,
 }: PianoRateModalsProps) {
   return (
     <>
@@ -123,7 +120,7 @@ export default function PianoRateModals({
               return (
                 <div key={rata.id} className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 text-sm text-brand-navy/70">
-                    Rata {index + 1} · {labelScadenza(rata)}
+                    Rata {index + 1} · {labelScadenzaRataDaPiano(rata, giornoScadenzaPiano)}
                   </span>
                   {pagata ? (
                     <span className="w-24 text-right text-sm font-semibold text-brand-navy/40">
