@@ -96,3 +96,33 @@ textarea::placeholder {
 .preventivo-row-focus {
   animation: preventivo-focus-flicker 1s ease-in-out 1;
 }
+
+@keyframes notifica-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notifica-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.notifica-toast-enter {
+  animation: notifica-toast-in 300ms ease-out forwards;
+}
+
+.notifica-toast-leave {
+  animation: notifica-toast-out 300ms ease-in forwards;
+}

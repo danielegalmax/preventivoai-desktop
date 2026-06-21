@@ -3,20 +3,22 @@ import { useNavigate } from "react-router";
 import {
   formatTempoNotifica,
   notificaInRimando,
-  useNotifiche,
   type Notifica,
 } from "../lib/notifiche";
+import { useNotifiche } from "./NotificheProvider";
 import { segnaPreventivoPagato } from "../lib/preventivo";
 import { eventBus } from "../lib/eventBus";
 import NotificaFirmaDialog from "./firma/NotificaFirmaDialog";
+import NotificaToastStack from "./NotificaToastStack";
 
 export default function NotificheBell() {
   const navigate = useNavigate();
-  const { notifiche, count, segnaTutteLette, rimanda, archivia } = useNotifiche();
+  const { notifiche, count, segnaTutteLette, rimanda, archivia, clearToasts } = useNotifiche();
   const [open, setOpen] = useState(false);
   const [nonAncoraNotate, setNonAncoraNotate] = useState<Set<string>>(() => new Set());
   const [nonAncoraAperte, setNonAncoraAperte] = useState<Set<string>>(() => new Set());
   const ref = useRef<HTMLDivElement>(null);
+  const bellBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setNonAncoraNotate((prev) => {
@@ -93,8 +95,12 @@ export default function NotificheBell() {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={bellBtnRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((v) => {
+          if (!v) clearToasts();
+          return !v;
+        })}
         className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink/70 hover:bg-brand-bg"
         aria-label="Notifiche"
       >
@@ -194,6 +200,7 @@ export default function NotificheBell() {
           )}
         </div>
       )}
+      <NotificaToastStack anchorRef={bellBtnRef} />
     </div>
   );
 }

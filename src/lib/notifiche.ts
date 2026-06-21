@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
 import { supabase } from "./supabase";
 import { isDesktopApp } from "./appSettings";
@@ -27,7 +26,7 @@ export type Notifica = {
 
 const ORE_RIMANDA_DEFAULT = 24;
 
-function titoloNotificaDaTipo(tipo: string) {
+export function titoloNotificaDaTipo(tipo: string) {
   const map: Record<string, string> = {
     firma_ricevuta: "Preventivo firmato",
     reminder_firma: "Promemoria firma",
@@ -37,7 +36,7 @@ function titoloNotificaDaTipo(tipo: string) {
   return map[tipo] || "Notifica";
 }
 
-async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | undefined) {
+export async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | undefined) {
   if (!isDesktopApp()) return;
   if (!sonoNotificheAbilitate()) return;
   if (!n) return;
@@ -144,85 +143,4 @@ export function formatTempoNotifica(iso: string) {
   const giorni = Math.floor(ore / 24);
   if (giorni < 7) return `${giorni} g fa`;
   return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
-}
-
-export function useNotifiche() {
-  const [notifiche, setNotifiche] = useState<Notifica[]>([]);
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  const ricarica = useCallback(async () => {
-    const list = await caricaNotificheCampanella();
-    setNotifiche(list);
-    setCount(list.filter(notificaContaBadge).length);
-    setLoading(false);
-  }, []);
-
-  const ricaricaRef = useRef(ricarica);
-  ricaricaRef.current = ricarica;
-
-  useEffect(() => {
-    void ricaricaRef.current();
-
-    let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    void (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-
-      const channelName = `notifiche-artigiano-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifiche",
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            void ricaricaRef.current();
-            void mostraNotificaOsSePossibile((payload as { new?: Partial<Notifica> }).new);
-          },
-        )
-        .subscribe();
-    })();
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void ricaricaRef.current();
-    };
-    window.addEventListener("focus", onVisible);
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener("focus", onVisible);
-      document.removeEventListener("visibilitychange", onVisible);
-      if (channel) void supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const segnaLetta = useCallback(async (id: string) => {
-    await segnaNotificaLetta(id);
-    await ricarica();
-  }, [ricarica]);
-
-  const segnaTutteLetteHook = useCallback(async () => {
-    await segnaTutteLette();
-    await ricarica();
-  }, [ricarica]);
-
-  const rimanda = useCallback(async (id: string, ore = ORE_RIMANDA_DEFAULT) => {
-    await rimandaNotifica(id, ore);
-    await ricarica();
-  }, [ricarica]);
-
-  const archivia = useCallback(async (id: string) => {
-    await archiviaNotifica(id);
-    await ricarica();
-  }, [ricarica]);
-
-  return { notifiche, loading, ricarica, segnaLetta, segnaTutteLette: segnaTutteLetteHook, rimanda, archivia, count };
 }
