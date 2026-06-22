@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "../lib/supabase";
-import { inviaMessaggio, convertiRecap, applicaRispostaChat, estraiNomeCliente, cercaCliente } from "../lib/chat";
 import { caricaClientiPerSelezione, salvaPreventivoGenerato } from "../lib/nuovo";
 import {
   cancellaBozzaChat,
@@ -17,7 +15,7 @@ import {
   type NuovoManualeDraft,
   type PianoPagamentoTipo,
 } from "../lib/nuovoDraft";
-import { generaTestoPreventivoBuilder, calcolaTotaleVoci, calcolaTotaleTrasferte, formatImportoVoce, isVoceCustom } from "../lib/builder";
+import { calcolaTotaleVoci, calcolaTotaleTrasferte } from "../lib/builder";
 import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
 import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
@@ -31,39 +29,26 @@ import {
   creaPianiDopoSalvataggioNuovo,
   preparaTestoPerPdfNuovo,
 } from "../lib/nuovoPianiPagamento";
-import { caricaServizi, creaServizio } from "../lib/listino";
+import { caricaServizi } from "../lib/listino";
 import { caricaProfiloFiscaleAttivo } from "../lib/fiscale";
 import { calcolaFiscalePreventivo, calcolaLordoDaNetto } from "../lib/fiscaleCalcolo";
 import type { Messaggio, ProfiloFiscale, Servizio } from "../lib/types";
-import AnalisiFiscaleCard from "../components/AnalisiFiscaleCard";
+import { useNuovoBuilderVoci } from "../lib/hooks/nuovo/useNuovoBuilderVoci";
+import { useNuovoChat } from "../lib/hooks/nuovo/useNuovoChat";
+import { useNuovoModifica } from "../lib/hooks/nuovo/useNuovoModifica";
 import BuilderFooterBar from "../components/BuilderFooterBar";
-import BuilderClienteCard from "../components/BuilderClienteCard";
 import ClienteNuovoModal from "../components/ClienteNuovoModal";
 import MetodoPagamentoModal from "../components/MetodoPagamentoModal";
-import PagamentoCard from "../components/PagamentoCard";
-import IvaCard from "../components/IvaCard";
-import BuilderPianoPagamentoCard from "../components/builder/BuilderPianoPagamentoCard";
-import PreventivoPdfTemplatePicker from "../components/PreventivoPdfTemplatePicker";
-import PreventivoPdfPreview from "../components/PreventivoPdfPreview";
 import PreventivoSuccessModal, { type PdfSuccessAzioni, type PdfSuccessInvio } from "../components/PreventivoSuccessModal";
-import ServiziListinoCard from "../components/ServiziListinoCard";
-import ToggleSwitch from "../components/ToggleSwitch";
-import TrasferteCard from "../components/TrasferteCard";
-import NuovoChatSection from "../components/nuovo/NuovoChatSection";
-import VociPreventivoSection from "../components/VociPreventivoSection";
+import NuovoAnteprimaView from "../components/nuovo/NuovoAnteprimaView";
+import NuovoBuilderView from "../components/nuovo/NuovoBuilderView";
+import NuovoChatView from "../components/nuovo/NuovoChatView";
 import PageContainer from "../components/PageContainer";
 import { oggiItItLabel } from "../lib/format";
-import { PLACEHOLDER } from "../lib/placeholders";
 import { risolviModifica, clearModificaSession } from "../lib/modificaPreventivo/modificaSession";
 import { buildNuovoManualeDraft } from "../lib/nuovoBozzaSnapshot";
 import { resetPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 import { percorsoNuovoPreventivoHub } from "../lib/nuovoNav";
-import {
-  collegaVociAlListino,
-  parsePreventivoTesto,
-  trovaMetodoPagamentoDaNome,
-  vociParsedConId,
-} from "../lib/parsePreventivoTesto";
 
 type Props = {
   mode: "chat" | "manuale";
@@ -219,12 +204,7 @@ export default function Nuovo({ mode }: Props) {
   const [htmlPreview, setHtmlPreview] = useState("");
   const [caricandoPreview, setCaricandoPreview] = useState(false);
   const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const salvataggioListinoRef = useRef<Set<string>>(new Set());
   const bloccoSalvataggioBozzaRef = useRef(false);
-  const modificaInizializzata = useRef(false);
-  const modificaManualeCaricata = useRef(false);
-  const trascrizioneModificaInviata = useRef(false);
-  const pagamentoImportato = useRef("");
   const [avvisoBozza, setAvvisoBozza] = useState<string | null>(null);
   const [clientiCaricati, setClientiCaricati] = useState(false);
   const [erroreServizi, setErroreServizi] = useState<string | null>(null);
@@ -402,92 +382,6 @@ export default function Nuovo({ mode }: Props) {
     inModifica,
   ]);
 
-  useEffect(() => {
-    const clienteId = modifica?.clienteId || searchParams.get("cliente_id");
-    const clienteNome = modifica?.clienteNome || searchParams.get("cliente_nome");
-    if (clienteId) {
-      setClienteSelezionatoId(clienteId);
-      if (clienteNome) {
-        setClienti((prev) => (prev.some((c) => c.id === clienteId) ? prev : [...prev, { id: clienteId, nome: clienteNome }]));
-      }
-    }
-  }, [modifica?.clienteId, modifica?.clienteNome, searchParams]);
-
-  useEffect(() => {
-    const trascrizione = searchParams.get("trascrizione");
-    if (trascrizione && !inModifica && messaggi.length === 0) {
-      setInput(trascrizione);
-    }
-  }, [searchParams, inModifica, messaggi.length]);
-
-  useEffect(() => {
-    modificaInizializzata.current = false;
-    modificaManualeCaricata.current = false;
-    trascrizioneModificaInviata.current = false;
-  }, [searchParams.get("modifica"), searchParams.get("trascrizione"), testoModifica]);
-
-  useEffect(() => {
-    if (mode !== "chat" || !testoModifica || modificaInizializzata.current) return;
-    modificaInizializzata.current = true;
-    cancellaBozzaChat();
-    setMessaggi([
-      {
-        role: "assistant",
-        content: `Ho caricato il tuo preventivo v${versionePrecedente}. Cosa vuoi modificare?\n\n${testoModifica}`,
-      },
-    ]);
-  }, [mode, testoModifica, versionePrecedente]);
-
-  useEffect(() => {
-    if (!testoModifica || metodiPagamento.length === 0) return;
-    const parsed = parsePreventivoTesto(testoModifica);
-    const trovato = trovaMetodoPagamentoDaNome(metodiPagamento, parsed.pagamentoNome);
-    if (trovato) {
-      setMetodoPagamentoSelezionato(trovato);
-      setMetodoPagamentoNessuno(false);
-    }
-  }, [testoModifica, metodiPagamento]);
-
-  useEffect(() => {
-    const trascrizione = searchParams.get("trascrizione");
-    if (!trascrizione || !inModifica || trascrizioneModificaInviata.current) return;
-    if (!token || messaggi.length === 0) return;
-    trascrizioneModificaInviata.current = true;
-    void inviaTrascrizione(trascrizione);
-  }, [searchParams, inModifica, token, messaggi.length]);
-
-  useEffect(() => {
-    if (mode !== "manuale" || !testoModifica) return;
-
-    const parsed = parsePreventivoTesto(testoModifica);
-    setVoci(vociParsedConId(collegaVociAlListino(parsed.voci, servizi)));
-    setNoteExtra(parsed.noteExtra);
-    setIncludiIva(parsed.includiIva);
-    setTrasferte(parsed.trasferte);
-    setMostraTrasferte(parsed.trasferte.length > 0);
-    pagamentoImportato.current = parsed.pagamentoNome;
-
-    if (modificaManualeCaricata.current) return;
-    modificaManualeCaricata.current = true;
-    cancellaBozzaManuale();
-
-    const clienteId = modifica?.clienteId || searchParams.get("cliente_id");
-    const clienteNome = modifica?.clienteNome || searchParams.get("cliente_nome");
-    if (clienteId && clienteNome) {
-      setClienteSelezionatoId(clienteId);
-      setClienti((prev) => (prev.some((c) => c.id === clienteId) ? prev : [...prev, { id: clienteId, nome: clienteNome }]));
-    }
-  }, [mode, testoModifica, servizi, modifica?.clienteId, modifica?.clienteNome, searchParams]);
-
-  useEffect(() => {
-    if (!pagamentoImportato.current || metodiPagamento.length <= 1) return;
-    const trovato = trovaMetodoPagamentoDaNome(metodiPagamento, pagamentoImportato.current);
-    if (trovato) {
-      setMetodoPagamentoSelezionato(trovato);
-      setMetodoPagamentoNessuno(false);
-    }
-  }, [metodiPagamento]);
-
   const risultatoFiscale = useMemo(
     () => calcolaFiscalePreventivo(profiloFiscale, mostraFiscale, voci, trasferte, includiIva),
     [profiloFiscale, mostraFiscale, voci, trasferte, includiIva],
@@ -496,6 +390,91 @@ export default function Nuovo({ mode }: Props) {
   const totaleBase = calcolaTotaleVoci(voci) + calcolaTotaleTrasferte(trasferte);
   const totaleConIva = includiIva ? totaleBase * 1.22 : totaleBase;
   const importoAnteprima = mode === "manuale" ? totaleConIva : (importoDaTesto(preventivo) || 0);
+
+  function clienteCollegato() {
+    return !!clienteSelezionatoId;
+  }
+
+  const { invia, inviaTrascrizione, generaDaRecap } = useNuovoChat({
+    token,
+    messaggi,
+    input,
+    loading,
+    clienteSelezionatoId,
+    recap,
+    setMessaggi,
+    setInput,
+    setRecap,
+    setPreventivo,
+    setErrore,
+    setLoading,
+    setClienteSelezionatoId,
+    setClienti,
+    setNomeClienteSuggerito,
+    setMostraModalCliente,
+    vaiAllAnteprima,
+  });
+
+  useNuovoModifica({
+    modifica,
+    searchParams,
+    inModifica,
+    testoModifica,
+    versionePrecedente,
+    mode,
+    servizi,
+    metodiPagamento,
+    token,
+    messaggiLength: messaggi.length,
+    setClienteSelezionatoId,
+    setClienti,
+    setInput,
+    setMessaggi,
+    setMetodoPagamentoSelezionato,
+    setMetodoPagamentoNessuno,
+    setVoci,
+    setNoteExtra,
+    setIncludiIva,
+    setTrasferte,
+    setMostraTrasferte,
+    inviaTrascrizione,
+  });
+
+  const {
+    aggiornaVoce,
+    handleSalvaNelListinoChange,
+    aggiungiVoceCustom,
+    riordinaVoci,
+    rimuoviVoce,
+    aggiungiServizioListino,
+    generaDaBuilder,
+  } = useNuovoBuilderVoci({
+    voci,
+    servizi,
+    setVoci,
+    setServizi,
+    setErrore,
+    setPreventivo,
+    clienti,
+    clienteSelezionatoId,
+    trasferte,
+    includiIva,
+    noteExtra,
+    metodoPagamentoSelezionato,
+    pagamentoRateAttivo,
+    abbonamentoAttivo,
+    clienteCollegato,
+    rateNumero,
+    rateGiornoScadenza,
+    rateMeseInizio,
+    abGiorno,
+    abMeseInizio,
+    rateModalita,
+    rateAccontoTipo,
+    rateAccontoValore,
+    totaleConIva,
+    vaiAllAnteprima,
+  });
 
   useEffect(() => {
     fineListaRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -531,10 +510,6 @@ export default function Nuovo({ mode }: Props) {
     versionePadreId,
     nascondiPrezzi,
   ]);
-
-  function clienteCollegato() {
-    return !!clienteSelezionatoId;
-  }
 
   function richiediClientePerPagamentoRicorrente() {
     if (clienteCollegato()) return true;
@@ -613,252 +588,6 @@ export default function Nuovo({ mode }: Props) {
     } finally {
       setCaricandoPreview(false);
     }
-  }
-
-  async function gestisciClienteDaNome(nome: string) {
-    try {
-      const risultati = await cercaCliente(nome, token);
-      if (risultati.length === 1) {
-        setClienteSelezionatoId(risultati[0].id);
-        setClienti((prev) => (prev.some((c) => c.id === risultati[0].id) ? prev : [...prev, risultati[0]]));
-      } else if (risultati.length === 0) {
-        setNomeClienteSuggerito(nome);
-        setMostraModalCliente(true);
-      }
-    } catch {
-      // ricerca cliente best-effort, non blocca la chat se fallisce
-    }
-  }
-
-  async function inviaTrascrizione(testo: string) {
-    if (!testo || loading) return;
-    setErrore("");
-    setLoading(true);
-
-    const nuovi: Messaggio[] = [...messaggi, { role: "user", content: testo }];
-    setMessaggi(nuovi);
-
-    try {
-      let reply = await inviaMessaggio(nuovi, token);
-
-      if (reply.includes("CLIENTE:") && !clienteSelezionatoId) {
-        const estratto = estraiNomeCliente(reply);
-        reply = estratto.reply;
-        if (estratto.nomeCliente) await gestisciClienteDaNome(estratto.nomeCliente);
-      }
-
-      const risultato = applicaRispostaChat(reply, nuovi);
-      setMessaggi(risultato.messaggi);
-      setRecap(risultato.recap);
-      setPreventivo(risultato.preventivo);
-      if (risultato.preventivo) vaiAllAnteprima();
-    } catch (err) {
-      setErrore(err instanceof Error ? err.message : "Errore durante l'invio.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function invia(e: FormEvent) {
-    e.preventDefault();
-    const testo = input.trim();
-    if (!testo || loading) return;
-    setInput("");
-    setErrore("");
-    setLoading(true);
-
-    const nuovi: Messaggio[] = [...messaggi, { role: "user", content: testo }];
-    setMessaggi(nuovi);
-
-    try {
-      let reply = await inviaMessaggio(nuovi, token);
-
-      if (reply.includes("CLIENTE:") && !clienteSelezionatoId) {
-        const estratto = estraiNomeCliente(reply);
-        reply = estratto.reply;
-        if (estratto.nomeCliente) await gestisciClienteDaNome(estratto.nomeCliente);
-      }
-
-      const risultato = applicaRispostaChat(reply, nuovi);
-      setMessaggi(risultato.messaggi);
-      setRecap(risultato.recap);
-      setPreventivo(risultato.preventivo);
-      if (risultato.preventivo) vaiAllAnteprima();
-    } catch (err) {
-      setErrore(err instanceof Error ? err.message : "Errore durante l'invio.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function generaDaRecap() {
-    setLoading(true);
-    setErrore("");
-    try {
-      const testoFinale = await convertiRecap(recap, token);
-      setRecap("");
-      setPreventivo(testoFinale);
-      vaiAllAnteprima();
-    } catch (err) {
-      setErrore(err instanceof Error ? err.message : "Errore nella generazione.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function aggiornaVoce(id: string, campo: keyof VoceBuilder, valore: string) {
-    setVoci((prev) => {
-      const next = prev.map((v) => (v.id === id ? { ...v, [campo]: valore } : v));
-      const voce = next.find((v) => v.id === id);
-      if (
-        voce &&
-        isVoceCustom(voce) &&
-        voce.salvaNelListino &&
-        !voce.salvataNelListino &&
-        voce.nome.trim() &&
-        (campo === "nome" || campo === "costo" || campo === "unita" || campo === "descrizione")
-      ) {
-        void salvaVoceNelListino(voce);
-      }
-      return next;
-    });
-  }
-
-  async function salvaVoceNelListino(voce: VoceBuilder) {
-    if (!isVoceCustom(voce) || voce.salvataNelListino || !voce.nome.trim()) return;
-    if (salvataggioListinoRef.current.has(voce.id)) return;
-
-    salvataggioListinoRef.current.add(voce.id);
-    const costoNormalizzato = voce.costo.trim().replace(",", ".");
-    const { data, error } = await creaServizio({
-      nome: voce.nome,
-      descrizione: voce.descrizione,
-      costo: costoNormalizzato,
-      unita: voce.unita,
-      ordine: servizi.length,
-    });
-    salvataggioListinoRef.current.delete(voce.id);
-
-    if (error) {
-      window.alert("Non è stato possibile salvare la voce nel listino.");
-      setVoci((prev) =>
-        prev.map((v) => (v.id === voce.id ? { ...v, salvaNelListino: false } : v)),
-      );
-      return;
-    }
-
-    if (data) {
-      setServizi((prev) => [...prev, data as Servizio]);
-      setVoci((prev) =>
-        prev.map((v) =>
-          v.id === voce.id ? { ...v, salvataNelListino: true, salvaNelListino: true } : v,
-        ),
-      );
-    }
-  }
-
-  async function handleSalvaNelListinoChange(voceId: string, salva: boolean) {
-    let voceAggiornata: VoceBuilder | undefined;
-    setVoci((prev) =>
-      prev.map((v) => {
-        if (v.id !== voceId) return v;
-        voceAggiornata = { ...v, salvaNelListino: salva };
-        return voceAggiornata;
-      }),
-    );
-
-    if (!salva || !voceAggiornata) return;
-
-    if (!voceAggiornata.nome.trim()) {
-      window.alert("Inserisci il nome del servizio prima di salvarlo nel listino.");
-      setVoci((prev) =>
-        prev.map((v) => (v.id === voceId ? { ...v, salvaNelListino: false } : v)),
-      );
-      return;
-    }
-
-    await salvaVoceNelListino(voceAggiornata);
-  }
-
-  function aggiungiVoceCustom() {
-    setVoci((prev) => [
-      ...prev,
-      {
-        id: `custom-${crypto.randomUUID()}`,
-        nome: "",
-        descrizione: "",
-        costo: "",
-        quantita: "1",
-        unita: "cad",
-        salvaNelListino: false,
-      },
-    ]);
-  }
-
-  function riordinaVoci(fromIndex: number, toIndex: number) {
-    setVoci((prev) => {
-      const next = [...prev];
-      const [spostata] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, spostata);
-      return next;
-    });
-  }
-
-  function rimuoviVoce(id: string) {
-    setVoci((prev) => prev.filter((v) => v.id !== id));
-  }
-
-  function aggiungiServizioListino(s: Servizio) {
-    if (voci.find((v) => v.id === s.id)) return;
-    setVoci((prev) => [
-      ...prev,
-      {
-        id: s.id,
-        nome: s.nome,
-        descrizione: s.descrizione || "",
-        costo: s.costo != null ? formatImportoVoce(s.costo) : "",
-        quantita: "1",
-        unita: s.unita,
-      },
-    ]);
-  }
-
-  function generaDaBuilder() {
-    const vociValide = voci.filter((v) => v.nome.trim());
-    if (vociValide.length === 0) {
-      setErrore("Aggiungi almeno una voce con un nome.");
-      return;
-    }
-    const errPiani = validaPianiPagamento({
-      pagamentoRateAttivo,
-      abbonamentoAttivo,
-      clienteCollegato: clienteCollegato(),
-      rateNumero,
-      rateGiornoScadenza,
-      rateMeseInizio,
-      abGiorno,
-      abMeseInizio,
-      rateModalita,
-      rateAccontoTipo,
-      rateAccontoValore,
-      rateImportoTotale: totaleConIva,
-    });
-    if (errPiani) {
-      setErrore(errPiani);
-      return;
-    }
-    setErrore("");
-    const nomeCliente = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
-    const testo = generaTestoPreventivoBuilder({
-      nomeCliente,
-      voci: vociValide,
-      trasferte,
-      includiIva,
-      noteExtra,
-      metodoPagamentoSelezionato,
-    });
-    setPreventivo(testo);
-    vaiAllAnteprima({ preventivo: testo });
   }
 
   async function salva() {
@@ -1211,228 +940,120 @@ export default function Nuovo({ mode }: Props) {
       </div>
 
       {!isAnteprima && mode === "chat" && (
-        <>
-          <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
-            <BuilderClienteCard
-              clienti={clienti}
-              clienteSelezionatoId={clienteSelezionatoId}
-              onSelect={setClienteSelezionatoId}
-              onClear={() => setClienteSelezionatoId("")}
-              onNuovoCliente={() => setMostraModalCliente(true)}
-            />
-          </div>
-          <NuovoChatSection
-            messaggi={messaggi}
-            recap={recap}
-            errore={errore}
-            loading={loading}
-            inModifica={inModifica}
-            fineListaRef={fineListaRef}
-            onGeneraDaRecap={() => void generaDaRecap()}
-          />
-        </>
+        <NuovoChatView
+          clienti={clienti}
+          clienteSelezionatoId={clienteSelezionatoId}
+          onSelectCliente={setClienteSelezionatoId}
+          onClearCliente={() => setClienteSelezionatoId("")}
+          onNuovoCliente={() => setMostraModalCliente(true)}
+          messaggi={messaggi}
+          recap={recap}
+          errore={errore}
+          loading={loading}
+          inModifica={inModifica}
+          fineListaRef={fineListaRef}
+          onGeneraDaRecap={() => void generaDaRecap()}
+          input={input}
+          onInputChange={setInput}
+          onInvia={invia}
+        />
       )}
 
       {!isAnteprima && mode === "manuale" && (
-        <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
-          <BuilderClienteCard
-            clienti={clienti}
-            clienteSelezionatoId={clienteSelezionatoId}
-            onSelect={setClienteSelezionatoId}
-            onClear={() => setClienteSelezionatoId("")}
-            onNuovoCliente={() => setMostraModalCliente(true)}
-          />
-
-          <ServiziListinoCard
-            servizi={servizi}
-            voci={voci}
-            erroreCaricamento={erroreServizi}
-            onAggiungiVoce={aggiungiServizioListino}
-            onRimuoviVoce={rimuoviVoce}
-          />
-
-          <VociPreventivoSection
-            voci={voci}
-            onAggiornaVoce={aggiornaVoce}
-            onRimuoviVoce={rimuoviVoce}
-            onAggiungiVoceCustom={aggiungiVoceCustom}
-            onSalvaNelListinoChange={handleSalvaNelListinoChange}
-            onRiordinaVoci={riordinaVoci}
-          />
-
-          <PagamentoCard
-            metodiPagamento={metodiPagamento}
-            metodoPagamentoSelezionato={metodoPagamentoSelezionato}
-            metodoPagamentoNessuno={metodoPagamentoNessuno}
-            erroreCaricamento={erroreMetodiPagamento}
-            onOpen={() => setMostraModalPagamento(true)}
-          />
-
-          <IvaCard attivo={includiIva} onChange={setIncludiIva} />
-
-          <TrasferteCard
-            trasferte={trasferte}
-            setTrasferte={setTrasferte}
-            mostraTrasferte={mostraTrasferte}
-            setMostraTrasferte={setMostraTrasferte}
-          />
-
-          <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg text-sm font-semibold text-brand-navy">
-                N
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-base font-bold text-brand-teal">Note</p>
-                <p className="text-xs text-brand-navy/50">Dettagli aggiuntivi da inserire nel preventivo</p>
-              </div>
-            </div>
-            <textarea
-              value={noteExtra}
-              onChange={(e) => setNoteExtra(e.target.value)}
-              rows={2}
-              placeholder={PLACEHOLDER.notePreventivo}
-              className="mt-4 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-          </div>
-
-          <AnalisiFiscaleCard
-            profiloFiscale={profiloFiscale}
-            mostraFiscale={mostraFiscale}
-            setMostraFiscale={setMostraFiscale}
-            fiscale={risultatoFiscale}
-            voci={voci}
-            setVoci={setVoci}
-            storicoVoci={storicoVoci}
-            setStoricoVoci={setStoricoVoci}
-            nettoDesiderato={nettoDesiderato}
-            setNettoDesiderato={setNettoDesiderato}
-            lordoCalcolato={lordoCalcolato}
-            setLordoCalcolato={setLordoCalcolato}
-            calcolaLordoDaNetto={(netto) => calcolaLordoDaNetto(netto, profiloFiscale)}
-          />
-
-          {errore && <p className="mt-4 text-sm text-red-600">{errore}</p>}
-        </div>
+        <NuovoBuilderView
+          clienti={clienti}
+          clienteSelezionatoId={clienteSelezionatoId}
+          onSelectCliente={setClienteSelezionatoId}
+          onClearCliente={() => setClienteSelezionatoId("")}
+          onNuovoCliente={() => setMostraModalCliente(true)}
+          servizi={servizi}
+          voci={voci}
+          erroreServizi={erroreServizi}
+          onAggiungiServizioListino={aggiungiServizioListino}
+          onRimuoviVoce={rimuoviVoce}
+          onAggiornaVoce={aggiornaVoce}
+          onAggiungiVoceCustom={aggiungiVoceCustom}
+          onSalvaNelListinoChange={handleSalvaNelListinoChange}
+          onRiordinaVoci={riordinaVoci}
+          metodiPagamento={metodiPagamento}
+          metodoPagamentoSelezionato={metodoPagamentoSelezionato}
+          metodoPagamentoNessuno={metodoPagamentoNessuno}
+          erroreMetodiPagamento={erroreMetodiPagamento}
+          onOpenPagamento={() => setMostraModalPagamento(true)}
+          includiIva={includiIva}
+          onIncludiIvaChange={setIncludiIva}
+          trasferte={trasferte}
+          setTrasferte={setTrasferte}
+          mostraTrasferte={mostraTrasferte}
+          setMostraTrasferte={setMostraTrasferte}
+          noteExtra={noteExtra}
+          onNoteExtraChange={setNoteExtra}
+          profiloFiscale={profiloFiscale}
+          mostraFiscale={mostraFiscale}
+          setMostraFiscale={setMostraFiscale}
+          risultatoFiscale={risultatoFiscale}
+          setVoci={setVoci}
+          storicoVoci={storicoVoci}
+          setStoricoVoci={setStoricoVoci}
+          nettoDesiderato={nettoDesiderato}
+          setNettoDesiderato={setNettoDesiderato}
+          lordoCalcolato={lordoCalcolato}
+          setLordoCalcolato={setLordoCalcolato}
+          calcolaLordoDaNetto={(netto) => calcolaLordoDaNetto(netto, profiloFiscale)}
+          errore={errore}
+        />
       )}
 
       {isAnteprima && preventivo && (
-        <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:items-stretch">
-          <div className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm lg:w-[400px]">
-            <div className="min-h-0 flex-1 overflow-y-auto p-5">
-              <PreventivoPdfTemplatePicker embedded template={template} onSelectTemplate={setTemplate} />
-
-              <div className="mt-5 border-t border-black/5 pt-5">
-                <BuilderClienteCard
-                  compact
-                  clienti={clienti}
-                  clienteSelezionatoId={clienteSelezionatoId}
-                  onSelect={setClienteSelezionatoId}
-                  onClear={() => setClienteSelezionatoId("")}
-                  onNuovoCliente={() => setMostraModalCliente(true)}
-                />
-              </div>
-
-              <div className="mt-5 border-t border-black/5 pt-5">
-                <BuilderPianoPagamentoCard
-                  tipo={pianoPagamentoTipo}
-                  onChangeTipo={onChangePianoPagamentoTipo}
-                  importoTotale={importoAnteprima}
-                  rateAccontoTipo={rateAccontoTipo}
-                  rateAccontoValore={rateAccontoValore}
-                  rateNumero={rateNumero}
-                  rateGiornoScadenza={rateGiornoScadenza}
-                  rateMeseInizio={rateMeseInizio}
-                  rateVisibileNelPDF={rateVisibileNelPDF}
-                  onChangeRateAccontoTipo={setRateAccontoTipo}
-                  onChangeRateAccontoValore={setRateAccontoValore}
-                  onChangeRateNumero={setRateNumero}
-                  onChangeRateGiornoScadenza={setRateGiornoScadenza}
-                  onChangeRateMeseInizio={setRateMeseInizio}
-                  onChangeRateVisibileNelPDF={setRateVisibileNelPDF}
-                  abImporto={abImporto}
-                  abGiorno={abGiorno}
-                  abMeseInizio={abMeseInizio}
-                  abMensilita={abMensilita}
-                  abVisibileNelPDF={abVisibileNelPDF}
-                  onChangeAbImporto={setAbImporto}
-                  onChangeAbGiorno={setAbGiorno}
-                  onChangeAbMeseInizio={setAbMeseInizio}
-                  onChangeAbMensilita={setAbMensilita}
-                  onChangeAbVisibileNelPDF={setAbVisibileNelPDF}
-                />
-              </div>
-
-              {mode === "manuale" && (
-                <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-brand-navy">Tariffa a corpo</h3>
-                      <p className="mt-0.5 text-xs text-brand-navy/50">
-                        Nasconde i prezzi delle singole voci - mostra solo il totale
-                      </p>
-                    </div>
-                    <ToggleSwitch checked={nascondiPrezzi} onChange={setNascondiPrezzi} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="shrink-0 border-t border-black/5 p-5">
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={generaPdf}
-                  disabled={generandoPdf || !preventivo}
-                  className="w-full rounded-lg bg-brand-navy px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-                >
-                  {generandoPdf ? "Generazione PDF..." : "Genera PDF"}
-                </button>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={salva}
-                    disabled={salvataggioInCorso || salvato}
-                    className="rounded-lg border border-brand-teal px-5 py-2.5 text-sm font-medium text-brand-teal disabled:opacity-60"
-                  >
-                    {salvato ? "Salvato" : salvataggioInCorso ? "Salvataggio..." : "Salva nello storico"}
-                  </button>
-                  {salvato && (
-                    <Link to="/storico" className="text-sm text-brand-teal hover:underline">
-                      Vai allo storico →
-                    </Link>
-                  )}
-                  {pdfUrl && (
-                    <button
-                      type="button"
-                      onClick={apriPdf}
-                      className="text-sm text-brand-teal hover:underline"
-                    >
-                      Apri PDF
-                    </button>
-                  )}
-                </div>
-
-                {messaggioSuccesso && <p className="text-sm text-brand-teal">{messaggioSuccesso}</p>}
-                {errore && <p className="text-sm text-red-600">{errore}</p>}
-              </div>
-            </div>
-          </div>
-
-          <PreventivoPdfPreview
-            html={htmlPreview}
-            loading={caricandoPreview}
-            className="min-h-0 flex-1"
-          />
-        </div>
-      )}
-
-      {!isAnteprima && mode === "chat" && (
-        <form onSubmit={invia} className="sticky bottom-0 mt-4 flex gap-2 bg-brand-bg pb-2 pt-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={PLACEHOLDER.chatPreventivo} disabled={loading} className="flex-1 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-brand-teal" />
-          <button type="submit" disabled={loading || !input.trim()} className="rounded-lg bg-brand-teal px-5 py-2 text-sm font-medium text-white disabled:opacity-60">
-            {loading ? "..." : "Invia"}
-          </button>
-        </form>
+        <NuovoAnteprimaView
+          clienti={clienti}
+          clienteSelezionatoId={clienteSelezionatoId}
+          onSelectCliente={setClienteSelezionatoId}
+          onClearCliente={() => setClienteSelezionatoId("")}
+          onNuovoCliente={() => setMostraModalCliente(true)}
+          template={template}
+          onSelectTemplate={setTemplate}
+          pianoPagamentoTipo={pianoPagamentoTipo}
+          onChangePianoPagamentoTipo={onChangePianoPagamentoTipo}
+          importoAnteprima={importoAnteprima}
+          rateAccontoTipo={rateAccontoTipo}
+          rateAccontoValore={rateAccontoValore}
+          rateNumero={rateNumero}
+          rateGiornoScadenza={rateGiornoScadenza}
+          rateMeseInizio={rateMeseInizio}
+          rateVisibileNelPDF={rateVisibileNelPDF}
+          onChangeRateAccontoTipo={setRateAccontoTipo}
+          onChangeRateAccontoValore={setRateAccontoValore}
+          onChangeRateNumero={setRateNumero}
+          onChangeRateGiornoScadenza={setRateGiornoScadenza}
+          onChangeRateMeseInizio={setRateMeseInizio}
+          onChangeRateVisibileNelPDF={setRateVisibileNelPDF}
+          abImporto={abImporto}
+          abGiorno={abGiorno}
+          abMeseInizio={abMeseInizio}
+          abMensilita={abMensilita}
+          abVisibileNelPDF={abVisibileNelPDF}
+          onChangeAbImporto={setAbImporto}
+          onChangeAbGiorno={setAbGiorno}
+          onChangeAbMeseInizio={setAbMeseInizio}
+          onChangeAbMensilita={setAbMensilita}
+          onChangeAbVisibileNelPDF={setAbVisibileNelPDF}
+          mode={mode}
+          nascondiPrezzi={nascondiPrezzi}
+          onNascondiPrezziChange={setNascondiPrezzi}
+          onGeneraPdf={generaPdf}
+          generandoPdf={generandoPdf}
+          preventivo={preventivo}
+          onSalva={salva}
+          salvataggioInCorso={salvataggioInCorso}
+          salvato={salvato}
+          pdfUrl={pdfUrl}
+          onApriPdf={apriPdf}
+          messaggioSuccesso={messaggioSuccesso}
+          errore={errore}
+          htmlPreview={htmlPreview}
+          caricandoPreview={caricandoPreview}
+        />
       )}
 
       {mostraModalPagamento && (

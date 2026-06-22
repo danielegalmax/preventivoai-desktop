@@ -2,6 +2,10 @@
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+export function normalizzaValuta(testo: string): string {
+  return testo.replace(/EUR\s+/g, "€");
+}
+
 export async function inviaMessaggio(messages: Messaggio[], token: string): Promise<string> {
   const res = await fetch(`${BACKEND_URL}/api/chat`, {
     method: "POST",
@@ -21,7 +25,7 @@ export async function convertiRecap(recap: string, token: string): Promise<strin
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  return data.preventivo;
+  return normalizzaValuta(data.preventivo);
 }
 
 export async function cercaCliente(nome: string, token: string): Promise<{ id: string; nome: string }[]> {
@@ -49,7 +53,7 @@ export function applicaRispostaChat(reply: string, messaggiAttuali: Messaggio[])
     const [pre, post] = reply.split("PREVENTIVO_PRONTO");
     return {
       messaggi: pre.trim() ? [...messaggiAttuali, { role: "assistant" as const, content: pre.trim() }] : messaggiAttuali,
-      preventivo: post.trim(),
+      preventivo: normalizzaValuta(post.trim()),
       recap: "",
     };
   }

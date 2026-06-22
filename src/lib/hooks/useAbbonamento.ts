@@ -17,6 +17,11 @@ import {
   nuovoStatoDopoImportoRata,
   pianoAttivoSuPreventivo,
 } from "./abbonamentoDb";
+import {
+  azzeraPagamentoDb,
+  modificaImportoPianoRate as modificaImportoPianoRateDb,
+  registraPagamentoDb,
+} from "./abbonamentoOps";
 
 type CreaPianoRateResult = {
   abbonamentoId: string;
@@ -306,94 +311,17 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     const abbonamento = pianoById(abbonamentoId);
     const rate = ratePerPiano[abbonamentoId] || [];
     if (!abbonamento) return false;
-    if (!(nuovoImportoTotale > 0)) {
-      alertErrore("Importo non valido", "Inserisci un importo maggiore di zero.");
-      return false;
-    }
 
-    const raccolto = rate.reduce(
-      (a, r) => a + (r.stato === "incassato" ? r.importo : (r.acconto || 0)),
-      0,
-    );
-    if (nuovoImportoTotale < raccolto) {
-      alertErrore(
-        "Importo troppo basso",
-        `Hai già incassato €${formatImportoEuro(raccolto, 2)}. L'importo totale non può essere inferiore.`,
-      );
-      return false;
-    }
-
-    const rateAperte = [...rate]
-      .filter((r) => r.stato !== "incassato")
-      .sort((a, b) => a.anno - b.anno || a.mese - b.mese);
-    if (rateAperte.length === 0) {
-      alertErrore("Nessuna rata da aggiornare", "Tutte le rate sono già pagate.");
-      return false;
-    }
-
-    const residuo = Math.round((nuovoImportoTotale - raccolto) * 100) / 100;
-    const nuoviImporti = calcolaImportiRate(residuo, rateAperte.length);
-    if (nuoviImporti.length === 0) return false;
-
-    const snapshot = rateAperte.map((r) => ({
-      id: r.id,
-      importo: r.importo,
-      stato: r.stato,
-    }));
-    const aggiornate: string[] = [];
-
-    for (let i = 0; i < rateAperte.length; i++) {
-      const rata = rateAperte[i];
-      const nuovoImporto = nuoviImporti[i];
-      const acconto = rata.acconto || 0;
-      let nuovoStato: RataAbbonamento["stato"] = rata.stato;
-      if (acconto >= nuovoImporto) nuovoStato = "incassato";
-      else if (acconto > 0) nuovoStato = "parziale";
-
-      const { error } = await supabase
-        .from("rate_abbonamento")
-        .update({ importo: nuovoImporto, stato: nuovoStato })
-        .eq("id", rata.id);
-      if (error) {
-        for (const id of aggiornate) {
-          const orig = snapshot.find((s) => s.id === id);
-          if (!orig) continue;
-          await supabase
-            .from("rate_abbonamento")
-            .update({ importo: orig.importo, stato: orig.stato })
-            .eq("id", id);
-        }
-        alertErrore(
-          "Errore",
-          "Aggiornamento importi interrotto: le rate già modificate sono state ripristinate. "
-          + error.message,
-        );
-        return false;
-      }
-      aggiornate.push(rata.id);
-    }
-
-    const { error: errAb } = await supabase
-      .from("abbonamenti")
-      .update({ importo_default: nuovoImportoTotale })
-      .eq("id", abbonamentoId);
-    if (errAb) {
-      for (const { id, importo, stato } of snapshot) {
-        await supabase
-          .from("rate_abbonamento")
-          .update({ importo, stato })
-          .eq("id", id);
-      }
-      alertErrore(
-        "Errore",
-        "Importi rate aggiornati ma il totale del piano no: le rate sono state ripristinate. "
-        + errAb.message,
-      );
+    const result = await modificaImportoPianoRateDb(abbonamentoId, rate, nuovoImportoTotale);
+    if (!result.ok) {
+      alertErrore(result.errorTitle ?? "Errore", result.error);
       return false;
     }
 
     setAbbonamentiAttivi((lista) =>
-      lista.map((a) => a.id === abbonamentoId ? { ...a, importo_default: nuovoImportoTotale } : a),
+      lista.map((a) =>
+        a.id === abbonamentoId ? { ...a, importo_default: result.nuovoImportoTotale } : a,
+      ),
     );
     await caricaRatePerPiani([abbonamentoId]);
     return true;
@@ -428,29 +356,19 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
 
     pagamentiInCorso.current.add(rataId);
     try {
-    const nuovoAcconto = Math.min(rata.acconto + importoPagato, rata.importo);
-    const nuovoSaldo = rata.importo - nuovoAcconto;
-    const nuovoStato = nuovoSaldo <= 0 ? "incassato" : "parziale";
-
-    const aggiornamento: Partial<RataAbbonamento> & { data_incasso?: string } = {
-      acconto: nuovoAcconto,
-      stato: nuovoStato,
-      note: nota || rata.note || null,
-    };
-    if (nuovoStato === "incassato") {
-      aggiornamento.data_incasso = dataIncasso ?? inputDateToIso(oggiInputDate());
-    }
-
-    const { error } = await supabase
-      .from("rate_abbonamento")
-      .update(aggiornamento)
-      .eq("id", rataId);
-
-    if (error) { alertErrore("Errore", error.message); return; }
-    aggiornaRatePiano(abbonamentoId, (rs) =>
-      rs.map((x) => x.id === rataId ? { ...x, ...aggiornamento, saldo_residuo: nuovoSaldo } : x),
-    );
-    eventBus.emit("aggiorna-home");
+      const result = await registraPagamentoDb(rataId, rata, importoPagato, nota, dataIncasso);
+      if (!result.ok) {
+        alertErrore("Errore", result.error);
+        return;
+      }
+      aggiornaRatePiano(abbonamentoId, (rs) =>
+        rs.map((x) =>
+          x.id === rataId
+            ? { ...x, ...result.aggiornamento, saldo_residuo: result.nuovoSaldo }
+            : x,
+        ),
+      );
+      eventBus.emit("aggiorna-home");
     } finally {
       pagamentiInCorso.current.delete(rataId);
     }
@@ -459,18 +377,15 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   async function azzeraPagamento(rataId: string) {
     const found = trovaRata(rataId);
     if (!found) return;
-    const aggiornamento: Partial<RataAbbonamento> & { data_incasso: null } = {
-      acconto: 0,
-      stato: "da_incassare",
-      data_incasso: null,
-    };
-    const { error } = await supabase
-      .from("rate_abbonamento")
-      .update(aggiornamento)
-      .eq("id", rataId);
-    if (error) { alertErrore("Errore", error.message); return; }
+    const result = await azzeraPagamentoDb(rataId);
+    if (!result.ok) {
+      alertErrore("Errore", result.error);
+      return;
+    }
     aggiornaRatePiano(found.abbonamentoId, (rs) =>
-      rs.map((x) => x.id === rataId ? { ...x, ...aggiornamento, saldo_residuo: x.importo } : x),
+      rs.map((x) =>
+        x.id === rataId ? { ...x, ...result.aggiornamento, saldo_residuo: x.importo } : x,
+      ),
     );
     eventBus.emit("aggiorna-home");
   }
