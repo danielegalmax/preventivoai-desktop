@@ -266,6 +266,9 @@ async function eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds: string[]) {
   return abErr;
 }
 
+const ERRORE_ELIMINAZIONE_INCOMPLETA =
+  "Eliminazione incompleta: i piani collegati sono stati rimossi ma i preventivi non sono stati eliminati. Aggiorna il cestino e riprova.";
+
 export async function eliminaDefinitivamentePreventivi(ids: string[]) {
   if (ids.length === 0) return { error: null };
 
@@ -276,14 +279,39 @@ export async function eliminaDefinitivamentePreventivi(ids: string[]) {
   const preventivoIds = [...tuttiIds];
 
   const abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds, false);
-  const abErr = await eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds);
-  if (abErr) return { error: abErr };
+
+  // Se non ci sono piani collegati, elimina subito i preventivi (nessun vincolo FK da rispettare).
+  const { error: prevErrSenzaPiani } = await supabase
+    .from("preventivi")
+    .delete()
+    .in("id", preventivoIds);
+
+  if (!prevErrSenzaPiani) {
+    if (abbonamentoIds.length > 0) {
+      await eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds);
+    }
+    return { error: null };
+  }
+
+  // FK o altri vincoli: elimina prima rate/abbonamenti, poi riprova i preventivi.
+  if (abbonamentoIds.length > 0) {
+    const abErr = await eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds);
+    if (abErr) return { error: abErr };
+  }
 
   const { error: prevErr } = await supabase
     .from("preventivi")
     .delete()
     .in("id", preventivoIds);
-  return { error: prevErr };
+
+  if (prevErr) {
+    if (abbonamentoIds.length > 0) {
+      return { error: { message: ERRORE_ELIMINAZIONE_INCOMPLETA } };
+    }
+    return { error: prevErr };
+  }
+
+  return { error: null };
 }
 
 export async function eliminaDefinitivamenteAbbonamenti(ids: string[]) {

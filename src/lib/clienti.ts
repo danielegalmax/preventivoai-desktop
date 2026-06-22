@@ -50,6 +50,14 @@ export async function creaCliente(dati: { nome: string; telefono: string; email:
     .single();
 }
 
+/**
+ * Eliminazione dati collegati al cliente: hard delete immediato (non cestino).
+ *
+ * Diverso da eliminaPreventivi/spostaPreventiviInCestino: qui l'intero cliente viene
+ * rimosso e i FK (preventivi.cliente_id, abbonamenti.cliente_id) richiedono di cancellare
+ * prima le righe collegate. Stesso pattern su mobile (lib/api/clienti.ts).
+ * I singoli preventivi eliminati dalla lista/storico vanno invece nel cestino (7 giorni).
+ */
 async function eliminaDatiCollegatiClienti(clienteIds: string[]) {
   if (clienteIds.length === 0) return null;
 
