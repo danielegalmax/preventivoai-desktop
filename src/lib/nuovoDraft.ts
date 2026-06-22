@@ -2,14 +2,13 @@ import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";
 import type { RateAccontoTipo } from "preventivoai-shared";
-import { getPercorsoRipresaNuovo } from "./nuovoRipresaPath";
 
 export type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
 
 const CHAT_KEY = "preventivoai-nuovo-chat";
 const MANUALE_KEY = "preventivoai-nuovo-manuale";
 
-export type NuovoChatDraft = {
+type NuovoChatDraft = {
   messaggi: Messaggio[];
   input: string;
   recap: string;
@@ -18,6 +17,7 @@ export type NuovoChatDraft = {
   clienteNome?: string;
   template: string;
   pdfUrl: string;
+  aggiornatoAt?: string;
 };
 
 export type NuovoManualeDraft = {
@@ -50,6 +50,7 @@ export type NuovoManualeDraft = {
   rateVisibileNelPDF: boolean;
   rateAccontoTipo: RateAccontoTipo;
   rateAccontoValore: string;
+  aggiornatoAt?: string;
 };
 
 /** Bozze salvate prima di pianoPagamentoTipo unificato. */
@@ -111,12 +112,22 @@ export function caricaBozzaChat(): NuovoChatDraft | null {
   return load<NuovoChatDraft>(CHAT_KEY);
 }
 
+function timestampBozza(draft: { aggiornatoAt?: string }): number {
+  if (!draft.aggiornatoAt) return 0;
+  const ms = Date.parse(draft.aggiornatoAt);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function withTimestamp<T extends { aggiornatoAt?: string }>(draft: T): T {
+  return { ...draft, aggiornatoAt: new Date().toISOString() };
+}
+
 export function salvaBozzaChat(draft: NuovoChatDraft) {
   if (bozzaChatVuota(draft)) {
     remove(CHAT_KEY);
     return;
   }
-  save(CHAT_KEY, draft);
+  save(CHAT_KEY, withTimestamp(draft));
 }
 
 export function cancellaBozzaChat() {
@@ -132,7 +143,7 @@ export function salvaBozzaManuale(draft: NuovoManualeDraft) {
     remove(MANUALE_KEY);
     return;
   }
-  save(MANUALE_KEY, draft);
+  save(MANUALE_KEY, withTimestamp(draft));
 }
 
 export function cancellaBozzaManuale() {
@@ -171,8 +182,12 @@ export function infoBozzaNuovoInSospeso(): BozzaNuovoInfo | null {
   if (chatAttiva && !manualeAttiva) return infoDaBozzaChat(chat);
   if (manualeAttiva && !chatAttiva) return infoDaBozzaManuale(manuale);
 
-  const ripresa = getPercorsoRipresaNuovo();
-  if (ripresa?.includes("/chat")) return infoDaBozzaChat(chat!);
+  const chatTs = timestampBozza(chat!);
+  const manualeTs = timestampBozza(manuale!);
+  if (chatTs !== manualeTs) {
+    return chatTs > manualeTs ? infoDaBozzaChat(chat!) : infoDaBozzaManuale(manuale!);
+  }
+
   return infoDaBozzaManuale(manuale!);
 }
 
