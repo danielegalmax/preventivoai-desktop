@@ -1,3 +1,12 @@
+/**
+ * Cestino soft-delete (7 giorni) per preventivi e piani di pagamento collegati.
+ *
+ * Eccezione importante — `eliminaClienti` in `clienti.ts` NON passa da qui: eliminare
+ * un cliente è hard delete immediato di tutti i dati collegati (rate → abbonamenti →
+ * preventivi → cliente). Scelta intenzionale: il cliente è un'anagrafica, non un
+ * documento di lavoro; tenerlo in cestino lascerebbe FK e liste incoerenti. I singoli
+ * preventivi eliminati da storico/lista usano invece questo modulo (recupero 7 giorni).
+ */
 import { supabase } from "./supabase";
 import { caricaCronologiaPreventivo } from "./storico";
 import { erroreColonnaDeletedAt } from "preventivoai-shared";
@@ -28,7 +37,13 @@ export function giorniRimastiCestino(deletedAt: string): number {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-/** Tutti i preventivi della stessa famiglia di versioni (antenati + discendenti). */
+/**
+ * Tutti i preventivi della stessa famiglia di versioni (antenati + discendenti).
+ *
+ * Non basta risalire la catena dei padri: un piano può essere agganciato a una versione
+ * figlia (es. v3) mentre l'utente elimina v1. Senza espandere anche i discendenti,
+ * `abbonamentiCollegatiPreventivi` non troverebbe quel piano e resterebbe orfano attivo.
+ */
 async function idsFamigliaPreventivo(preventivoId: string): Promise<string[]> {
   const { data: current } = await supabase
     .from("preventivi")
@@ -129,6 +144,9 @@ export async function spostaPreventiviInCestino(ids: string[]) {
   const abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds);
   const now = new Date().toISOString();
 
+  // Soft-delete: prima abbonamenti, poi preventivi. Se il secondo step fallisce,
+  // `ripristinaAbbonamentiDaCestino` annulla il primo — rollback più semplice che
+  // l'inverso (preventivo già nel cestino con piani ancora attivi in DB).
   if (abbonamentoIds.length > 0) {
     const { error: abErr } = await spostaAbbonamentiInCestino(abbonamentoIds);
     if (abErr) return { error: abErr };
@@ -253,6 +271,7 @@ export async function ripristinaAbbonamenti(ids: string[]) {
 async function eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds: string[]) {
   if (abbonamentoIds.length === 0) return null;
 
+  // Hard delete: ordine imposto dai vincoli FK — rate_abbonamento → abbonamenti → preventivi.
   const { error: rateErr } = await supabase
     .from("rate_abbonamento")
     .delete()
@@ -293,7 +312,8 @@ export async function eliminaDefinitivamentePreventivi(ids: string[]) {
     return { error: null };
   }
 
-  // FK o altri vincoli: elimina prima rate/abbonamenti, poi riprova i preventivi.
+  // FK o altri vincoli: elimina prima rate/abbonamenti (vedi `eliminaDefinitivamenteAbbonamentiIds`),
+  // poi riprova i preventivi. Ordine inverso fallirebbe per i vincoli FK su preventivo_id.
   if (abbonamentoIds.length > 0) {
     const abErr = await eliminaDefinitivamenteAbbonamentiIds(abbonamentoIds);
     if (abErr) return { error: abErr };

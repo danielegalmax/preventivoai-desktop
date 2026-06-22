@@ -32,6 +32,14 @@ function sommaImportoRate(rate: RataIncassoRow[]) {
   }, 0);
 }
 
+/**
+ * Incasso da preventivi singoli accettati e segnati pagati.
+ *
+ * Regola anti-doppio-conteggio: i preventivi con un piano collegato (`preventiviConPiano`,
+ * da `abbonamenti.preventivo_id`) sono ESCLUSI. Il loro importo non va sommato qui perché
+ * entra già in `sommaImportoRate` man mano che le rate vengono incassate (anche parzialmente).
+ * Contarli in entrambi i bucket gonfierebbe fatturato e home.
+ */
 function incassoSingoliPreventivi(
   preventivi: PreventivoPagatoRow[],
   preventiviConPiano: Set<string>,

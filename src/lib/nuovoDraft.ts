@@ -1,3 +1,11 @@
+/**
+ * Persistenza bozza "Nuovo preventivo" in localStorage (chat e builder manuale).
+ *
+ * Accoppiato a `nuovoBozzaSnapshot.ts` (costruzione snapshot da stato React),
+ * `nuovoRipresaPath.ts` (ultimo URL dentro /nuovo), `nuovoNav.ts` (dialog ripresa)
+ * e `Nuovo.tsx` (orchestrazione). Due chiavi separate: una per chat, una per manuale;
+ * `infoBozzaNuovoInSospeso` sceglie la bozza più recente via `aggiornatoAt`.
+ */
 import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";

@@ -1,5 +1,20 @@
-import {
-  cancellaTutteLeBozzeNuovo,
+/**
+ * Navigazione e intercettazione bozza "Nuovo preventivo".
+ *
+ * Moduli del flusso /nuovo (7 pezzi, responsabilità separate):
+ * - `Nuovo.tsx` — orchestra UI, stato React, autosave, PDF
+ * - `nuovoDraft.ts` — persistenza bozza in localStorage (chat + manuale)
+ * - `nuovoBozzaSnapshot.ts` — costruisce lo snapshot immutabile del builder manuale
+ * - `nuovoPianiPagamento.ts` — creazione piani rate/abbonamento dopo salvataggio
+ * - `nuovo.ts` — API Supabase (clienti selezione, salva preventivo generato)
+ * - `nuovoRipresaPath.ts` + `NuovoRipresaPathTracker` — ultimo sotto-percorso /nuovo/*
+ * - questo file + `NuovoPreventivoNavProvider` — intercetta click sidebar con bozza attiva
+ *
+ * Flusso tipico: utente lavora in Nuovo → `nuovoDraft` salva → esce → sidebar chiama
+ * `bozzaNuovoDaIntercettare` → dialog ripresa → `percorsoRipresaBozza` usa path salvato
+ * o default per mode.
+ */
+import {  cancellaTutteLeBozzeNuovo,
   infoBozzaNuovoInSospeso,
   percorsoRipresaBozzaNuovo,
   type BozzaNuovoInfo,

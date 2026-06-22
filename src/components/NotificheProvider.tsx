@@ -1,3 +1,21 @@
+/**
+ * Architettura notifiche desktop a 3 canali (coordinati, non duplicati):
+ *
+ * 1. Realtime Supabase (JS): quando la finestra è in foreground aggiorna campanella + toast
+ *    in-app (`enqueueToast`). `mostraNotificaOsSoloSeForeground` evita la notifica OS
+ *    nativa se l'utente sta già guardando l'app.
+ *
+ * 2. Polling Rust ogni 35s (`src-tauri/src/lib.rs`): quando l'app è in background o nel
+ *    tray, WebView2 throttla/sospende il JS — il realtime non è affidabile. Rust interroga
+ *    Supabase e mostra la notifica OS nativa.
+ *
+ * 3. `visteLocalmente`: Set in memoria di sessione per abbassare il badge campanella quando
+ *    l'utente ha già visto una notifica (hover/toast) senza scrivere `letta=true` su DB.
+ *
+ * Coordinamento anti-duplicati: dopo una notifica OS mostrata dal JS in foreground,
+ * `segnalaNotificaConsegnataRust` (in `notifiche.ts`) informa Rust che quell'id è già
+ * stato consegnato, così il polling non la ripresenta.
+ */
 import {
   createContext,
   useCallback,
@@ -108,6 +126,7 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<NotificaToast[]>([]);
   const [visteLocalmente, setVisteLocalmente] = useState<Set<string>>(() => new Set());
 
+  // Badge = non lette in DB − già viste in questa sessione (senza persistere su Supabase).
   const count = useMemo(
     () => contaBadgeCampanella(notifiche, visteLocalmente),
     [notifiche, visteLocalmente],
