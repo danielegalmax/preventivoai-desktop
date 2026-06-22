@@ -45,7 +45,7 @@ const preventivoPianiDb: PreventivoPianiDb = {
       .select("titolo, created_at, versione")
       .eq("id", preventivoId)
       .single();
-    return data ?? null;
+    return data ? { ...data, versione: data.versione ?? 1 } : null;
   },
   async insertAbbonamento(row) {
     const { data, error } = await supabase.from("abbonamenti").insert(row).select().single();

@@ -1,7 +1,6 @@
 import { supabase } from "./supabase";
-import type { ProfiloFiscale } from "./types";
-
-export type ProfiloFiscaleForm = Omit<ProfiloFiscale, "attivo"> & { id?: string };
+import type { Tables } from "./database.types";
+import type { ProfiloFiscale } from "./types";export type ProfiloFiscaleForm = Omit<ProfiloFiscale, "attivo"> & { id?: string };
 
 export const DEFAULT_PROFILO_FISCALE: ProfiloFiscaleForm = {
   regime: "forfettario",
@@ -20,29 +19,14 @@ export const DEFAULT_PROFILO_FISCALE: ProfiloFiscaleForm = {
   soglia_occasionale: "5000",
 };
 
-type ProfiloFiscaleRow = {
-  id?: string;
-  regime: ProfiloFiscaleForm["regime"];
-  coefficiente_redditivita?: number | string | null;
-  aliquota_sostitutiva?: number | string | null;
-  inps_percentuale?: number | string | null;
-  inps_tipo?: string | null;
-  riduzione_contributiva?: boolean | null;
-  riduzione_percentuale?: number | string | null;
-  rivalsa_inps?: boolean | null;
-  rivalsa_percentuale?: number | string | null;
-  soglia_fatturato?: number | string | null;
-  aliquota_iva?: number | string | null;
-  costi_deducibili_percentuale?: number | string | null;
-  ritenuta_acconto?: number | string | null;
-  soglia_occasionale?: number | string | null;
-  attivo?: boolean | null;
-};
+type ProfiloFiscaleRow = Tables<"profili_fiscali">;
 
-function normalizzaProfiloFiscale(data: ProfiloFiscaleRow): ProfiloFiscaleForm {
+type ProfiloFiscaleInput = ProfiloFiscaleRow & { id?: string };
+
+function normalizzaProfiloFiscale(data: ProfiloFiscaleInput): ProfiloFiscaleForm {
   return {
     id: data.id,
-    regime: data.regime,
+    regime: data.regime as ProfiloFiscaleForm["regime"],
     coefficiente_redditivita: data.coefficiente_redditivita?.toString() || "78",
     aliquota_sostitutiva: data.aliquota_sostitutiva?.toString() || "15",
     inps_percentuale: data.inps_percentuale?.toString() || "26.07",
@@ -70,13 +54,11 @@ export async function caricaProfiloFiscale() {
     .single();
 
   if (!data) return { profilo: DEFAULT_PROFILO_FISCALE, featureAttiva: false };
-  const profilo = data as ProfiloFiscaleRow;
   return {
-    profilo: normalizzaProfiloFiscale(profilo),
-    featureAttiva: profilo.attivo ?? false,
+    profilo: normalizzaProfiloFiscale(data),
+    featureAttiva: data.attivo ?? false,
   };
 }
-
 /** Profilo fiscale se la feature è attiva — usato nel builder. */
 export async function caricaProfiloFiscaleAttivo(): Promise<ProfiloFiscale | null> {
   const data = await caricaProfiloFiscale();
@@ -120,5 +102,5 @@ export async function salvaProfiloFiscale(profilo: ProfiloFiscaleForm, featureAt
     .single();
   if (error) return { id: null, error: error.message };
   if (!data?.id) return { id: null, error: "Inserimento profilo fiscale fallito." };
-  return { id: data.id as string, error: null };
+  return { id: data.id, error: null };
 }

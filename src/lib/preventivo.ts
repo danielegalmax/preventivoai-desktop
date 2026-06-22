@@ -1,13 +1,15 @@
 import { supabase } from "./supabase";
+import type { Tables, TablesUpdate } from "./database.types";
 import type { Preventivo } from "./types";
 import { ottieniUrlPdfPreventivo } from "./pdf";
 
 export const STATI_PREVENTIVO = ["bozza", "inviato", "accettato", "rifiutato"] as const;
 
-export function statoPreventivoIcon(stato: string) {
-  if (stato === "bozza") return "📝";
-  if (stato === "inviato") return "📤";
-  if (stato === "accettato") return "✅";
+export function statoPreventivoIcon(stato: string | null | undefined) {
+  const s = stato ?? "bozza";
+  if (s === "bozza") return "📝";
+  if (s === "inviato") return "📤";
+  if (s === "accettato") return "✅";
   return "❌";
 }
 
@@ -32,14 +34,11 @@ export async function apriPdfPreventivo(preventivo: Pick<Preventivo, "id" | "pdf
 export async function cambiaStatoPreventivo(
   id: string,
   stato: string,
-  statoPrecedente: string,
+  statoPrecedente: string | null,
 ): Promise<{ error: string | null }> {
-  const resetPagato = statoPrecedente === "accettato" && stato !== "accettato";
-  const aggiornamento: {
-    stato: string;
-    pagato?: boolean;
-    data_pagamento?: string | null;
-  } = { stato };
+  const precedente = statoPrecedente ?? "bozza";
+  const resetPagato = precedente === "accettato" && stato !== "accettato";
+  const aggiornamento: TablesUpdate<"preventivi"> & { stato: string } = { stato };
   if (resetPagato) {
     aggiornamento.pagato = false;
     aggiornamento.data_pagamento = null;
@@ -54,7 +53,7 @@ export async function segnaPreventivoPagato(
   pagato: boolean,
   dataPagamento?: string,
 ): Promise<{ error: string | null }> {
-  const update = pagato
+  const update: TablesUpdate<"preventivi"> = pagato
     ? { pagato: true, data_pagamento: dataPagamento || new Date().toISOString() }
     : { pagato: false, data_pagamento: null };
   const { error } = await supabase.from("preventivi").update(update).eq("id", id);
@@ -73,11 +72,28 @@ export async function aggiornaTitoloPreventivo(
 }
 
 export async function caricaDettaglioPreventivo(id: string): Promise<Preventivo | null> {
+  type DettaglioRow = Pick<
+    Tables<"preventivi">,
+    | "id"
+    | "titolo"
+    | "stato"
+    | "importo_totale"
+    | "created_at"
+    | "pagato"
+    | "cliente_id"
+    | "nome_cliente"
+    | "pdf_url"
+    | "testo_preventivo"
+    | "versione"
+    | "preventivo_padre_id"
+    | "data_pagamento"
+  >;
+
   const { data, error } = await supabase
     .from("preventivi")
     .select("id, titolo, stato, importo_totale, created_at, pagato, cliente_id, nome_cliente, pdf_url, testo_preventivo, versione, preventivo_padre_id, data_pagamento")
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return data as Preventivo;
+  return data as DettaglioRow as Preventivo;
 }

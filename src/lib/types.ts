@@ -12,9 +12,9 @@ export interface Cliente {
 export interface Preventivo {
   id: string;
   titolo: string | null;
-  stato: string;
+  stato: string | null;
   importo_totale: number | null;
-  created_at: string;
+  created_at: string | null;
   pagato: boolean;
   cliente_id?: string | null;
   nome_cliente?: string | null;
@@ -30,12 +30,12 @@ export interface Abbonamento {
   id: string;
   cliente_id: string;
   importo_default: number;
-  giorno_scadenza: number;
-  attivo: boolean;
+  giorno_scadenza: number | null;
+  attivo: boolean | null;
   preventivo_id: string | null;
   numero_mensilita: number | null;
   note: string | null;
-  tipo: "canone" | "rate";
+  tipo: string | null;
   nome: string | null;
   created_at?: string | null;
   deleted_at?: string | null;
@@ -44,10 +44,10 @@ export interface Abbonamento {
 export type PreventivoMadre = {
   id: string;
   titolo: string | null;
-  created_at: string;
+  created_at: string | null;
   versione: number | null;
   importo_totale: number | null;
-  stato: string;
+  stato: string | null;
 };
 
 export interface RataAbbonamento {

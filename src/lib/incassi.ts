@@ -1,18 +1,10 @@
 import { supabase } from "./supabase";
 import { queryConFiltroCestino } from "preventivoai-shared";
+import type { Tables } from "./database.types";
 
-type RataRow = {
-  importo: number;
-  acconto: number;
-  stato: string;
-  abbonamenti?: { cliente_id?: string } | { cliente_id?: string }[] | null;
-};
-
-type PreventivoRow = {
-  id: string;
-  importo_totale: number | null;
-  cliente_id: string | null;
-};
+type PreventivoPagatoRow = Pick<Tables<"preventivi">, "id" | "importo_totale" | "cliente_id">;
+type AbbonamentoPreventivoRow = Pick<Tables<"abbonamenti">, "preventivo_id">;
+type RataIncassoRow = Pick<Tables<"rate_abbonamento">, "importo" | "acconto" | "stato">;
 
 export type RisultatoIncasso =
   | { ok: true; value: number }
@@ -28,7 +20,11 @@ export function setFatturatoClienteCached(clienteId: string, value: number) {
   fatturatoClienteCache.set(clienteId, value);
 }
 
-export function sommaImportoRate(rate: Pick<RataRow, "importo" | "acconto" | "stato">[]) {
+export function invalidaFatturatoClienteCache() {
+  fatturatoClienteCache.clear();
+}
+
+export function sommaImportoRate(rate: RataIncassoRow[]) {
   return rate.reduce((totale, r) => {
     if (r.stato === "incassato") return totale + (r.importo || 0);
     if (r.stato === "parziale") return totale + (r.acconto || 0);
@@ -37,7 +33,7 @@ export function sommaImportoRate(rate: Pick<RataRow, "importo" | "acconto" | "st
 }
 
 function incassoSingoliPreventivi(
-  preventivi: PreventivoRow[],
+  preventivi: PreventivoPagatoRow[],
   preventiviConPiano: Set<string>,
   clienteId?: string,
 ) {
@@ -59,7 +55,7 @@ async function caricaAbbonamentiConPreventivo(userId: string, clienteId?: string
     return q;
   };
   const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
-  if (error) return { data: [] as { preventivo_id: string | null }[], error: error.message };
+  if (error) return { data: [] as AbbonamentoPreventivoRow[], error: error.message };
   return { data: data || [], error: null as string | null };
 }
 
@@ -77,8 +73,8 @@ async function caricaPreventiviPagati(userId: string, clienteId?: string) {
     return q;
   };
   const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
-  if (error) return { data: [] as PreventivoRow[], error: error.message };
-  return { data: (data || []) as PreventivoRow[], error: null as string | null };
+  if (error) return { data: [] as PreventivoPagatoRow[], error: error.message };
+  return { data: data || [], error: null as string | null };
 }
 
 async function caricaRateIncasso(userId: string, clienteId?: string) {
@@ -97,8 +93,8 @@ async function caricaRateIncasso(userId: string, clienteId?: string) {
     return q;
   };
   const { data, error } = await queryConFiltroCestino(() => build(true), () => build(false));
-  if (error) return { data: [] as RataRow[], error: error.message };
-  return { data: (data || []) as RataRow[], error: null as string | null };
+  if (error) return { data: [] as RataIncassoRow[], error: error.message };
+  return { data: (data || []) as RataIncassoRow[], error: null as string | null };
 }
 
 async function caricaDatiIncassiUser(userId: string) {
@@ -110,7 +106,7 @@ async function caricaDatiIncassiUser(userId: string) {
 
   const error = abbonamentiRes.error || pagatiRes.error || rateRes.error;
   if (error) {
-    return { error, preventiviPagati: [] as PreventivoRow[], preventiviConPiano: new Set<string>(), rate: [] as RataRow[] };
+    return { error, preventiviPagati: [] as PreventivoPagatoRow[], preventiviConPiano: new Set<string>(), rate: [] as RataIncassoRow[] };
   }
 
   const preventiviConPiano = new Set(
