@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { caricaServizi, eliminaServizi, eliminaServizio, inserisciServizi } from "../lib/listino";
+import { caricaServizi, creaServizio, eliminaServizi, eliminaServizio, inserisciServizi } from "../lib/listino";
 import type { ServizioDraft } from "../lib/listinoSmart";
 import ListinoSmartPanel from "../components/ListinoSmartPanel";
 import type { Servizio } from "../lib/types";
@@ -17,6 +17,15 @@ function IconEdit() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
       <path strokeLinecap="round" d="m14 7 3 3" />
+    </svg>
+  );
+}
+
+function IconCopy() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path strokeLinecap="round" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
   );
 }
@@ -81,6 +90,25 @@ export default function ListinoServizi() {
   function apriModifica(s: Servizio) {
     setServizioInEdit(s);
     setModalAperto(true);
+  }
+
+  async function duplicaServizio(s: Servizio) {
+    const { data, error } = await creaServizio({
+      nome: `Copia di ${s.nome}`,
+      descrizione: s.descrizione || "",
+      costo: s.costo != null ? String(s.costo) : "",
+      unita: s.unita,
+      ordine: servizi.length,
+    });
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    if (data) {
+      const copia = data as Servizio;
+      setServizi((lista) => [...lista, copia]);
+      apriModifica(copia);
+    }
   }
 
   async function eliminaSingolo(id: string) {
@@ -231,6 +259,15 @@ export default function ListinoServizi() {
                         title="Modifica"
                       >
                         <IconEdit />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void duplicaServizio(s)}
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-brand-navy/45 hover:bg-brand-teal/10 hover:text-brand-teal"
+                        aria-label={`Duplica ${s.nome}`}
+                        title="Duplica"
+                      >
+                        <IconCopy />
                       </button>
                       <button
                         type="button"

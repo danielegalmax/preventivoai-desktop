@@ -42,6 +42,7 @@ export default function Storico() {
 
   useEffect(() => {
     return eventBus.onApriNotifica(({ notifica }) => {
+      if (notifica.tipo === "rata_in_scadenza") return;
       setNotificaAzione(notifica);
     });
   }, []);

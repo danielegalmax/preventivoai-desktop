@@ -17,6 +17,7 @@ export default function NotificheBell() {
   const { notifiche, count, erroreCaricamento, segnaTutteLette, rimanda, archivia, clearToasts } = useNotifiche();
   const [open, setOpen] = useState(false);
   const [erroreSegnaLette, setErroreSegnaLette] = useState<string | null>(null);
+  const [notificaDialog, setNotificaDialog] = useState<Notifica | null>(null);
   const [nonAncoraNotate, setNonAncoraNotate] = useState<Set<string>>(() => new Set());
   const [nonAncoraAperte, setNonAncoraAperte] = useState<Set<string>>(() => new Set());
   const ref = useRef<HTMLDivElement>(null);
@@ -74,6 +75,14 @@ export default function NotificheBell() {
     });
   }
 
+  useEffect(() => {
+    return eventBus.onApriNotifica(({ notifica }) => {
+      if (notifica.tipo === "rata_in_scadenza") {
+        setNotificaDialog(notifica);
+      }
+    });
+  }, []);
+
   function apriNotifica(n: Notifica) {
     setNonAncoraAperte((prev) => {
       if (!prev.has(n.id)) return prev;
@@ -82,6 +91,10 @@ export default function NotificheBell() {
       return next;
     });
     setOpen(false);
+    if (n.tipo === "rata_in_scadenza") {
+      setNotificaDialog(n);
+      return;
+    }
     if (n.preventivo_id) {
       navigate(`/storico?focus=${n.preventivo_id}&notifica=${n.id}`);
       eventBus.emitApriNotifica({ notifica: n });
@@ -220,6 +233,10 @@ export default function NotificheBell() {
         </div>
       )}
       <NotificaToastStack anchorRef={bellBtnRef} />
+      <NotificaAzioneStorico
+        notifica={notificaDialog}
+        onClose={() => setNotificaDialog(null)}
+      />
     </div>
   );
 }

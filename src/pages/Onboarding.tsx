@@ -7,6 +7,12 @@ import PreventivoPdfPreview from "../components/PreventivoPdfPreview";
 import { TEMPLATES } from "../lib/constants";
 import { aggiornaLogoCacheInHtml } from "../lib/pdf";
 import type { ServizioDraft } from "../lib/listinoSmart";
+import OnboardingPagamentoStep from "../components/onboarding/OnboardingPagamentoStep";
+import {
+  salvaMetodoPagamento,
+  type MetodoPagamentoForm,
+} from "../lib/pagamenti";
+
 import {
   ONBOARDING_CATEGORIE,
   completaOnboarding,
@@ -14,7 +20,7 @@ import {
   hasCompletedProfile,
 } from "../lib/onboarding";
 
-const STEP_LABELS = ["Benvenuto", "Azienda", "Servizi", "Template"];
+const STEP_LABELS = ["Benvenuto", "Azienda", "Servizi", "Template", "Pagamento"];
 
 const CHIP_BASE =
   "rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors";
@@ -27,6 +33,14 @@ export default function Onboarding() {
   const [stepMassimo, setStepMassimo] = useState(0);
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState("");
+  const [errorePagamento, setErrorePagamento] = useState("");
+  const [formPagamento, setFormPagamento] = useState<MetodoPagamentoForm>({
+    tipo: "bonifico",
+    nome: "",
+    dati: {},
+    predefinito: true,
+  });
+  const [tipoPagamentoScelto, setTipoPagamentoScelto] = useState(false);
 
   const [nomeAzienda, setNomeAzienda] = useState("");
   const [citta, setCitta] = useState("");
@@ -50,7 +64,7 @@ export default function Onboarding() {
   }
 
   function vaiAlloStep(target: number) {
-    if (target < 0 || target > 3) return;
+    if (target < 0 || target > 4) return;
     if (!puoAndareA(target)) return;
     setStep(target);
     setStepMassimo((s) => Math.max(s, target));
@@ -73,6 +87,26 @@ export default function Onboarding() {
     setTemplateScelto(id);
     if (previewTimeout.current) clearTimeout(previewTimeout.current);
     previewTimeout.current = setTimeout(() => void aggiornaPreview(id), 300);
+  }
+
+  async function salvaPagamentoECompleta() {
+    if (!tipoPagamentoScelto) {
+      setErrorePagamento("Seleziona un metodo di pagamento oppure usa Salta.");
+      return;
+    }
+    if (!formPagamento.nome.trim()) {
+      setErrorePagamento("Inserisci un nome per il metodo di pagamento.");
+      return;
+    }
+    setSaving(true);
+    setErrorePagamento("");
+    const { error } = await salvaMetodoPagamento(formPagamento);
+    if (error) {
+      setSaving(false);
+      setErrorePagamento(error.message);
+      return;
+    }
+    await completa();
   }
 
   async function completa() {
@@ -149,13 +183,22 @@ export default function Onboarding() {
             onNext: () => vaiAlloStep(3),
             nextLabel: servizi.length > 0 ? `Avanti — ${servizi.length} servizi →` : "Avanti →",
           }
-        : {
-            showBack: true as const,
-            onBack: () => setStep(2),
-            onNext: () => void completa(),
-            nextLabel: "Completa configurazione →",
-            loading: saving,
-          };
+        : step === 3
+          ? {
+              showBack: true as const,
+              onBack: () => setStep(2),
+              onNext: () => vaiAlloStep(4),
+              nextLabel: "Avanti →",
+            }
+          : {
+              showBack: true as const,
+              onBack: () => setStep(3),
+              onNext: () => void salvaPagamentoECompleta(),
+              onSkip: () => void completa(),
+              nextLabel: "Salva e completa →",
+              nextDisabled: !tipoPagamentoScelto,
+              loading: saving,
+            };
 
   return (
     <div className="theme-surface flex h-screen flex-col bg-brand-bg">
@@ -303,6 +346,18 @@ export default function Onboarding() {
                 className="h-full min-h-0"
               />
             </div>
+          )}
+
+          {step === 4 && (
+            <OnboardingPagamentoStep
+              form={formPagamento}
+              onFormChange={(form) => {
+                setFormPagamento(form);
+                setTipoPagamentoScelto(true);
+                setErrorePagamento("");
+              }}
+              errore={errorePagamento}
+            />
           )}
         </div>
       </main>

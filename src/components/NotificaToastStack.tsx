@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { eventBus } from "../lib/eventBus";
-import type { Notifica } from "../lib/notifiche";
+import { caricaNotificaById, type Notifica } from "../lib/notifiche";
 import { useNotifiche, type NotificaToast } from "./NotificheProvider";
 
 const TOAST_GAP = 8;
@@ -13,6 +13,10 @@ type Props = {
   anchorRef: RefObject<HTMLButtonElement | null>;
 };
 
+function toastApribile(t: NotificaToast) {
+  return Boolean(t.preventivo_id) || t.tipo === "rata_in_scadenza";
+}
+
 function toastToNotifica(t: NotificaToast): Notifica {
   return {
     id: t.id,
@@ -21,7 +25,7 @@ function toastToNotifica(t: NotificaToast): Notifica {
     invio_id: null,
     titolo: t.titolo,
     messaggio: t.messaggio,
-    payload: t.nomeCliente ? { nomeCliente: t.nomeCliente } : {},
+    payload: t.nomeCliente ? { nomeCliente: t.nomeCliente, cliente_nome: t.nomeCliente } : {},
     letta: false,
     archiviata: false,
     snooze_until: null,
@@ -66,10 +70,19 @@ export default function NotificaToastStack({ anchorRef }: Props) {
     marcaVistaLocale(id);
   }
 
-  function handleToastClick(t: NotificaToast) {
+  async function handleToastClick(t: NotificaToast) {
     rimuoviToast(t.id);
+    if (!toastApribile(t)) return;
+
+    let notifica = toastToNotifica(t);
+    if (t.tipo === "rata_in_scadenza") {
+      const loaded = await caricaNotificaById(t.id);
+      if (loaded) notifica = loaded;
+      eventBus.emitApriNotifica({ notifica });
+      return;
+    }
+
     if (!t.preventivo_id) return;
-    const notifica = toastToNotifica(t);
     navigate(`/storico?focus=${t.preventivo_id}&notifica=${t.id}`);
     eventBus.emitApriNotifica({ notifica });
   }
@@ -96,7 +109,7 @@ export default function NotificaToastStack({ anchorRef }: Props) {
               <button
                 type="button"
                 onClick={() => handleToastClick(t)}
-                className={`min-w-0 flex-1 text-left ${t.preventivo_id ? "cursor-pointer hover:opacity-90" : "cursor-default"}`}
+                className={`min-w-0 flex-1 text-left ${toastApribile(t) ? "cursor-pointer hover:opacity-90" : "cursor-default"}`}
               >
                 <p className="text-sm font-semibold text-ink">{t.titolo}</p>
                 {t.nomeCliente ? (

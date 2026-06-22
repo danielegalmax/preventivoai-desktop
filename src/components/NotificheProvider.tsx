@@ -114,7 +114,7 @@ function buildToast(raw: Partial<Notifica>): NotificaToast | null {
     messaggio: typeof raw.messaggio === "string" ? raw.messaggio : "",
     tipo,
     preventivo_id: raw.preventivo_id ?? null,
-    nomeCliente: raw.payload?.nomeCliente,
+    nomeCliente: raw.payload?.cliente_nome || raw.payload?.nomeCliente,
     createdAt: raw.created_at || new Date().toISOString(),
     leaving: false,
   };

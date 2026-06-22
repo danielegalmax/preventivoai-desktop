@@ -14,7 +14,10 @@ export default function OnboardingStepper({
   canNavigate,
 }: Props) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}
+    >
       {labels.map((label, i) => {
         const num = i + 1;
         const attivo = num === stepAttuale;

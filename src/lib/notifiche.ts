@@ -19,6 +19,15 @@ export type Notifica = {
     urlFirma?: string;
     emailCliente?: string;
     telefonoCliente?: string;
+    rata_id?: string;
+    abbonamento_id?: string;
+    cliente_id?: string;
+    cliente_nome?: string;
+    importo_residuo?: number;
+    scadenza?: string;
+    mese?: number;
+    anno?: number;
+    tipo_piano?: string;
   };
   letta: boolean;
   archiviata: boolean;
