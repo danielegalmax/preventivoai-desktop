@@ -28,7 +28,7 @@ export type Notifica = {
 
 const ORE_RIMANDA_DEFAULT = 24;
 
-async function segnalaNotificaConsegnataRust(notificationId: string | undefined) {
+export async function segnalaNotificaConsegnata(notificationId: string | undefined) {
   if (!isTauri() || !notificationId) return;
   try {
     await invoke("mark_notification_delivered", { notificationId });
@@ -60,7 +60,6 @@ export async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | 
       ? n.titolo.trim()
       : titoloNotificaDaTipo(String(n.tipo || ""));
     sendNotification({ title, body });
-    await segnalaNotificaConsegnataRust(typeof n.id === "string" ? n.id : undefined);
   } catch (e) {
     console.error("[notifiche-os] errore:", e);
   }

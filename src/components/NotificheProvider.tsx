@@ -12,9 +12,10 @@
  * 3. `visteLocalmente`: Set in memoria di sessione per abbassare il badge campanella quando
  *    l'utente ha già visto una notifica (hover/toast) senza scrivere `letta=true` su DB.
  *
- * Coordinamento anti-duplicati: dopo una notifica OS mostrata dal JS in foreground,
- * `segnalaNotificaConsegnataRust` (in `notifiche.ts`) informa Rust che quell'id è già
- * stato consegnato, così il polling non la ripresenta.
+ * Coordinamento anti-duplicati: in foreground JS segnala sempre a Rust (`segnalaNotificaConsegnata`)
+ * ogni INSERT Realtime gestito, anche se la notifica OS nativa non parte (permessi disabilitati).
+ * Rust salta l'OS in foreground; la segnalazione evita un secondo alert se l'utente va in
+ * background prima del prossimo poll. In background JS non segnala: l'OS è responsabilità del poller Rust.
  */
 import {
   createContext,
@@ -34,6 +35,7 @@ import {
   mostraNotificaOsSePossibile,
   notificaContaBadge,
   rimandaNotifica,
+  segnalaNotificaConsegnata,
   segnaNotificaLetta,
   segnaTutteLette,
   titoloNotificaDaTipo,
@@ -58,13 +60,18 @@ async function isFinestraInForeground() {
     ]);
     return visible && focused && !minimized;
   } catch {
-    return true;
+    return false;
   }
 }
 
-async function mostraNotificaOsSoloSeForeground(n: Partial<Notifica> | null | undefined) {
-  if (!(await isFinestraInForeground())) return;
-  await mostraNotificaOsSePossibile(n);
+async function gestisciNotificaRealtime(raw: Partial<Notifica> | null | undefined) {
+  if (!raw) return;
+
+  const inForeground = await isFinestraInForeground();
+  if (inForeground) {
+    await mostraNotificaOsSePossibile(raw);
+    await segnalaNotificaConsegnata(typeof raw.id === "string" ? raw.id : undefined);
+  }
 }
 
 export type NotificaToast = {
@@ -271,9 +278,10 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
             filter,
           },
           (payload) => {
+            const raw = (payload as { new?: Partial<Notifica> }).new;
             void ricaricaRef.current();
-            void mostraNotificaOsSoloSeForeground((payload as { new?: Partial<Notifica> }).new);
-            enqueueToastRef.current((payload as { new?: Partial<Notifica> }).new);
+            void gestisciNotificaRealtime(raw);
+            enqueueToastRef.current(raw);
           },
         )
         .on(

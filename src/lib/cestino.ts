@@ -45,28 +45,44 @@ export function giorniRimastiCestino(deletedAt: string): number {
  * `abbonamentiCollegatiPreventivi` non troverebbe quel piano e resterebbe orfano attivo.
  */
 async function idsFamigliaPreventivo(preventivoId: string): Promise<string[]> {
-  const { data: current } = await supabase
+  const ids = new Set<string>([preventivoId]);
+
+  const { data: current, error: currentErr } = await supabase
     .from("preventivi")
     .select("id, preventivo_padre_id")
     .eq("id", preventivoId)
     .single();
 
+  if (currentErr) {
+    console.error("[cestino] idsFamigliaPreventivo: query preventivo:", currentErr.message);
+    return [preventivoId];
+  }
+
   if (!current) return [preventivoId];
 
-  const ids = new Set<string>([preventivoId]);
   if (current.preventivo_padre_id) {
-    const versioni = await caricaCronologiaPreventivo(current.preventivo_padre_id);
-    for (const v of versioni) ids.add(v.id);
+    try {
+      const versioni = await caricaCronologiaPreventivo(current.preventivo_padre_id);
+      for (const v of versioni) ids.add(v.id);
+    } catch (e) {
+      console.error("[cestino] idsFamigliaPreventivo: cronologia preventivo:", e);
+    }
   }
 
   let espanso = true;
   while (espanso) {
     espanso = false;
     const batch = [...ids];
-    const { data: figli } = await supabase
+    const { data: figli, error: figliErr } = await supabase
       .from("preventivi")
       .select("id")
       .in("preventivo_padre_id", batch);
+
+    if (figliErr) {
+      console.error("[cestino] idsFamigliaPreventivo: query figli:", figliErr.message);
+      break;
+    }
+
     for (const f of figli || []) {
       if (!ids.has(f.id)) {
         ids.add(f.id);
@@ -78,7 +94,10 @@ async function idsFamigliaPreventivo(preventivoId: string): Promise<string[]> {
   return [...ids];
 }
 
-async function abbonamentiCollegatiPreventivi(preventivoIds: string[], escludiGiaCestino = true) {
+async function abbonamentiCollegatiPreventivi(
+  preventivoIds: string[],
+  escludiGiaCestino = true,
+): Promise<string[]> {
   if (preventivoIds.length === 0) return [];
 
   const base = () =>
@@ -88,14 +107,26 @@ async function abbonamentiCollegatiPreventivi(preventivoIds: string[], escludiGi
       .in("preventivo_id", preventivoIds);
 
   if (!escludiGiaCestino) {
-    const { data } = await base();
+    const { data, error } = await base();
+    if (error) {
+      console.error("[cestino] abbonamentiCollegatiPreventivi:", error.message);
+      throw error;
+    }
     return (data || []).map((a) => a.id);
   }
 
   const { data, error } = await base().is("deleted_at", null);
   if (error && erroreColonnaDeletedAt(error)) {
-    const { data: fallback } = await base();
+    const { data: fallback, error: fallbackErr } = await base();
+    if (fallbackErr) {
+      console.error("[cestino] abbonamentiCollegatiPreventivi (fallback):", fallbackErr.message);
+      throw fallbackErr;
+    }
     return (fallback || []).map((a) => a.id);
+  }
+  if (error) {
+    console.error("[cestino] abbonamentiCollegatiPreventivi:", error.message);
+    throw error;
   }
   return (data || []).map((a) => a.id);
 }
@@ -141,7 +172,13 @@ export async function spostaPreventiviInCestino(ids: string[]) {
   }
   const preventivoIds = [...tuttiIds];
 
-  const abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds);
+  let abbonamentoIds: string[];
+  try {
+    abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: { message } };
+  }
   const now = new Date().toISOString();
 
   // Soft-delete: prima abbonamenti, poi preventivi. Se il secondo step fallisce,
@@ -297,7 +334,13 @@ export async function eliminaDefinitivamentePreventivi(ids: string[]) {
   }
   const preventivoIds = [...tuttiIds];
 
-  const abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds, false);
+  let abbonamentoIds: string[];
+  try {
+    abbonamentoIds = await abbonamentiCollegatiPreventivi(preventivoIds, false);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: { message } };
+  }
 
   // Se non ci sono piani collegati, elimina subito i preventivi (nessun vincolo FK da rispettare).
   const { error: prevErrSenzaPiani } = await supabase
@@ -355,7 +398,10 @@ export async function purgeCestinoScaduto() {
   if (prevErr && erroreColonnaDeletedAt(prevErr)) return;
 
   if (prevScaduti?.length) {
-    await eliminaDefinitivamentePreventivi(prevScaduti.map((p) => p.id));
+    const { error: delErr } = await eliminaDefinitivamentePreventivi(prevScaduti.map((p) => p.id));
+    if (delErr) {
+      console.error("[cestino] purgeCestinoScaduto: eliminaDefinitivamentePreventivi:", delErr.message);
+    }
   }
 
   const { data: abScaduti, error: abErr } = await supabase

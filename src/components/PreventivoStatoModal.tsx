@@ -23,6 +23,7 @@ export default function PreventivoStatoModal({
   const [salvandoPagato, setSalvandoPagato] = useState(false);
   const [mostraDataPagamento, setMostraDataPagamento] = useState(false);
   const [dataPagamento, setDataPagamento] = useState(oggiInputDate);
+  const [erroreDataPagamento, setErroreDataPagamento] = useState<string | null>(null);
   const [pagatoLocale, setPagatoLocale] = useState(preventivo?.pagato ?? false);
 
   useAppModalKeyboard(onClose, { enabled: !!preventivo });
@@ -30,13 +31,21 @@ export default function PreventivoStatoModal({
   useEffect(() => {
     setPagatoLocale(preventivo?.pagato ?? false);
     setMostraDataPagamento(false);
+    setErroreDataPagamento(null);
   }, [preventivo?.id, preventivo?.pagato]);
+
+  function dataPagamentoValida(date: string): boolean {
+    if (!date.trim()) return false;
+    const parsed = new Date(`${date}T12:00:00`);
+    return !Number.isNaN(parsed.getTime());
+  }
 
   if (!preventivo) return null;
 
   async function handleTogglePagato(value: boolean) {
     if (value) {
       setDataPagamento(oggiInputDate());
+      setErroreDataPagamento(null);
       setPagatoLocale(true);
       setMostraDataPagamento(true);
       return;
@@ -52,6 +61,11 @@ export default function PreventivoStatoModal({
   }
 
   async function confermaPagato() {
+    if (!dataPagamentoValida(dataPagamento)) {
+      setErroreDataPagamento("Inserisci una data di pagamento valida.");
+      return;
+    }
+    setErroreDataPagamento(null);
     const dataIso = inputDateToIso(dataPagamento);
     setSalvandoPagato(true);
     try {
@@ -115,14 +129,21 @@ export default function PreventivoStatoModal({
                 <input
                   type="date"
                   value={dataPagamento}
-                  onChange={(e) => setDataPagamento(e.target.value)}
+                  onChange={(e) => {
+                    setDataPagamento(e.target.value);
+                    if (erroreDataPagamento) setErroreDataPagamento(null);
+                  }}
                   className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none focus:border-brand-teal"
                 />
+                {erroreDataPagamento ? (
+                  <p className="mt-1.5 text-xs text-red-600">{erroreDataPagamento}</p>
+                ) : null}
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setMostraDataPagamento(false);
+                      setErroreDataPagamento(null);
                       setPagatoLocale(preventivo.pagato ?? false);
                     }}
                     className="rounded-xl border border-black/10 px-3 py-2 text-sm font-medium text-brand-navy/60"

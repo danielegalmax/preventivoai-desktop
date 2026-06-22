@@ -41,7 +41,12 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   const pagamentiInCorso = useRef(new Set<string>());
   const caricaReqRef = useRef(0);
 
-  useEffect(() => { void carica(); }, [clienteId, opts?.soloTipo]);
+  useEffect(() => {
+    void carica();
+    return () => {
+      caricaReqRef.current += 1;
+    };
+  }, [clienteId, opts?.soloTipo]);
 
   function tutteLeRate() {
     return Object.values(ratePerPiano).flat();
@@ -69,12 +74,15 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     }));
   }
 
-  async function caricaRatePerPiani(abbonamentoIds: string[]) {
+  async function caricaRatePerPiani(abbonamentoIds: string[], reqId?: number) {
+    const isStale = () => reqId !== undefined && reqId !== caricaReqRef.current;
+
     if (abbonamentoIds.length === 0) {
-      setRatePerPiano({});
+      if (!isStale()) setRatePerPiano({});
       return;
     }
-    setRatePerPiano(await fetchRatePerPiani(abbonamentoIds));
+    const rate = await fetchRatePerPiani(abbonamentoIds);
+    if (!isStale()) setRatePerPiano(rate);
   }
 
   async function carica() {
@@ -100,7 +108,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     setAbbonamentiAttivi(attivi);
     setAbbonamentiStorico(storico);
     setPreventiviMadreStorico(preventiviMap);
-    await caricaRatePerPiani(attivi.map((a) => a.id));
+    await caricaRatePerPiani(attivi.map((a) => a.id), reqId);
 
     if (reqId !== caricaReqRef.current) return;
 
