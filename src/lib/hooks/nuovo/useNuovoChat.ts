@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
-import { inviaMessaggio, convertiRecap, applicaRispostaChat, estraiNomeCliente, cercaCliente } from "../../chat";
+import { inviaMessaggio, convertiRecap, applicaRispostaChat, estraiNomeCliente, cercaCliente, type ClienteSuggeritoChat } from "../../chat";
 import type { Messaggio } from "../../types";
 import type { NuovoManualeDraft } from "../../nuovoDraft";
 
@@ -21,6 +21,8 @@ type Params = {
   setClienti: Dispatch<SetStateAction<{ id: string; nome: string }[]>>;
   setNomeClienteSuggerito: Dispatch<SetStateAction<string>>;
   setMostraModalCliente: Dispatch<SetStateAction<boolean>>;
+  setClientiSuggeritiOmografi: Dispatch<SetStateAction<ClienteSuggeritoChat[]>>;
+  setMostraModalOmografi: Dispatch<SetStateAction<boolean>>;
   vaiAllAnteprima: (override?: Partial<NuovoManualeDraft>) => void;
 };
 
@@ -41,6 +43,8 @@ export function useNuovoChat({
   setClienti,
   setNomeClienteSuggerito,
   setMostraModalCliente,
+  setClientiSuggeritiOmografi,
+  setMostraModalOmografi,
   vaiAllAnteprima,
 }: Params) {
   const gestisciClienteDaNome = useCallback(
@@ -52,6 +56,9 @@ export function useNuovoChat({
           setClienti((prev) =>
             prev.some((c) => c.id === risultati[0].id) ? prev : [...prev, risultati[0]],
           );
+        } else if (risultati.length > 1) {
+          setClientiSuggeritiOmografi(risultati);
+          setMostraModalOmografi(true);
         } else if (risultati.length === 0) {
           setNomeClienteSuggerito(nome);
           setMostraModalCliente(true);
@@ -64,6 +71,8 @@ export function useNuovoChat({
       token,
       setClienteSelezionatoId,
       setClienti,
+      setClientiSuggeritiOmografi,
+      setMostraModalOmografi,
       setNomeClienteSuggerito,
       setMostraModalCliente,
     ],

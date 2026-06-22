@@ -28,7 +28,18 @@ export async function convertiRecap(recap: string, token: string): Promise<strin
   return normalizzaValuta(data.preventivo);
 }
 
-export async function cercaCliente(nome: string, token: string): Promise<{ id: string; nome: string }[]> {
+export type ClienteSuggeritoChat = {
+  id: string;
+  nome: string;
+  telefono?: string | null;
+  email?: string | null;
+  indirizzo?: string | null;
+};
+
+export async function cercaCliente(
+  nome: string,
+  token: string,
+): Promise<ClienteSuggeritoChat[]> {
   const res = await fetch(`${BACKEND_URL}/api/cerca-cliente`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

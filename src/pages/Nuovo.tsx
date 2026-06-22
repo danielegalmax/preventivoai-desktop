@@ -33,11 +33,13 @@ import { caricaServizi } from "../lib/listino";
 import { caricaProfiloFiscaleAttivo } from "../lib/fiscale";
 import { calcolaFiscalePreventivo, calcolaLordoDaNetto } from "../lib/fiscaleCalcolo";
 import type { Messaggio, ProfiloFiscale, Servizio } from "../lib/types";
+import type { ClienteSuggeritoChat } from "../lib/chat";
 import { useNuovoBuilderVoci } from "../lib/hooks/nuovo/useNuovoBuilderVoci";
 import { useNuovoChat } from "../lib/hooks/nuovo/useNuovoChat";
 import { useNuovoModifica } from "../lib/hooks/nuovo/useNuovoModifica";
 import BuilderFooterBar from "../components/BuilderFooterBar";
 import ClienteNuovoModal from "../components/ClienteNuovoModal";
+import ClienteOmografiModal from "../components/nuovo/ClienteOmografiModal";
 import MetodoPagamentoModal from "../components/MetodoPagamentoModal";
 import PreventivoSuccessModal, { type PdfSuccessAzioni, type PdfSuccessInvio } from "../components/PreventivoSuccessModal";
 import NuovoAnteprimaView from "../components/nuovo/NuovoAnteprimaView";
@@ -179,6 +181,8 @@ export default function Nuovo({ mode }: Props) {
     return caricaBozzaManuale()?.clienteSelezionatoId ?? "";
   });
   const [mostraModalCliente, setMostraModalCliente] = useState(false);
+  const [mostraModalOmografi, setMostraModalOmografi] = useState(false);
+  const [clientiSuggeritiOmografi, setClientiSuggeritiOmografi] = useState<ClienteSuggeritoChat[]>([]);
   const [nomeClienteSuggerito, setNomeClienteSuggerito] = useState("");
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [salvato, setSalvato] = useState(false);
@@ -437,6 +441,8 @@ export default function Nuovo({ mode }: Props) {
     setClienti,
     setNomeClienteSuggerito,
     setMostraModalCliente,
+    setClientiSuggeritiOmografi,
+    setMostraModalOmografi,
     vaiAllAnteprima,
   });
 
@@ -1098,6 +1104,24 @@ export default function Nuovo({ mode }: Props) {
           }}
         />
       )}
+
+      {mostraModalOmografi && clientiSuggeritiOmografi.length > 1 ? (
+        <ClienteOmografiModal
+          clienti={clientiSuggeritiOmografi}
+          onClose={() => {
+            setMostraModalOmografi(false);
+            setClientiSuggeritiOmografi([]);
+          }}
+          onSelect={(cliente) => {
+            setClienti((prev) =>
+              prev.some((c) => c.id === cliente.id) ? prev : [...prev, { id: cliente.id, nome: cliente.nome }],
+            );
+            setClienteSelezionatoId(cliente.id);
+            setMostraModalOmografi(false);
+            setClientiSuggeritiOmografi([]);
+          }}
+        />
+      ) : null}
 
       {mostraModalCliente && (
         <ClienteNuovoModal
