@@ -3,7 +3,7 @@ import { dataPreventivoMadre, titoloPreventivoMadre } from "preventivoai-shared"
 export type PreventivoMadreInfo = {
   id: string;
   titolo: string | null;
-  created_at: string;
+  created_at: string | null;
   versione?: number | null;
 };
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Preventivo } from "../lib/types";
 import { STATI_PREVENTIVO, statoPreventivoIcon } from "../lib/preventivo";
-import { formatData } from "../lib/format";
+import { formatData, inputDateToIso, oggiInputDate } from "../lib/format";
 import ToggleSwitch from "./ToggleSwitch";
 import { useAppModalKeyboard } from "./ModalShell";
 
@@ -12,14 +12,6 @@ type Props = {
   onTogglePagato: (pagato: boolean, dataPagamento?: string) => Promise<void>;
   mostraTogglePagato?: boolean;
 };
-
-function oggiInputDate() {
-  return new Date().toLocaleDateString("en-CA");
-}
-
-function inputDateToIso(date: string) {
-  return new Date(`${date}T12:00:00`).toISOString();
-}
 
 export default function PreventivoStatoModal({
   preventivo,

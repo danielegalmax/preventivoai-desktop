@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { messaggioEliminaPiano, messaggioEliminaRata } from "../../lib/confermeElimina";
 import { useConfirmDialog } from "../../lib/hooks/useConfirmDialog";
 import { sessioneClienteDettaglio } from "../../lib/clienteDettaglio";
-import { formatImportoEuro, generaLinkPaypalMe, generaTestoReminderPagamento, labelScadenzaRataDaPiano, parseImportoEuro, ricalcolaImportiRateLibere } from "preventivoai-shared";
+import { formatImportoEuro, generaLinkPaypalMe, generaTestoReminderPagamento, giornoScadenzaEffettivo, labelScadenzaRataDaPiano, parseImportoEuro, ricalcolaImportiRateLibere } from "preventivoai-shared";
 import { creaLinkPagamentoRata } from "../../lib/pdf";
 import type { MetodoPagamento } from "../../lib/pagamenti";
 import { titoloHeaderPiano, analizzaStatoPiano } from "preventivoai-shared";
@@ -77,6 +77,7 @@ export default function PianoRateCard({
   }, [messaggioSuccesso]);
 
   const rateOrdinate = useMemo(() => [...rate].sort(ordinaRate), [rate]);
+  const giornoScadenzaPiano = giornoScadenzaEffettivo(abbonamento.giorno_scadenza);
   const rateFuture = useMemo(() => rateOrdinate.filter((r) => r.stato !== "incassato"), [rateOrdinate]);
   const rateStorico = useMemo(() => rateOrdinate.filter((r) => r.stato === "incassato"), [rateOrdinate]);
   const ratePagate = rateStorico.length;
@@ -162,7 +163,7 @@ export default function PianoRateCard({
     try {
       setInvioReminderLoading(rata.id);
       const residuo = rata.importo - (rata.acconto || 0);
-      const periodoLabel = `la rata del ${labelScadenzaRataDaPiano(rata, abbonamento.giorno_scadenza)}`;
+      const periodoLabel = `la rata del ${labelScadenzaRataDaPiano(rata, giornoScadenzaPiano)}`;
       let testo: string;
 
       if (!metodoPredefinito) {
@@ -374,7 +375,7 @@ export default function PianoRateCard({
       rateLibereCount={rateLibereCount}
       onSalvaPersonalizzaRate={() => void salvaPersonalizzaRate()}
       salvaPersonalizzaLoading={salvaPersonalizzaLoading}
-      giornoScadenzaPiano={abbonamento.giorno_scadenza}
+      giornoScadenzaPiano={giornoScadenzaPiano}
     />
     {confirmDialog}
     </>

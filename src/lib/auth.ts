@@ -1,4 +1,5 @@
-import type { Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { invalidaFatturatoClienteCache } from "./incassi";
 import { supabase } from "./supabase";
 
 export function signInWithEmail(email: string, password: string) {
@@ -16,6 +17,7 @@ export function resetPassword(email: string) {
 }
 
 export function signOut() {
+  invalidaFatturatoClienteCache();
   return supabase.auth.signOut();
 }
 
@@ -24,9 +26,9 @@ export async function getInitialSession() {
   return session;
 }
 
-export function onAuthStateChange(callback: (session: Session | null) => void) {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session);
+export function onAuthStateChange(callback: (session: Session | null, event: AuthChangeEvent) => void) {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session, event);
   });
   return () => subscription.unsubscribe();
 }

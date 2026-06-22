@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   caricaClienteDettaglio,
-  caricaCollegamentiPianoPreventivo,
+  caricaCollegamentiPianoCliente,
 } from "../lib/clienteDettaglio";
 import type { CollegamentiPianoMap } from "../lib/collegamentiPiano";
 import {
@@ -19,6 +19,7 @@ import { caricaMetodiPagamento, type MetodoPagamento } from "../lib/pagamenti";
 import { supabase } from "../lib/supabase";
 import type { Cliente, Preventivo, RataAbbonamento } from "../lib/types";
 import PageContainer from "../components/PageContainer";
+import { useNavigaNuovoPreventivo } from "../components/NuovoPreventivoNavProvider";
 import PreventiviLista from "../components/PreventiviLista";
 import PianoVuotoState from "../components/clienteDettaglio/PianoVuotoState";
 import ClienteModificaModal from "../components/ClienteModificaModal";
@@ -28,14 +29,7 @@ import ClientePagamentoRateTab from "../components/clienteDettaglio/ClientePagam
 import ClienteAbbonamentoTab from "../components/clienteDettaglio/ClienteAbbonamentoTab";
 import ClienteAbbonamentoModals from "../components/clienteDettaglio/ClienteAbbonamentoModals";
 import ClienteStats from "../components/clienteDettaglio/ClienteStats";
-
-function oggiInputDate() {
-  return new Date().toLocaleDateString("en-CA");
-}
-
-function inputDateToIso(date: string) {
-  return new Date(`${date}T12:00:00`).toISOString();
-}
+import { inputDateToIso, oggiInputDate } from "../lib/format";
 
 export default function ClienteDettaglio() {
   const { id } = useParams();
@@ -53,6 +47,7 @@ export default function ClienteDettaglio() {
 
   const abbonamentoCanone = useAbbonamento(id || "", { soloTipo: "canone" });
   const abbonamentoRate = useAbbonamento(id || "", { soloTipo: "rate" });
+  const navigaNuovoPreventivo = useNavigaNuovoPreventivo();
 
   const [mostraModalNuovoAb, setMostraModalNuovoAb] = useState(false);
   const [mostraModalNuovoRate, setMostraModalNuovoRate] = useState(false);
@@ -181,16 +176,21 @@ export default function ClienteDettaglio() {
     const res = await caricaClienteDettaglio(clienteId);
     setCliente(res.cliente);
     setPreventivi(res.preventivi);
-    setCollegamentiPiano(await caricaCollegamentiPianoPreventivo(clienteId));
+    setCollegamentiPiano(await caricaCollegamentiPianoCliente(clienteId));
     setLoading(false);
   }
 
   async function aggiornaCollegamentiPiano() {
     if (!id) return;
-    setCollegamentiPiano(await caricaCollegamentiPianoPreventivo(id));
+    setCollegamentiPiano(await caricaCollegamentiPianoCliente(id));
     const res = await caricaClienteDettaglio(id);
     setPreventivi(res.preventivi);
   }
+
+  const handlePreventiviEliminati = useCallback(async () => {
+    await aggiornaCollegamentiPiano();
+    await Promise.all([abbonamentoCanone.carica(), abbonamentoRate.carica()]);
+  }, [id, abbonamentoCanone, abbonamentoRate]);
 
   async function ricaricaPreventivi() {
     if (!id) return;
@@ -528,6 +528,7 @@ export default function ClienteDettaglio() {
                   focusPreventivoId={preventivoFocusId}
                   onFocusConsumato={consumaFocusPreventivo}
                   onSelezioneChange={setPreventiviSelezionati}
+                  onPreventiviEliminati={handlePreventiviEliminati}
                 />
               </div>
             </>
@@ -623,12 +624,13 @@ export default function ClienteDettaglio() {
                 + Nuovo piano a rate
               </button>
             ) : (
-              <Link
-                to={`/nuovo?cliente_id=${id}`}
+              <button
+                type="button"
+                onClick={() => navigaNuovoPreventivo({ clienteId: id })}
                 className="rounded-xl bg-brand-teal px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
               >
                 + Nuovo preventivo
-              </Link>
+              </button>
             )}
           </div>
         </div>

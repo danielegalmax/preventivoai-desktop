@@ -4,7 +4,7 @@ import { MESI_BREVI } from "../../lib/constants";
 
 import type { AnalisiPiano } from "preventivoai-shared";
 
-import { formatImportoEuro, labelScadenzaRataDaPiano } from "preventivoai-shared";
+import { formatImportoEuro, giornoScadenzaEffettivo, labelScadenzaRataDaPiano } from "preventivoai-shared";
 
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../../lib/types";
 
@@ -297,6 +297,7 @@ export default function PianoEspanso({
 }: PianoEspansoProps) {
 
   const rateOrdinate = useMemo(() => [...rate].sort(ordinaRate), [rate]);
+  const giornoScadenzaPiano = giornoScadenzaEffettivo(abbonamento.giorno_scadenza);
 
   const gruppiByStato = useMemo(
 
@@ -332,7 +333,7 @@ export default function PianoEspanso({
 
     variante: varianteRiga,
 
-    giornoScadenzaPiano: abbonamento.giorno_scadenza,
+    giornoScadenzaPiano,
 
     invioReminderLoading,
 
@@ -474,9 +475,9 @@ export default function PianoEspanso({
 
               onEliminaRata={onEliminaRata}
 
-              titoloCustom={(rata) => labelScadenzaRataDaPiano(rata, abbonamento.giorno_scadenza)}
+              titoloCustom={(rata) => labelScadenzaRataDaPiano(rata, giornoScadenzaPiano)}
 
-              giornoScadenzaPiano={abbonamento.giorno_scadenza}
+              giornoScadenzaPiano={giornoScadenzaPiano}
 
             />
 
@@ -532,7 +533,7 @@ export default function PianoEspanso({
 
           onEliminaRata={onEliminaRata}
 
-          giornoScadenzaPiano={abbonamento.giorno_scadenza}
+          giornoScadenzaPiano={giornoScadenzaPiano}
 
         />
 

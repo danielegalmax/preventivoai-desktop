@@ -66,6 +66,17 @@ export default function Storico() {
     }, { replace: true });
   }
 
+  async function ricaricaDopoElimina() {
+    const [data, collegamenti, cestino] = await Promise.all([
+      caricaStorico(),
+      caricaCollegamentiPianoPreventivi(),
+      conteggioCestino(),
+    ]);
+    setPreventivi(data);
+    setCollegamentiPiano(collegamenti);
+    setVociCestino(cestino);
+  }
+
   const mostraAzione = !!notificaAzione && (focusPronto || !focusId);
 
   return (
@@ -100,6 +111,7 @@ export default function Storico() {
             collegamentiPiano={collegamentiPiano}
             focusPreventivoId={focusId}
             onFocusConsumato={consumaFocus}
+            onPreventiviEliminati={ricaricaDopoElimina}
           />
         </div>
       )}

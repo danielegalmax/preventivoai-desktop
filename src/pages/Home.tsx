@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { useNavigaNuovoPreventivo } from "../components/NuovoPreventivoNavProvider";
 import { supabase } from "../lib/supabase";
 import { caricaHomeData, type HomeData, type HomeInsight } from "../lib/home";
 import { eventBus } from "../lib/eventBus";
 import { getSalutoOrario } from "../lib/greeting";
-import { formatImporto, formatData } from "../lib/format";
+import { formatImporto, formatData, formatDataHomeHeader } from "../lib/format";
 import { etichettaPianoCollegato } from "../lib/collegamentiPiano";
 import PreventivoStatoBadge from "../components/PreventivoStatoBadge";
 import PageContainer from "../components/PageContainer";
@@ -25,11 +26,7 @@ const QUICK_ACTIONS = [
 ] as const;
 
 function dataOggi() {
-  return new Date().toLocaleDateString("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  return formatDataHomeHeader();
 }
 
 function StatSkeleton() {
@@ -45,6 +42,7 @@ function StatSkeleton() {
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<HomeData | null>(null);
+  const navigaNuovoPreventivo = useNavigaNuovoPreventivo();
 
   const carica = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -89,15 +87,16 @@ export default function Home() {
             Panoramica del tuo lavoro e degli ultimi preventivi.
           </p>
         </div>
-        <Link
-          to="/nuovo"
+        <button
+          type="button"
+          onClick={() => navigaNuovoPreventivo()}
           className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-teal px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-teal/30 transition hover:bg-brand-teal/90"
         >
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10">
             <IconPlus className="h-3.5 w-3.5" />
           </span>
           Nuovo preventivo
-        </Link>
+        </button>
       </header>
 
       {/* Stats */}
@@ -267,12 +266,13 @@ export default function Home() {
               <p className="mt-1 max-w-sm text-xs text-brand-navy/45">
                 I preventivi che crei compariranno qui, pronti da aprire o inviare al cliente.
               </p>
-              <Link
-                to="/nuovo"
+              <button
+                type="button"
+                onClick={() => navigaNuovoPreventivo()}
                 className="mt-4 rounded-xl bg-brand-teal px-4 py-2 text-xs font-semibold text-white shadow-sm hover:opacity-90"
               >
                 Crea il primo preventivo
-              </Link>
+              </button>
             </div>
           ) : (
             <>

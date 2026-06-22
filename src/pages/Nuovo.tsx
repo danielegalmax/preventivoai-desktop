@@ -11,6 +11,7 @@ import {
   caricaBozzaManuale,
   salvaBozzaChat,
   salvaBozzaManuale,
+  finalizzaBozzaNuovo,
   pianoPagamentoTipoDaBozza,
   type NuovoManualeDraft,
   type PianoPagamentoTipo,
@@ -22,11 +23,13 @@ import type { MetodoPagamento } from "../lib/pagamenti";
 import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale, creaLinkPagamentoRata } from "../lib/pdf";
 import { calcolaAccontoSaldoPiano, generaLinkPaypalMe, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
 import {
-  creaAbbonamentoDaPreventivo,
   creaPianoRateDaPreventivo,
   agganciaPianoAPreventivo,
-  testoConPagamento,
 } from "../lib/preventivoPdfPiani";
+import {
+  creaPianiDopoSalvataggioNuovo,
+  preparaTestoPerPdfNuovo,
+} from "../lib/nuovoPianiPagamento";
 import { caricaServizi, creaServizio } from "../lib/listino";
 import { caricaProfiloFiscaleAttivo } from "../lib/fiscale";
 import { calcolaFiscalePreventivo, calcolaLordoDaNetto } from "../lib/fiscaleCalcolo";
@@ -45,10 +48,14 @@ import PreventivoSuccessModal, { type PdfSuccessAzioni, type PdfSuccessInvio } f
 import ServiziListinoCard from "../components/ServiziListinoCard";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TrasferteCard from "../components/TrasferteCard";
+import NuovoChatSection from "../components/nuovo/NuovoChatSection";
 import VociPreventivoSection from "../components/VociPreventivoSection";
 import PageContainer from "../components/PageContainer";
+import { oggiItItLabel } from "../lib/format";
 import { PLACEHOLDER } from "../lib/placeholders";
 import { risolviModifica, clearModificaSession } from "../lib/modificaPreventivo/modificaSession";
+import { buildNuovoManualeDraft } from "../lib/nuovoBozzaSnapshot";
+import { resetRememberedPath } from "../lib/navMemory";
 import {
   collegaVociAlListino,
   parsePreventivoTesto,
@@ -216,42 +223,59 @@ export default function Nuovo({ mode }: Props) {
   const trascrizioneModificaInviata = useRef(false);
   const pagamentoImportato = useRef("");
 
+  function nomeClienteBozza() {
+    return clienti.find((c) => c.id === clienteSelezionatoId)?.nome ?? "";
+  }
+
   function snapshotBozzaManuale(override: Partial<NuovoManualeDraft> = {}): NuovoManualeDraft {
-    return {
-      voci,
-      trasferte,
-      mostraTrasferte,
-      metodoPagamentoSelezionato,
-      metodoPagamentoNessuno,
-      includiIva,
-      noteExtra,
-      mostraFiscale,
-      nettoDesiderato,
-      lordoCalcolato,
-      storicoVoci,
-      clienteSelezionatoId,
-      preventivo,
-      template,
-      pdfUrl,
-      nascondiPrezzi,
-      pianoPagamentoTipo,
-      abImporto,
-      abGiorno,
-      abMeseInizio,
-      abMensilita,
-      abVisibileNelPDF,
-      rateNumero,
-      rateGiornoScadenza,
-      rateMeseInizio,
-      rateVisibileNelPDF,
-      rateAccontoTipo,
-      rateAccontoValore,
-      ...override,
-    };
+    return buildNuovoManualeDraft(
+      {
+        voci,
+        trasferte,
+        mostraTrasferte,
+        metodoPagamentoSelezionato,
+        metodoPagamentoNessuno,
+        includiIva,
+        noteExtra,
+        mostraFiscale,
+        nettoDesiderato,
+        lordoCalcolato,
+        storicoVoci,
+        clienteSelezionatoId,
+        clienteNome: nomeClienteBozza(),
+        preventivo,
+        template,
+        pdfUrl,
+        nascondiPrezzi,
+        pianoPagamentoTipo,
+        abImporto,
+        abGiorno,
+        abMeseInizio,
+        abMensilita,
+        abVisibileNelPDF,
+        rateNumero,
+        rateGiornoScadenza,
+        rateMeseInizio,
+        rateVisibileNelPDF,
+        rateAccontoTipo,
+        rateAccontoValore,
+      },
+      override,
+    );
   }
 
   function persistiBozzaManuale(override: Partial<NuovoManualeDraft> = {}) {
     salvaBozzaManuale(snapshotBozzaManuale(override));
+  }
+
+  function finalizzaBozzaWorkflow() {
+    if (inModifica) return;
+    bloccoSalvataggioBozzaRef.current = true;
+    finalizzaBozzaNuovo(mode);
+    resetRememberedPath("nuovo");
+    window.setTimeout(() => {
+      bloccoSalvataggioBozzaRef.current = false;
+    }, 400);
   }
 
   function vaiAllAnteprima(override: Partial<NuovoManualeDraft> = {}) {
@@ -306,6 +330,7 @@ export default function Nuovo({ mode }: Props) {
           recap,
           preventivo,
           clienteSelezionatoId,
+          clienteNome: clienti.find((c) => c.id === clienteSelezionatoId)?.nome ?? "",
           template,
           pdfUrl,
         });
@@ -321,6 +346,7 @@ export default function Nuovo({ mode }: Props) {
     recap,
     preventivo,
     clienteSelezionatoId,
+    clienti,
     template,
     pdfUrl,
     nascondiPrezzi,
@@ -499,71 +525,47 @@ export default function Nuovo({ mode }: Props) {
   }
 
   async function preparaTestoPerPdf(testo: string, accontoLinkPrecomputato?: string): Promise<string> {
-    if (!token) return testo;
-    const importoRate = mode === "manuale"
-      ? totaleConIva
-      : (importoDaTesto(testo) || 0);
-    return testoConPagamento({
+    return preparaTestoPerPdfNuovo({
       testo,
+      token,
+      mode,
+      totaleConIva,
       abbonamentoAttivo,
       abVisibileNelPDF,
       abImporto,
       abGiorno,
-      abMeseInizio: parseInt(abMeseInizio, 10) || 0,
+      abMeseInizio,
       pagamentoRateAttivo,
       rateVisibileNelPDF,
-      rateImportoTotale: importoRate,
-      rateNumero: parseInt(rateNumero, 10) || 0,
-      rateGiornoScadenza: parseInt(rateGiornoScadenza, 10) || 0,
-      rateMeseInizio: parseInt(rateMeseInizio, 10) || 0,
+      rateNumero,
+      rateGiornoScadenza,
+      rateMeseInizio,
       rateModalita,
       rateAccontoTipo,
       rateAccontoValore,
       accontoLinkPrecomputato,
       metodoPagamento: metodoPagamentoSelezionato,
-      token,
     });
   }
 
   async function creaPianiDopoSalvataggio(preventivoId: string) {
-    const cliente = clienti.find((c) => c.id === clienteSelezionatoId);
-    if (!cliente) return;
-
-    try {
-      if (abbonamentoAttivo) {
-        const r = await creaAbbonamentoDaPreventivo({
-          cliente,
-          preventivoId,
-          importoRaw: abImporto,
-          giornoRaw: abGiorno,
-          meseInizioRaw: abMeseInizio,
-          mensilitaRaw: abMensilita,
-        });
-        if (r.esistente) {
-          window.alert("Questo preventivo ha già un piano collegato. Gestiscilo dalla cartella cliente.");
-        }
-      }
-
-      if (pagamentoRateAttivo && rateModalita !== "acconto_saldo") {
-        const importoRate = mode === "manuale"
-          ? totaleConIva
-          : (importoDaTesto(preventivo) || 0);
-        const r = await creaPianoRateDaPreventivo({
-          cliente,
-          preventivoId,
-          importoTotale: importoRate,
-          numeroRateRaw: rateNumero,
-          giornoScadenzaRaw: rateGiornoScadenza,
-          meseInizioRaw: rateMeseInizio,
-        });
-        if (r.esistente) {
-          window.alert("Questo preventivo ha già un piano a rate collegato. Gestiscilo dalla cartella cliente.");
-        }
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Errore nella creazione del piano.";
-      window.alert(`Piano incompleto: ${msg}`);
-    }
+    await creaPianiDopoSalvataggioNuovo({
+      preventivoId,
+      cliente: clienti.find((c) => c.id === clienteSelezionatoId),
+      abbonamentoAttivo,
+      abImporto,
+      abGiorno,
+      abMeseInizio,
+      abMensilita,
+      pagamentoRateAttivo,
+      rateModalita,
+      mode,
+      totaleConIva,
+      preventivo,
+      rateNumero,
+      rateGiornoScadenza,
+      rateMeseInizio,
+    });
   }
 
   async function aggiornaPreview() {
@@ -838,7 +840,7 @@ export default function Nuovo({ mode }: Props) {
     setErrore("");
     setMessaggioSuccesso("");
     const clienteNome = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
-    const titolo = clienteNome ? `Preventivo ${clienteNome}` : `Preventivo ${new Date().toLocaleDateString("it-IT")}`;
+    const titolo = clienteNome ? `Preventivo ${clienteNome}` : `Preventivo ${oggiItItLabel()}`;
     const { error, id } = await salvaPreventivoGenerato({
       testo: preventivo,
       clienteId: clienteSelezionatoId,
@@ -856,11 +858,12 @@ export default function Nuovo({ mode }: Props) {
     }
     if (id) setPreventivoSalvatoId(id);
     setSalvato(true);
+    finalizzaBozzaWorkflow();
   }
 
   function titoloPreventivo() {
     const clienteNome = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
-    return clienteNome ? `Preventivo ${clienteNome}` : `Preventivo ${new Date().toLocaleDateString("it-IT")}`;
+    return clienteNome ? `Preventivo ${clienteNome}` : `Preventivo ${oggiItItLabel()}`;
   }
 
   async function generaPdf() {
@@ -1025,6 +1028,8 @@ export default function Nuovo({ mode }: Props) {
       const percorsoLocale = await scaricaPdfLocale(data.pdf_base64, nomeFile, clienteNome || undefined);
 
       if (urlCaricato) setPdfUrl(urlCaricato);
+
+      finalizzaBozzaWorkflow();
 
       const dettaglioBase = percorsoLocale
         ? "PDF salvato sul tuo PC."
@@ -1191,34 +1196,15 @@ export default function Nuovo({ mode }: Props) {
       </div>
 
       {!isAnteprima && mode === "chat" && (
-        <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
-          {messaggi.length === 0 && !inModifica && (
-            <p className="text-brand-navy/60">Descrivi il lavoro da preventivare, l'assistente ti farà le domande necessarie.</p>
-          )}
-
-          <div className="space-y-3">
-            {messaggi.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-brand-teal text-white" : "bg-brand-bg text-brand-navy"}`}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {recap && (
-            <div className="mt-4 rounded-2xl border border-brand-teal/30 bg-brand-teal/5 p-4">
-              <p className="text-sm font-medium text-brand-navy">Riepilogo pronto</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-navy/70">{recap}</p>
-              <button onClick={generaDaRecap} disabled={loading} className="mt-3 rounded-lg bg-brand-teal px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
-                {loading ? "Generazione..." : "Genera preventivo"}
-              </button>
-            </div>
-          )}
-
-          {errore && <p className="mt-4 text-sm text-red-600">{errore}</p>}
-          <div ref={fineListaRef} />
-        </div>
+        <NuovoChatSection
+          messaggi={messaggi}
+          recap={recap}
+          errore={errore}
+          loading={loading}
+          inModifica={inModifica}
+          fineListaRef={fineListaRef}
+          onGeneraDaRecap={() => void generaDaRecap()}
+        />
       )}
 
       {!isAnteprima && mode === "manuale" && (

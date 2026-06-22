@@ -5,6 +5,7 @@ import {
   pathToSection,
   resolveSidebarTarget,
 } from "../lib/navMemory";
+import { useNavigaNuovoPreventivo } from "./NuovoPreventivoNavProvider";
 
 type NavItem = {
   to: string;
@@ -130,10 +131,15 @@ function NavSection({ group, currentSection, onNavigate }: {
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigaNuovoPreventivo = useNavigaNuovoPreventivo();
   const currentSection = pathToSection(location.pathname);
 
   function handleNavigate(to: string) {
     const section = linkToSection(to);
+    if (section === "nuovo") {
+      navigaNuovoPreventivo();
+      return;
+    }
     if (!section) {
       navigate(to);
       return;

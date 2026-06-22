@@ -2,6 +2,7 @@ import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";
 import type { RateAccontoTipo } from "preventivoai-shared";
+import { getRememberedPath } from "./navMemory";
 
 export type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
 
@@ -14,6 +15,7 @@ export type NuovoChatDraft = {
   recap: string;
   preventivo: string;
   clienteSelezionatoId: string;
+  clienteNome?: string;
   template: string;
   pdfUrl: string;
 };
@@ -31,6 +33,7 @@ export type NuovoManualeDraft = {
   lordoCalcolato: number | null;
   storicoVoci: VoceBuilder[][];
   clienteSelezionatoId: string;
+  clienteNome?: string;
   preventivo: string;
   template: string;
   pdfUrl: string;
@@ -134,4 +137,62 @@ export function salvaBozzaManuale(draft: NuovoManualeDraft) {
 
 export function cancellaBozzaManuale() {
   remove(MANUALE_KEY);
+}
+
+export type BozzaNuovoInfo = {
+  mode: "chat" | "manuale";
+  clienteId: string;
+  clienteNome: string;
+};
+
+function infoDaBozzaChat(draft: NuovoChatDraft): BozzaNuovoInfo {
+  return {
+    mode: "chat",
+    clienteId: draft.clienteSelezionatoId,
+    clienteNome: draft.clienteNome?.trim() || "",
+  };
+}
+
+function infoDaBozzaManuale(draft: NuovoManualeDraft): BozzaNuovoInfo {
+  return {
+    mode: "manuale",
+    clienteId: draft.clienteSelezionatoId,
+    clienteNome: draft.clienteNome?.trim() || "",
+  };
+}
+
+export function infoBozzaNuovoInSospeso(): BozzaNuovoInfo | null {
+  const chat = caricaBozzaChat();
+  const manuale = caricaBozzaManuale();
+  const chatAttiva = chat != null && !bozzaChatVuota(chat);
+  const manualeAttiva = manuale != null && !bozzaManualeVuota(manuale);
+
+  if (!chatAttiva && !manualeAttiva) return null;
+  if (chatAttiva && !manualeAttiva) return infoDaBozzaChat(chat);
+  if (manualeAttiva && !chatAttiva) return infoDaBozzaManuale(manuale);
+
+  const remembered = getRememberedPath("nuovo");
+  if (remembered.includes("/chat")) return infoDaBozzaChat(chat!);
+  return infoDaBozzaManuale(manuale!);
+}
+
+export function percorsoRipresaBozzaNuovo(mode: BozzaNuovoInfo["mode"]): string {
+  if (mode === "chat") {
+    const chat = caricaBozzaChat();
+    if (chat?.preventivo) return "/nuovo/chat/anteprima";
+    return "/nuovo/chat";
+  }
+  const manuale = caricaBozzaManuale();
+  if (manuale?.preventivo) return "/nuovo/manuale/anteprima";
+  return "/nuovo/manuale";
+}
+
+export function cancellaTutteLeBozzeNuovo() {
+  cancellaBozzaChat();
+  cancellaBozzaManuale();
+}
+
+export function finalizzaBozzaNuovo(mode: "chat" | "manuale") {
+  if (mode === "chat") cancellaBozzaChat();
+  else cancellaBozzaManuale();
 }

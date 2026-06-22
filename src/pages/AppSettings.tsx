@@ -21,14 +21,15 @@ import {
   type RisultatoControlloAggiornamenti,
 } from "../lib/appSettings";
 
+import { cancellaTutteLeBozzeNuovo } from "../lib/nuovoDraft";
+
 const WEB_BASE_URL = "https://preventivoai-web.vercel.app";
 const WEB_TERMINI_URL = `${WEB_BASE_URL}/termini`;
 const WEB_PRIVACY_URL = `${WEB_BASE_URL}/privacy`;
 
 function clearLocalData() {
   localStorage.removeItem("preventivoai-nav-memory");
-  localStorage.removeItem("preventivoai-nuovo-chat");
-  localStorage.removeItem("preventivoai-nuovo-manuale");
+  cancellaTutteLeBozzeNuovo();
   localStorage.removeItem("preventivoai-pdf-folder");
   localStorage.removeItem("preventivoai-pdf-cartelle-cliente");
   localStorage.removeItem("preventivoai-pdf-cartella-custom");

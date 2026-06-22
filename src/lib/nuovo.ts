@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { TablesUpdate } from "./database.types";
 import { importoDaTesto } from "preventivoai-shared";
 import { erroreColonnaDeletedAt } from "preventivoai-shared";
 
@@ -61,7 +62,7 @@ export async function aggiornaPreventivoDaBuilder(
     pdfUrl?: string;
   },
 ) {
-  const aggiornamento: Record<string, unknown> = {
+  const aggiornamento: TablesUpdate<"preventivi"> = {
     testo_preventivo: testo,
     importo_totale: importoDaTesto(testo),
     cliente_id: clienteId || null,

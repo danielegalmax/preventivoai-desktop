@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
+import { NuovoPreventivoNavProvider } from "./NuovoPreventivoNavProvider";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import NavMemoryTracker from "./NavMemoryTracker";
@@ -29,6 +30,7 @@ export default function Layout() {
   return (
     <NotificheProvider>
       <SegnalazioneProvider>
+        <NuovoPreventivoNavProvider>
         <div className="flex h-screen bg-brand-bg">
           <NavMemoryTracker />
           <Sidebar />
@@ -39,6 +41,7 @@ export default function Layout() {
             </main>
           </div>
         </div>
+        </NuovoPreventivoNavProvider>
       </SegnalazioneProvider>
     </NotificheProvider>
   );

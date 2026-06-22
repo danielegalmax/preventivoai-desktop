@@ -1,3 +1,4 @@
+import { invalidaFatturatoClienteCache } from "./incassi";
 import { supabase } from "./supabase";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -26,6 +27,7 @@ export async function aggiornaPasswordAccount(nuovaPassword: string) {
 }
 
 export async function logoutAccount() {
+  invalidaFatturatoClienteCache();
   return supabase.auth.signOut();
 }
 

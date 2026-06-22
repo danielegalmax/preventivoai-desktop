@@ -31,7 +31,7 @@ export default function ClienteModificaModal({ cliente, onClose, onSaved }: Prop
       setError(err.message);
       return;
     }
-    if (data) onSaved({ ...cliente, ...data });
+    if (data) onSaved({ ...cliente, ...data, created_at: data.created_at ?? undefined });
     onClose();
   }
 

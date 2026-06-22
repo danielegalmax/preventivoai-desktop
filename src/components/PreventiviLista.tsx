@@ -1,8 +1,6 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, MouseEvent, SetStateAction } from "react";
-import { Link } from "react-router";
 import type { Preventivo } from "../lib/types";
-import { formatImporto, formatData } from "../lib/format";
 import {
   caricaClientiPerSposta,
   caricaCronologiaPreventivo,
@@ -18,32 +16,28 @@ import { useConfirmDialog } from "../lib/hooks/useConfirmDialog";
 import { caricaClientiDisponibili } from "../lib/clienteDettaglio";
 import {
   aggiornaTitoloPreventivo,
-  apriPdfPreventivo,
   cambiaStatoPreventivo,
   caricaDettaglioPreventivo,
   segnaPreventivoPagato,
 } from "../lib/preventivo";
 import { useSelezione } from "../lib/hooks/useSelezione";
 import { useAnnullaSelezioneOnEscape } from "../lib/hooks/useAnnullaSelezioneOnEscape";
-import { etichettaPianoCollegato, normalizzaTipoPiano, type CollegamentiPianoMap } from "../lib/collegamentiPiano";
+import { type CollegamentiPianoMap } from "../lib/collegamentiPiano";
+import PreventivoListaRiga from "./preventiviLista/PreventivoListaRiga";
 import DataTable from "./DataTable";
 import PreventivoStatoModal from "./PreventivoStatoModal";
 import PreventivoTitoloModal from "./PreventivoTitoloModal";
 import SpostaClienteModal from "./SpostaClienteModal";
 import CheckboxSelezione from "./CheckboxSelezione";
 import BarraSelezione from "./BarraSelezione";
-import PreventivoColonnaRiepilogo from "./PreventivoColonnaRiepilogo";
 import ModificaPreventivoModal from "./ModificaPreventivoModal";
-import { MODIFICA_VERSIONE_ALTERNATIVA_LABEL } from "../lib/modificaPreventivo/constants";
 import { useModificaPreventivoScelta } from "../lib/modificaPreventivo/useModificaPreventivoScelta";
 import InviaFirmaModal from "./firma/InviaFirmaModal";
 import FirmaDettaglioModal from "./firma/FirmaDettaglioModal";
-import FirmaStatoBadge from "./firma/FirmaStatoBadge";
 import { eventBus } from "../lib/eventBus";
 import {
   caricaContattiCliente,
   registraFirmaManuale,
-  statoFirmaInvio,
 } from "../lib/firma";
 import { useInviiFirma } from "../lib/hooks/useInviiFirma";
 import { caricaHeaderProfilo } from "../lib/greeting";
@@ -57,6 +51,7 @@ type Props = {
   focusPreventivoId?: string | null;
   onFocusConsumato?: () => void;
   onSelezioneChange?: (count: number) => void;
+  onPreventiviEliminati?: () => void | Promise<void>;
 };
 
 export default function PreventiviLista({
@@ -68,6 +63,7 @@ export default function PreventiviLista({
   focusPreventivoId = null,
   onFocusConsumato,
   onSelezioneChange,
+  onPreventiviEliminati,
 }: Props) {
   const [modalStatoId, setModalStatoId] = useState<string | null>(null);
   const [modalSposta, setModalSposta] = useState(false);
@@ -263,7 +259,12 @@ export default function PreventiviLista({
       window.alert(error.message);
       return;
     }
-    setPreventivi((lista) => lista.filter((p) => p.id !== id));
+    if (onPreventiviEliminati) {
+      await onPreventiviEliminati();
+    } else {
+      setPreventivi((lista) => lista.filter((p) => p.id !== id));
+    }
+    eventBus.emit("aggiorna-home");
   }
 
   async function eliminaSelezionati() {
@@ -279,8 +280,13 @@ export default function PreventiviLista({
       window.alert(error.message);
       return;
     }
-    setPreventivi((lista) => lista.filter((p) => !selezionati.includes(p.id)));
+    if (onPreventiviEliminati) {
+      await onPreventiviEliminati();
+    } else {
+      setPreventivi((lista) => lista.filter((p) => !selezionati.includes(p.id)));
+    }
     annulla();
+    eventBus.emit("aggiorna-home");
   }
 
   async function handleSposta(cliente: { id: string; nome: string }) {
@@ -440,172 +446,42 @@ export default function PreventiviLista({
               </tr>
             </thead>
             <tbody>
-              {preventivi.map((p) => {
-                const selezionato = selezionati.includes(p.id);
-                const collegamento = collegamentiPiano[p.id];
-                const espanso = apertoId === p.id;
-                const evidenziato = evidenziatoId === p.id;
-                const versioniPrecedenti = (p.versione || 1) - 1;
-                const invioFirma = inviiFirma[p.id];
-                const sfFirma = statoFirmaInvio(invioFirma);
-                const mostraInviaFirma = !!p.pdf_url && (sfFirma === "nessuno" || sfFirma === "scaduto" || sfFirma === "revocato");
-                return (
-                  <Fragment key={p.id}>
-                  <tr
-                    ref={(el) => { rowRefs.current[p.id] = el; }}
-                    onClick={(e) => handleRowClick(e, p)}
-                    className={`border-t border-black/5 cursor-pointer transition-colors ${
-                      evidenziato
-                        ? "preventivo-row-focus"
-                        : espanso
-                          ? "bg-brand-bg/70"
-                          : selezionato
-                            ? "bg-brand-teal/5"
-                            : "hover:bg-brand-bg/40"
-                    }`}
-                  >
-                    <td className="px-3 py-3" data-no-expand>
-                      <CheckboxSelezione
-                        checked={selezionato}
-                        onChange={() => toggle(p.id)}
-                        ariaLabel={`Seleziona ${p.titolo || "preventivo"}`}
-                      />
-                    </td>
-                    {variant === "storico" && (
-                      <td className="px-5 py-3 text-brand-navy/70">{formatData(p.created_at)}</td>
-                    )}
-                    {variant === "storico" && (
-                      <td className="px-5 py-3">
-                        {p.cliente_id ? (
-                          <Link to={`/clienti/${p.cliente_id}`} className="text-brand-navy hover:text-brand-teal">
-                            {p.nome_cliente}
-                          </Link>
-                        ) : (
-                          <span className="text-brand-navy/70">{p.nome_cliente || "Senza cliente"}</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-5 py-3 text-brand-navy">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-xs text-brand-navy/40" aria-hidden>
-                          {espanso ? "▲" : "▼"}
-                        </span>
-                        <div className="min-w-0">
-                          <p>{p.titolo || "Senza titolo"}</p>
-                          {collegamento ? (
-                            <p className="mt-1 text-xs font-semibold text-brand-teal">
-                              {normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano) === "rate" ? "📅 " : "💰 "}
-                              {etichettaPianoCollegato(collegamento)}
-                            </p>
-                          ) : null}
-                          <FirmaStatoBadge
-                            invio={invioFirma}
-                            onClick={selezioneAttiva ? undefined : () => setFirmaDettaglioPreventivo(p)}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    {variant === "cliente" && (
-                      <td className="px-5 py-3 text-brand-navy/70">{formatData(p.created_at)}</td>
-                    )}
-                    <td className="px-5 py-3 align-top" data-no-expand>
-                      <PreventivoColonnaRiepilogo
-                        preventivo={p}
-                        collegamentoPiano={!!collegamento}
-                        mostraInviaFirma={mostraInviaFirma}
-                        selezioneAttiva={selezioneAttiva}
-                        onStatoPress={() => setModalStatoId(p.id)}
-                        onPdf={() => apriPdfPreventivo(p)}
-                        onFirma={() => void apriFirmaModal(p)}
-                        menuAriaLabel={`Altre azioni per ${p.titolo || "preventivo"}`}
-                        menuVoci={[
-                          { label: "Rinomina", onClick: () => setModalRinominaId(p.id) },
-                          { label: MODIFICA_VERSIONE_ALTERNATIVA_LABEL, onClick: () => apriDaPreventivo(p) },
-                          { label: "Sposta", onClick: () => apriSpostaSingolo(p.id) },
-                          ...(p.pdf_url && sfFirma !== "firmato"
-                            ? [{ label: "Segna firmato su carta", onClick: () => void segnaFirmatoSuCarta(p) }]
-                            : []),
-                          { label: "Elimina", onClick: () => eliminaSingolo(p.id), danger: true },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                  {espanso ? (
-                    <tr className="border-t border-black/5 bg-brand-bg/50">
-                      <td colSpan={colCount} className="px-5 py-4">
-                        <div className="space-y-4">
-                          {collegamento ? (
-                            <p className="text-xs font-semibold text-brand-teal">
-                              {normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano) === "rate" ? "📅 " : "💰 "}
-                              {etichettaPianoCollegato(collegamento)}
-                            </p>
-                          ) : null}
-                          <FirmaStatoBadge
-                            invio={invioFirma}
-                            onClick={selezioneAttiva ? undefined : () => setFirmaDettaglioPreventivo(p)}
-                          />
-                          {caricandoDettaglioId === p.id ? (
-                            <p className="text-sm text-brand-navy/50">Caricamento testo...</p>
-                          ) : p.testo_preventivo ? (
-                            <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-black/5 bg-white p-4 font-mono text-xs leading-relaxed text-brand-navy/70">
-                              {p.testo_preventivo}
-                            </pre>
-                          ) : (
-                            <p className="text-sm text-brand-navy/50">Nessun testo disponibile per questo preventivo.</p>
-                          )}
-
-                          {versioniPrecedenti > 0 && p.preventivo_padre_id ? (
-                            <div className="space-y-2">
-                              <button
-                                type="button"
-                                onClick={() => void toggleCronologia(p)}
-                                className="text-sm font-medium text-brand-teal hover:underline"
-                              >
-                                {cronologiaApertaId === p.id
-                                  ? "▲ Nascondi cronologia"
-                                  : `▼ Mostra cronologia (${versioniPrecedenti} vers. precedenti)`}
-                              </button>
-
-                              {cronologiaApertaId === p.id && cronologia[p.id]?.map((v) => (
-                                <div key={v.id} className="space-y-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setCronologiaVersioneApertaId(
-                                      cronologiaVersioneApertaId === v.id ? null : v.id,
-                                    )}
-                                    className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-brand-bg"
-                                  >
-                                    <span className="font-semibold text-brand-navy/50">v{v.versione || 1}</span>
-                                    <span className="text-brand-navy/50">{formatData(v.created_at)}</span>
-                                    <span className="text-brand-navy/70">{formatImporto(v.importo_totale)}</span>
-                                  </button>
-                                  {cronologiaVersioneApertaId === v.id ? (
-                                    <div className="space-y-3 rounded-lg bg-white p-3">
-                                      {v.testo_preventivo ? (
-                                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-brand-navy/70">
-                                          {v.testo_preventivo}
-                                        </pre>
-                                      ) : null}
-                                      <button
-                                        type="button"
-                                        onClick={() => void handleRipristinaVersione(p.id, v)}
-                                        className="text-sm font-medium text-brand-teal hover:underline"
-                                      >
-                                        Ripristina questa versione
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}
-                  </Fragment>
-                );
-              })}
+              {preventivi.map((p) => (
+                <PreventivoListaRiga
+                  key={p.id}
+                  preventivo={p}
+                  variant={variant}
+                  colCount={colCount}
+                  collegamentiPiano={collegamentiPiano}
+                  selezionato={selezionati.includes(p.id)}
+                  espanso={apertoId === p.id}
+                  evidenziato={evidenziatoId === p.id}
+                  selezioneAttiva={selezioneAttiva}
+                  invioFirma={inviiFirma[p.id]}
+                  setRowRef={(el) => { rowRefs.current[p.id] = el; }}
+                  cronologiaApertaId={cronologiaApertaId}
+                  cronologiaVersioneApertaId={cronologiaVersioneApertaId}
+                  cronologia={cronologia}
+                  caricandoDettaglioId={caricandoDettaglioId}
+                  onToggleSelezione={() => toggle(p.id)}
+                  onRowClick={handleRowClick}
+                  onStatoPress={() => setModalStatoId(p.id)}
+                  onFirma={() => void apriFirmaModal(p)}
+                  onFirmaDettaglio={() => setFirmaDettaglioPreventivo(p)}
+                  onRinomina={() => setModalRinominaId(p.id)}
+                  onModifica={() => apriDaPreventivo(p)}
+                  onSposta={() => apriSpostaSingolo(p.id)}
+                  onSegnaFirmatoSuCarta={() => void segnaFirmatoSuCarta(p)}
+                  onElimina={() => eliminaSingolo(p.id)}
+                  onToggleCronologia={() => void toggleCronologia(p)}
+                  onToggleCronologiaVersione={(versioneId) =>
+                    setCronologiaVersioneApertaId(
+                      cronologiaVersioneApertaId === versioneId ? null : versioneId,
+                    )
+                  }
+                  onRipristinaVersione={(versione) => void handleRipristinaVersione(p.id, versione)}
+                />
+              ))}
             </tbody>
           </table>
         </DataTable>

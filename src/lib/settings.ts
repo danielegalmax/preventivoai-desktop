@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { mergeMessaggiCliente, type MessaggiClienteTemplates } from "preventivoai-shared";
+import type { Json } from "./database.types";
 import { invalidaCacheMessaggiCliente } from "./messaggiCliente";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -19,12 +20,19 @@ export interface SettingsForm {
   messaggi: MessaggiClienteTemplates;
 }
 
-type SettingsProfile = Partial<Omit<SettingsForm, "messaggi">> & {
+type SettingsProfile = {
+  [K in keyof Omit<SettingsForm, "messaggi">]?: SettingsForm[K] | null;
+} & {
   logo_url?: string | null;
-  reminder_firma_giorni?: number | null;
-  reminder_firma_globale_disabilitato?: boolean | null;
-  messaggi_cliente?: Partial<MessaggiClienteTemplates> | null;
+  messaggi_cliente?: Partial<MessaggiClienteTemplates> | Json | null;
 };
+
+function messaggiDaProfilo(
+  value: SettingsProfile["messaggi_cliente"],
+): Partial<MessaggiClienteTemplates> | null | undefined {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as Partial<MessaggiClienteTemplates>;
+}
 
 function normalizzaFormProfilo(data: SettingsProfile): SettingsForm {
   return {
@@ -39,7 +47,7 @@ function normalizzaFormProfilo(data: SettingsProfile): SettingsForm {
     firma_nome: data.firma_nome || "",
     reminder_firma_giorni: typeof data.reminder_firma_giorni === "number" ? data.reminder_firma_giorni : 3,
     reminder_firma_globale_disabilitato: Boolean(data.reminder_firma_globale_disabilitato),
-    messaggi: mergeMessaggiCliente(data.messaggi_cliente),
+    messaggi: mergeMessaggiCliente(messaggiDaProfilo(data.messaggi_cliente)),
   };
 }
 
@@ -50,7 +58,7 @@ export async function caricaSettingsData(): Promise<{ form: SettingsForm; logoUr
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
   return {
-    form: normalizzaFormProfilo(profile || {}),
+    form: normalizzaFormProfilo(profile ?? {}),
     logoUrl: profile?.logo_url || "",
   };
 }
