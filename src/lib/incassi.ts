@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { queryConFiltroCestino } from "preventivoai-shared";
+import { queryConFiltroCestino, incassoSingoliPreventivi, sommaImportoRate } from "preventivoai-shared";
 import type { Tables } from "./database.types";
 
 type PreventivoPagatoRow = Pick<Tables<"preventivi">, "id" | "importo_totale" | "cliente_id">;
@@ -22,32 +22,6 @@ export function setFatturatoClienteCached(clienteId: string, value: number) {
 
 export function invalidaFatturatoClienteCache() {
   fatturatoClienteCache.clear();
-}
-
-function sommaImportoRate(rate: RataIncassoRow[]) {
-  return rate.reduce((totale, r) => {
-    if (r.stato === "incassato") return totale + (r.importo || 0);
-    if (r.stato === "parziale") return totale + (r.acconto || 0);
-    return totale;
-  }, 0);
-}
-
-/**
- * Incasso da preventivi singoli accettati e segnati pagati.
- *
- * Regola anti-doppio-conteggio: i preventivi con un piano collegato (`preventiviConPiano`,
- * da `abbonamenti.preventivo_id`) sono ESCLUSI. Il loro importo non va sommato qui perché
- * entra già in `sommaImportoRate` man mano che le rate vengono incassate (anche parzialmente).
- * Contarli in entrambi i bucket gonfierebbe fatturato e home.
- */
-function incassoSingoliPreventivi(
-  preventivi: PreventivoPagatoRow[],
-  preventiviConPiano: Set<string>,
-  clienteId?: string,
-) {
-  return preventivi
-    .filter((p) => (!clienteId || p.cliente_id === clienteId) && !preventiviConPiano.has(p.id))
-    .reduce((totale, p) => totale + (p.importo_totale || 0), 0);
 }
 
 async function caricaAbbonamentiConPreventivo(userId: string, clienteId?: string) {

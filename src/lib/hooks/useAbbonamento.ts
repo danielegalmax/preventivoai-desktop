@@ -4,7 +4,7 @@ import { MESI_BREVI } from "../constants";
 import { supabase } from "../supabase";
 import { eventBus } from "../eventBus";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
-import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "preventivoai-shared";
+import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro, rateScaduteDaSegnalare } from "preventivoai-shared";
 import { inputDateToIso, oggiInputDate } from "../format";
 import {
   alertErroreAbbonamento as alertErrore,
@@ -450,34 +450,20 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   }
 
   async function aggiornaRitardi() {
-    const ora = new Date();
-    const meseOra = ora.getMonth() + 1;
-    const annoOra = ora.getFullYear();
-    const giornoOggi = ora.getDate();
+    const scadute = rateScaduteDaSegnalare(abbonamentiAttivi, ratePerPiano);
 
-    for (const abbonamento of abbonamentiAttivi) {
-      const rate = ratePerPiano[abbonamento.id] || [];
-      for (const r of rate) {
-        if (r.stato === "da_incassare" || r.stato === "parziale") {
-          const scaduta =
-            r.anno < annoOra
-            || (r.anno === annoOra && r.mese < meseOra)
-            || (r.anno === annoOra && r.mese === meseOra && giornoOggi > (abbonamento.giorno_scadenza ?? 1));
-          if (scaduta) {
-            const { error } = await supabase
-              .from("rate_abbonamento")
-              .update({ stato: "in_ritardo" })
-              .eq("id", r.id);
-            if (error) {
-              alertErrore("Errore aggiornamento scadenze", error.message);
-              return;
-            }
-            aggiornaRatePiano(abbonamento.id, (rs) =>
-              rs.map((x) => x.id === r.id ? { ...x, stato: "in_ritardo" } : x),
-            );
-          }
-        }
+    for (const { abbonamentoId, rataId } of scadute) {
+      const { error } = await supabase
+        .from("rate_abbonamento")
+        .update({ stato: "in_ritardo" })
+        .eq("id", rataId);
+      if (error) {
+        alertErrore("Errore aggiornamento scadenze", error.message);
+        return;
       }
+      aggiornaRatePiano(abbonamentoId, (rs) =>
+        rs.map((x) => x.id === rataId ? { ...x, stato: "in_ritardo" } : x),
+      );
     }
   }
 

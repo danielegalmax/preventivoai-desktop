@@ -139,23 +139,5 @@ export async function generaRateConImporti(
   return { data: data || [], error: error?.message || null };
 }
 
-/**
- * Ricalcola lo stato di una rata dopo modifica dell'importo (non dopo un incasso).
- *
- * Quattro branch, in ordine di priorità:
- * - `incassato`: acconto ≥ nuovo importo (saldo zero)
- * - `parziale`: acconto > 0 ma sotto il nuovo importo
- * - `in_ritardo`: nessun acconto, ma la rata era già scaduta (si preserva lo stato)
- * - `da_incassare`: nessun acconto e non in ritardo
- *
- * `data_incasso` (scritta altrove, es. `registraPagamento`) si imposta SOLO quando lo
- * stato diventa `incassato`: sui parziali non c'è ancora una data di chiusura definitiva,
- * altrimenti report e home mostrerebbero un incasso completo prima del saldo zero.
- */
-export function nuovoStatoDopoImportoRata(rata: RataAbbonamento, nuovoImporto: number): RataAbbonamento["stato"] {
-  const acconto = rata.acconto || 0;
-  if (acconto >= nuovoImporto) return "incassato";
-  if (acconto > 0) return "parziale";
-  if (rata.stato === "in_ritardo") return "in_ritardo";
-  return "da_incassare";
-}
+/** @see nuovoStatoDopoImportoRata in preventivoai-shared */
+export { nuovoStatoDopoImportoRata } from "preventivoai-shared";
