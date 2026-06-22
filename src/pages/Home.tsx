@@ -276,8 +276,8 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <div className="hidden shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto] gap-4 border-b border-edge-faint bg-brand-bg/40 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-navy/35 sm:grid">
-                <span>Preventivo</span>
+              <div className="hidden shrink-0 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] gap-4 border-b border-edge-faint bg-brand-bg/40 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-navy/35 sm:grid sm:items-start">
+                <span className="pl-[48px]">Preventivo</span>
                 <span className="hidden sm:block">Cliente</span>
                 <span className="hidden md:block">Data</span>
                 <span className="text-right">Importo</span>
@@ -293,9 +293,9 @@ export default function Home() {
                     <li key={p.id} className="min-h-0 flex-1">
                       <Link
                         to={destinazione}
-                        className="group grid h-full grid-cols-1 items-center gap-2 px-5 py-3 transition hover:bg-brand-bg/70 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto] sm:gap-4 sm:py-3.5"
+                        className="group grid h-full grid-cols-1 items-start gap-2 px-5 py-3 transition hover:bg-brand-bg/70 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] sm:items-start sm:gap-4 sm:py-3.5"
                       >
-                        <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex min-w-0 items-center gap-3 self-start">
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal/15 to-brand-teal/5 text-sm font-semibold text-brand-teal ring-1 ring-brand-teal/10">
                             {iniziale}
                           </span>
@@ -314,16 +314,16 @@ export default function Home() {
                             )}
                           </span>
                         </span>
-                        <span className="hidden truncate text-sm text-brand-navy/60 sm:block">
+                        <span className="hidden self-start truncate text-sm text-brand-navy/60 sm:block">
                           {p.nome_cliente || "Senza cliente"}
                         </span>
-                        <span className="hidden text-sm text-brand-navy/50 md:block">
+                        <span className="hidden self-start text-sm text-brand-navy/50 md:block">
                           {formatData(p.created_at)}
                         </span>
-                        <span className="text-sm font-semibold tabular-nums text-brand-navy sm:text-right">
+                        <span className="self-start text-sm font-semibold tabular-nums text-brand-navy sm:text-right">
                           {formatImporto(p.importo_totale)}
                         </span>
-                        <span className="flex sm:justify-end">
+                        <span className="flex self-start sm:justify-end">
                           <PreventivoStatoBadge
                             stato={p.stato}
                             pagato={p.pagato}

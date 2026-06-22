@@ -129,6 +129,9 @@ export default function PreventivoListaRiga({
             </span>
             <div className="min-w-0">
               <p>{p.titolo || "Senza titolo"}</p>
+              {variant === "storico" && p.nome_cliente ? (
+                <p className="mt-0.5 text-xs text-brand-navy/50">{p.nome_cliente}</p>
+              ) : null}
               {collegamento ? (
                 <p className="mt-1 text-xs font-semibold text-brand-teal">
                   {normalizzaTipoPiano(collegamento.tipo, collegamento.nomePiano) === "rate" ? "📅 " : "💰 "}
