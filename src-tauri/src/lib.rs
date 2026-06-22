@@ -219,6 +219,19 @@ fn start_notification_poller(app: tauri::AppHandle, state: Arc<NotificationSessi
 }
 
 #[tauri::command]
+fn mark_notification_delivered(
+    state: tauri::State<'_, Arc<NotificationSessionState>>,
+    notification_id: String,
+) -> Result<(), String> {
+    state
+        .delivered_notification_ids
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(notification_id);
+    Ok(())
+}
+
+#[tauri::command]
 fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| e.to_string())
 }
@@ -341,7 +354,8 @@ pub fn run() {
             open_pdf_path,
             reveal_pdf_in_folder,
             set_notification_session,
-            clear_notification_session
+            clear_notification_session,
+            mark_notification_delivered
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

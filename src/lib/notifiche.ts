@@ -1,6 +1,8 @@
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
 import { supabase } from "./supabase";
 import { isDesktopApp } from "./appSettings";
+import { formatDataBreve } from "./format";
 import { sonoNotificheAbilitate } from "./notifications";
 
 export type Notifica = {
@@ -26,6 +28,15 @@ export type Notifica = {
 
 const ORE_RIMANDA_DEFAULT = 24;
 
+async function segnalaNotificaConsegnataRust(notificationId: string | undefined) {
+  if (!isTauri() || !notificationId) return;
+  try {
+    await invoke("mark_notification_delivered", { notificationId });
+  } catch (e) {
+    console.warn("[notifiche-os] impossibile segnalare notifica a Rust:", e);
+  }
+}
+
 export function titoloNotificaDaTipo(tipo: string) {
   const map: Record<string, string> = {
     firma_ricevuta: "Preventivo firmato",
@@ -49,6 +60,7 @@ export async function mostraNotificaOsSePossibile(n: Partial<Notifica> | null | 
       ? n.titolo.trim()
       : titoloNotificaDaTipo(String(n.tipo || ""));
     sendNotification({ title, body });
+    await segnalaNotificaConsegnataRust(typeof n.id === "string" ? n.id : undefined);
   } catch (e) {
     console.error("[notifiche-os] errore:", e);
   }
@@ -138,5 +150,5 @@ export function formatTempoNotifica(iso: string) {
   if (ore < 24) return `${ore} h fa`;
   const giorni = Math.floor(ore / 24);
   if (giorni < 7) return `${giorni} g fa`;
-  return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  return formatDataBreve(iso);
 }

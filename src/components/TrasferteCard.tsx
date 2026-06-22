@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { calcolaTotaleTrasferte, type TrasfertaBuilder } from "../lib/builder";
-import { formatImportoEuroVisuale } from "preventivoai-shared";
+import { formatImportoEuroVisuale, parseImportoEuro } from "preventivoai-shared";
 import ToggleSwitch from "./ToggleSwitch";
 import { PLACEHOLDER } from "../lib/placeholders";
 
@@ -17,8 +17,8 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
   const [nuovaSpesaImporto, setNuovaSpesaImporto] = useState("");
 
   function aggiungiKm() {
-    const km = parseFloat(nuoviKm.replace(",", "."));
-    if (!km || km <= 0) {
+    const km = parseImportoEuro(nuoviKm);
+    if (km === null || km <= 0) {
       window.alert("Inserisci i km");
       return;
     }
@@ -35,13 +35,18 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
       window.alert("Inserisci nome e importo");
       return;
     }
+    const importo = parseImportoEuro(nuovaSpesaImporto);
+    if (importo === null || importo <= 0) {
+      window.alert("Inserisci un importo valido");
+      return;
+    }
     setTrasferte((ts) => [
       ...ts,
       {
         id: crypto.randomUUID(),
         tipo: "spesa",
         nome: nuovaSpesaNome.trim(),
-        importo: nuovaSpesaImporto,
+        importo: nuovaSpesaImporto.trim(),
         esente: true,
       },
     ]);
@@ -83,7 +88,7 @@ export default function TrasferteCard({ trasferte, setTrasferte, mostraTrasferte
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-brand-navy/60">
-                  €{formatImportoEuroVisuale(parseFloat(t.importo) || 0)}
+                  €{formatImportoEuroVisuale(parseImportoEuro(t.importo) ?? 0)}
                 </span>
                 <button
                   type="button"

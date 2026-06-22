@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { signOut } from "../lib/auth";
 import { caricaHeaderProfilo, type HeaderProfilo } from "../lib/greeting";
 import { isDarkMode, setDarkMode } from "../lib/theme";
+import { isDesktopApp } from "../lib/appSettings";
+import { onNativeNotificationSyncStatus } from "../lib/nativeNotificationSession";
 import ToggleSwitch from "./ToggleSwitch";
 import NotificheBell from "./NotificheBell";
 import { useSegnalazioneFeedback } from "./SegnalazioneProvider";
@@ -11,8 +13,14 @@ export default function Header() {
   const [profilo, setProfilo] = useState<HeaderProfilo | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scuro, setScuro] = useState(isDarkMode);
+  const [avvisoNotificheNative, setAvvisoNotificheNative] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { apriSegnalazione } = useSegnalazioneFeedback();
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    return onNativeNotificationSyncStatus(setAvvisoNotificheNative);
+  }, []);
 
   useEffect(() => {
     void caricaHeaderProfilo().then(setProfilo);
@@ -41,6 +49,20 @@ export default function Header() {
   }
 
   return (
+    <>
+      {avvisoNotificheNative ? (
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-800">
+          <p>{avvisoNotificheNative}</p>
+          <button
+            type="button"
+            onClick={() => setAvvisoNotificheNative(null)}
+            className="shrink-0 text-amber-700/70 hover:text-amber-900"
+            aria-label="Chiudi avviso"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
     <header className="flex h-16 shrink-0 items-center justify-end gap-2 border-b border-edge-faint bg-surface px-6">
       <NotificheBell />
       <div ref={menuRef} className="relative shrink-0">
@@ -135,6 +157,7 @@ export default function Header() {
         )}
       </div>
     </header>
+    </>
   );
 }
 

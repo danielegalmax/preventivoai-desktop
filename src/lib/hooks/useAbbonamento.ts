@@ -1,57 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { spostaAbbonamentiInCestino } from "../cestino";
 import { MESI_BREVI } from "../constants";
-import { erroreColonnaDeletedAt } from "preventivoai-shared";
 import { supabase } from "../supabase";
 import { eventBus } from "../eventBus";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
 import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "preventivoai-shared";
-import { nomePianoDaPreventivo } from "preventivoai-shared";
-
-type UseAbbonamentoOpts = {
-  soloTipo?: "canone" | "rate";
-};
-
-const PREVENTIVO_MADRE_SELECT = "id, titolo, created_at, versione, importo_totale, stato";
-
-function alertErrore(titolo: string, messaggio?: string) {
-  window.alert(messaggio ? `${titolo}\n\n${messaggio}` : titolo);
-}
-
-async function nomeDaPreventivoId(preventivoId: string, tipo: "canone" | "rate") {
-  const { data } = await supabase
-    .from("preventivi")
-    .select("titolo, created_at, versione")
-    .eq("id", preventivoId)
-    .single();
-  return data ? nomePianoDaPreventivo(data, tipo) : null;
-}
-
-async function pianoAttivoSuPreventivo(preventivoId: string) {
-  const { data, error } = await supabase
-    .from("abbonamenti")
-    .select("id, tipo")
-    .eq("preventivo_id", preventivoId)
-    .eq("attivo", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error && erroreColonnaDeletedAt(error)) {
-    const { data: fallback } = await supabase
-      .from("abbonamenti")
-      .select("id, tipo")
-      .eq("preventivo_id", preventivoId)
-      .eq("attivo", true)
-      .maybeSingle();
-    return fallback?.tipo as "canone" | "rate" | undefined;
-  }
-
-  return data?.tipo as "canone" | "rate" | undefined;
-}
+import {
+  alertErroreAbbonamento as alertErrore,
+  caricaPreventiviMadreMap,
+  fetchRatePerPiani,
+  generaRateConImporti,
+  generaRateMultiple,
+  generaRataMeseCorrente,
+  nomeDaPreventivoId,
+  nuovoStatoDopoImportoRata,
+  pianoAttivoSuPreventivo,
+} from "./abbonamentoDb";
 
 export type CreaPianoRateResult = {
   abbonamentoId: string;
   rate: { id: string; mese: number; anno: number }[];
+};
+
+type UseAbbonamentoOpts = {
+  soloTipo?: "canone" | "rate";
 };
 
 export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
@@ -61,6 +33,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
   const [ratePerPiano, setRatePerPiano] = useState<Record<string, RataAbbonamento[]>>({});
   const [loading, setLoading] = useState(true);
   const pagamentiInCorso = useRef(new Set<string>());
+  const caricaReqRef = useRef(0);
 
   useEffect(() => { void carica(); }, [clienteId, opts?.soloTipo]);
 
@@ -90,39 +63,16 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     }));
   }
 
-  async function caricaPreventiviMadreMap(abbonamenti: Abbonamento[]) {
-    const ids = [...new Set(abbonamenti.map((a) => a.preventivo_id).filter(Boolean))] as string[];
-    if (ids.length === 0) return {};
-    const { data } = await supabase
-      .from("preventivi")
-      .select(PREVENTIVO_MADRE_SELECT)
-      .in("id", ids);
-    const map: Record<string, PreventivoMadre> = {};
-    for (const p of (data || []) as PreventivoMadre[]) map[p.id] = p;
-    return map;
-  }
-
   async function caricaRatePerPiani(abbonamentoIds: string[]) {
     if (abbonamentoIds.length === 0) {
       setRatePerPiano({});
       return;
     }
-    const { data } = await supabase
-      .from("rate_abbonamento")
-      .select("*")
-      .in("abbonamento_id", abbonamentoIds)
-      .order("anno", { ascending: true })
-      .order("mese", { ascending: true });
-    const map: Record<string, RataAbbonamento[]> = {};
-    for (const id of abbonamentoIds) map[id] = [];
-    for (const rata of data || []) {
-      if (!map[rata.abbonamento_id]) map[rata.abbonamento_id] = [];
-      map[rata.abbonamento_id].push(rata);
-    }
-    setRatePerPiano(map);
+    setRatePerPiano(await fetchRatePerPiani(abbonamentoIds));
   }
 
   async function carica() {
+    const reqId = ++caricaReqRef.current;
     setLoading(true);
     let query = supabase
       .from("abbonamenti")
@@ -132,15 +82,22 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     if (opts?.soloTipo) query = query.eq("tipo", opts.soloTipo);
     const { data: tutti } = await query;
 
+    if (reqId !== caricaReqRef.current) return;
+
     const lista = (tutti || []).filter((a) => !a.deleted_at);
     const attivi = lista.filter((a) => a.attivo);
     const storico = lista.filter((a) => !a.attivo);
     const preventiviMap = await caricaPreventiviMadreMap(lista);
 
+    if (reqId !== caricaReqRef.current) return;
+
     setAbbonamentiAttivi(attivi);
     setAbbonamentiStorico(storico);
     setPreventiviMadreStorico(preventiviMap);
     await caricaRatePerPiani(attivi.map((a) => a.id));
+
+    if (reqId !== caricaReqRef.current) return;
+
     setLoading(false);
   }
 
@@ -213,66 +170,6 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     await carica();
   }
 
-  async function generaRataMeseCorrente(abbonamentoId: string, importo: number): Promise<string | null> {
-    const ora = new Date();
-    const mese = ora.getMonth() + 1;
-    const anno = ora.getFullYear();
-    const { data: esistente } = await supabase
-      .from("rate_abbonamento")
-      .select("id")
-      .eq("abbonamento_id", abbonamentoId)
-      .eq("mese", mese)
-      .eq("anno", anno)
-      .single();
-    if (esistente) return null;
-    const { error } = await supabase.from("rate_abbonamento").insert({
-      abbonamento_id: abbonamentoId,
-      mese,
-      anno,
-      importo,
-      acconto: 0,
-      stato: "da_incassare",
-    });
-    return error ? error.message : null;
-  }
-
-  async function generaRateMultiple(abbonamentoId: string, importo: number, numeroMesi: number): Promise<string | null> {
-    const ora = new Date();
-    const inserimenti = [];
-    for (let i = 0; i < numeroMesi; i++) {
-      const data = new Date(ora.getFullYear(), ora.getMonth() + i, 1);
-      inserimenti.push({
-        abbonamento_id: abbonamentoId,
-        mese: data.getMonth() + 1,
-        anno: data.getFullYear(),
-        importo,
-        acconto: 0,
-        stato: "da_incassare",
-      });
-    }
-    const { error } = await supabase.from("rate_abbonamento").insert(inserimenti);
-    return error ? error.message : null;
-  }
-
-  async function generaRateConImporti(
-    abbonamentoId: string,
-    voci: { importo: number; mese: number; anno: number }[],
-  ) {
-    if (voci.length === 0) return [];
-    const { data, error } = await supabase.from("rate_abbonamento").insert(
-      voci.map((v) => ({
-        abbonamento_id: abbonamentoId,
-        mese: v.mese,
-        anno: v.anno,
-        importo: v.importo,
-        acconto: 0,
-        stato: "da_incassare" as const,
-      })),
-    ).select("id, mese, anno");
-    if (error) { alertErrore("Errore", error.message); return []; }
-    return data || [];
-  }
-
   async function creaPianoRate(
     importoTotale: number,
     numeroRate: number,
@@ -340,10 +237,11 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
 
     if (error) { alertErrore("Errore", error.message); return null; }
 
-    const rateInserite = await generaRateConImporti(
+    const { data: rateInserite, error: errRate } = await generaRateConImporti(
       data.id,
       importi.map((importo, i) => ({ importo, ...scadenze[i] })),
     );
+    if (errRate) { alertErrore("Errore", errRate); return null; }
     if (rateInserite.length === 0) return null;
 
     await carica();
@@ -431,11 +329,12 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     const nuoviImporti = calcolaImportiRate(residuo, rateAperte.length);
     if (nuoviImporti.length === 0) return false;
 
-    const { error: errAb } = await supabase
-      .from("abbonamenti")
-      .update({ importo_default: nuovoImportoTotale })
-      .eq("id", abbonamentoId);
-    if (errAb) { alertErrore("Errore", errAb.message); return false; }
+    const snapshot = rateAperte.map((r) => ({
+      id: r.id,
+      importo: r.importo,
+      stato: r.stato,
+    }));
+    const aggiornate: string[] = [];
 
     for (let i = 0; i < rateAperte.length; i++) {
       const rata = rateAperte[i];
@@ -449,7 +348,42 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
         .from("rate_abbonamento")
         .update({ importo: nuovoImporto, stato: nuovoStato })
         .eq("id", rata.id);
-      if (error) { alertErrore("Errore", error.message); return false; }
+      if (error) {
+        for (const id of aggiornate) {
+          const orig = snapshot.find((s) => s.id === id);
+          if (!orig) continue;
+          await supabase
+            .from("rate_abbonamento")
+            .update({ importo: orig.importo, stato: orig.stato })
+            .eq("id", id);
+        }
+        alertErrore(
+          "Errore",
+          "Aggiornamento importi interrotto: le rate già modificate sono state ripristinate. "
+          + error.message,
+        );
+        return false;
+      }
+      aggiornate.push(rata.id);
+    }
+
+    const { error: errAb } = await supabase
+      .from("abbonamenti")
+      .update({ importo_default: nuovoImportoTotale })
+      .eq("id", abbonamentoId);
+    if (errAb) {
+      for (const { id, importo, stato } of snapshot) {
+        await supabase
+          .from("rate_abbonamento")
+          .update({ importo, stato })
+          .eq("id", id);
+      }
+      alertErrore(
+        "Errore",
+        "Importi rate aggiornati ma il totale del piano no: le rate sono state ripristinate. "
+        + errAb.message,
+      );
+      return false;
     }
 
     setAbbonamentiAttivi((lista) =>
@@ -562,7 +496,9 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       .single();
     if (error) { alertErrore("Errore", error.message); return false; }
     aggiornaRatePiano(abbonamentoId, (rs) =>
-      [...rs, data].sort((a, b) => a.anno - b.anno || a.mese - b.mese),
+      [...rs, { ...data, saldo_residuo: data.saldo_residuo ?? 0 } as RataAbbonamento].sort(
+        (a, b) => a.anno - b.anno || a.mese - b.mese,
+      ),
     );
     return true;
   }
@@ -597,9 +533,16 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
           const scaduta =
             r.anno < annoOra
             || (r.anno === annoOra && r.mese < meseOra)
-            || (r.anno === annoOra && r.mese === meseOra && giornoOggi > abbonamento.giorno_scadenza);
+            || (r.anno === annoOra && r.mese === meseOra && giornoOggi > (abbonamento.giorno_scadenza ?? 1));
           if (scaduta) {
-            await supabase.from("rate_abbonamento").update({ stato: "in_ritardo" }).eq("id", r.id);
+            const { error } = await supabase
+              .from("rate_abbonamento")
+              .update({ stato: "in_ritardo" })
+              .eq("id", r.id);
+            if (error) {
+              alertErrore("Errore aggiornamento scadenze", error.message);
+              return;
+            }
             aggiornaRatePiano(abbonamento.id, (rs) =>
               rs.map((x) => x.id === r.id ? { ...x, stato: "in_ritardo" } : x),
             );
@@ -622,14 +565,6 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     setAbbonamentiAttivi((lista) =>
       lista.map((a) => a.id === abbonamentoId ? { ...a, nome: nuovoNome } : a),
     );
-  }
-
-  function nuovoStatoDopoImportoRata(rata: RataAbbonamento, nuovoImporto: number): RataAbbonamento["stato"] {
-    const acconto = rata.acconto || 0;
-    if (acconto >= nuovoImporto) return "incassato";
-    if (acconto > 0) return "parziale";
-    if (rata.stato === "in_ritardo") return "in_ritardo";
-    return "da_incassare";
   }
 
   async function modificaImportoRata(rataId: string, nuovoImporto: number) {

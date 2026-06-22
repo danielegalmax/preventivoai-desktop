@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { calcolaTotaleVoci, type VoceBuilder } from "../lib/builder";
-import { formatImportoEuroVisuale } from "preventivoai-shared";
+import { formatImportoEuroVisuale, parseImportoEuro } from "preventivoai-shared";
 import type { ProfiloFiscale, RisultatoFiscale } from "../lib/types";
 import ToggleSwitch from "./ToggleSwitch";
 
@@ -115,8 +115,8 @@ export default function AnalisiFiscaleCard({
             <button
               type="button"
               onClick={() => {
-                const netto = parseFloat(nettoDesiderato.replace(",", "."));
-                if (!netto || netto <= 0) {
+                const netto = parseImportoEuro(nettoDesiderato);
+                if (netto === null || netto <= 0) {
                   window.alert("Inserisci un valore valido");
                   return;
                 }
@@ -146,7 +146,7 @@ export default function AnalisiFiscaleCard({
                   setVoci((v) =>
                     v.map((x) => ({
                       ...x,
-                      costo: Math.round((parseFloat(x.costo.replace(",", ".")) || 0) * fattore).toString(),
+                      costo: Math.round((parseImportoEuro(x.costo) ?? 0) * fattore).toString(),
                     })),
                   );
                   setLordoCalcolato(null);

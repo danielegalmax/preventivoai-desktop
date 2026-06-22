@@ -1,4 +1,6 @@
+import { parseImportoEuro } from "preventivoai-shared";
 import { supabase } from "./supabase";
+import { oggiItItLabel } from "./format";
 import { sessionToken } from "./settings";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -30,7 +32,7 @@ const DEMO_NOME_AZIENDA: Record<string, string> = {
 };
 
 function testoDemoOnboarding(): string {
-  const data = new Date().toLocaleDateString("it-IT");
+  const data = oggiItItLabel();
   return `PREVENTIVO
 Data: ${data}  |  Validità: 30 giorni
 
@@ -140,16 +142,23 @@ export async function completaOnboarding({
   if (error) return { error };
 
   if (servizi.length > 0) {
-    const { error: serviziError } = await supabase.from("servizi").insert(
-      servizi.map((servizio, index) => ({
+    const rows = servizi.map((servizio, index) => {
+      const trimmed = servizio.costo.trim();
+      const costo = trimmed ? parseImportoEuro(trimmed) : null;
+      if (trimmed && costo === null) return null;
+      return {
         user_id: user.id,
         nome: servizio.nome.trim(),
         descrizione: servizio.descrizione.trim() || null,
-        costo: servizio.costo ? parseFloat(servizio.costo.replace(",", ".")) : null,
+        costo,
         unita: servizio.unita || "cad",
         ordine: index,
-      })),
-    );
+      };
+    });
+    if (rows.some((row) => row === null)) {
+      return { error: { message: "Uno o più costi non sono validi." } };
+    }
+    const { error: serviziError } = await supabase.from("servizi").insert(rows as NonNullable<(typeof rows)[number]>[]);
     if (serviziError) return { error: serviziError };
   }
 

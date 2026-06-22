@@ -8,6 +8,7 @@ import {
 import { useNotifiche } from "./NotificheProvider";
 import { segnaPreventivoPagato } from "../lib/preventivo";
 import { eventBus } from "../lib/eventBus";
+import { inputDateToIso, oggiInputDate } from "../lib/format";
 import NotificaFirmaDialog from "./firma/NotificaFirmaDialog";
 import NotificaToastStack from "./NotificaToastStack";
 
@@ -215,7 +216,15 @@ export function NotificaAzioneStorico({
   const { segnaLetta, rimanda, ricarica } = useNotifiche();
 
   async function handleSegnaPagato(preventivoId: string) {
-    await segnaPreventivoPagato(preventivoId, true);
+    const { error } = await segnaPreventivoPagato(
+      preventivoId,
+      true,
+      inputDateToIso(oggiInputDate()),
+    );
+    if (error) {
+      window.alert(error);
+      return;
+    }
     if (notifica && !notifica.letta) await segnaLetta(notifica.id);
     eventBus.emit("aggiorna-home");
     void ricarica();
