@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import type { Preventivo } from "../lib/types";
-import { STATI_PREVENTIVO, statoPreventivoIcon } from "../lib/preventivo";
+import { STATI_PREVENTIVO } from "../lib/preventivo";
 import { formatData, inputDateToIso, oggiInputDate } from "../lib/format";
 import ToggleSwitch from "./ToggleSwitch";
 import { useAppModalKeyboard } from "./ModalShell";
+import StatoPreventivoIcon from "./StatoPreventivoIcon";
 
 type Props = {
   preventivo: Preventivo | null;
@@ -97,7 +98,7 @@ export default function PreventivoStatoModal({
               }}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-brand-navy hover:bg-brand-bg"
             >
-              <span>{statoPreventivoIcon(stato)}</span>
+              <StatoPreventivoIcon stato={stato} />
               <span className="capitalize">{stato}</span>
             </button>
           ))}

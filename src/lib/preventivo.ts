@@ -5,14 +5,6 @@ import { ottieniUrlPdfPreventivo } from "./pdf";
 
 export const STATI_PREVENTIVO = ["bozza", "inviato", "accettato", "rifiutato"] as const;
 
-export function statoPreventivoIcon(stato: string | null | undefined) {
-  const s = stato ?? "bozza";
-  if (s === "bozza") return "📝";
-  if (s === "inviato") return "📤";
-  if (s === "accettato") return "✅";
-  return "❌";
-}
-
 export async function apriPdfPreventivo(preventivo: Pick<Preventivo, "id" | "pdf_url">) {
   if (!preventivo.pdf_url) {
     window.alert("PDF non ancora generato per questo preventivo.");
