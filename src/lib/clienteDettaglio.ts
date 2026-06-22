@@ -51,7 +51,7 @@ export async function caricaClientiDisponibili(clienteId?: string) {
   return data || [];
 }
 
-export { caricaCollegamentiPianoCliente as caricaCollegamentiPianoPreventivo } from "./collegamentiPiano";
+export { caricaCollegamentiPianoCliente } from "./collegamentiPiano";
 
 export async function sessioneClienteDettaglio() {
   const { data: { session } } = await supabase.auth.getSession();

@@ -208,8 +208,12 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
     setToasts([]);
   }, [clearToastTimers]);
 
+  const ricaricaReqRef = useRef(0);
+
   const ricarica = useCallback(async () => {
+    const reqId = ++ricaricaReqRef.current;
     const list = await caricaNotificheCampanella();
+    if (reqId !== ricaricaReqRef.current) return;
     setNotifiche(list);
     setLoading(false);
   }, []);

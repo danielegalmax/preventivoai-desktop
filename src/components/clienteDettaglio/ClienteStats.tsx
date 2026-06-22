@@ -24,7 +24,7 @@ export default function ClienteStats({
       accent: false,
     },
     {
-      label: "Fatturato",
+      label: "Incassato",
       value: fatturatoErrore
         ? "Non disponibile"
         : fatturatoLoading

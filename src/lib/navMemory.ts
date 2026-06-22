@@ -60,6 +60,20 @@ export function getSectionRoot(section: NavSection): string {
   return SECTION_ROOTS[section];
 }
 
+export function getRememberedPath(section: NavSection): string {
+  return loadMemory()[section];
+}
+
+export function setRememberedPath(section: NavSection, path: string) {
+  const memory = loadMemory();
+  memory[section] = path;
+  saveMemory(memory);
+}
+
+export function resetRememberedPath(section: NavSection) {
+  setRememberedPath(section, SECTION_ROOTS[section]);
+}
+
 export function rememberPath(pathname: string) {
   const section = pathToSection(pathname);
   if (!section) return;
@@ -70,7 +84,16 @@ export function rememberPath(pathname: string) {
 
 export function resolveSidebarTarget(
   section: NavSection,
-  _currentPathname: string,
+  currentPathname: string,
 ): string {
+  if (pathToSection(currentPathname) === section) {
+    return currentPathname;
+  }
+
+  const remembered = loadMemory()[section];
+  if (remembered && pathToSection(remembered) === section) {
+    return remembered;
+  }
+
   return getSectionRoot(section);
 }
