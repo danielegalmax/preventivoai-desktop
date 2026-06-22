@@ -219,7 +219,7 @@ export default function PreventiviLista({
     setPreventivi((lista) =>
       lista.map((p) =>
         p.id === preventivoModale.id
-          ? { ...p, pagato, data_pagamento: pagato ? dataPagamento || new Date().toISOString() : null }
+          ? { ...p, pagato, data_pagamento: pagato ? (dataPagamento ?? null) : null }
           : p,
       ),
     );
@@ -438,10 +438,10 @@ export default function PreventiviLista({
                     ariaLabel="Seleziona tutti"
                   />
                 </th>
-                {variant === "storico" && <th className="px-5 py-3 font-medium">Data</th>}
+                {variant === "storico" && <th className="px-5 py-3 text-center font-medium">Data e ora</th>}
                 {variant === "storico" && <th className="px-5 py-3 font-medium">Cliente</th>}
                 <th className="px-5 py-3 font-medium">Titolo</th>
-                {variant === "cliente" && <th className="px-5 py-3 font-medium">Data</th>}
+                {variant === "cliente" && <th className="px-5 py-3 text-center font-medium">Data e ora</th>}
                 <th className="min-w-[9.5rem] px-5 py-3 text-right font-medium">Importo</th>
               </tr>
             </thead>

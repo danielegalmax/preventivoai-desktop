@@ -71,18 +71,63 @@ export function pianoPagamentoTipoDaBozza(
   return "nessuno";
 }
 
+export type BozzaStorageWarning = {
+  type: "save_failed" | "load_corrupted";
+  message: string;
+};
+
+type BozzaStorageWarningListener = (warning: BozzaStorageWarning) => void;
+
+const bozzaWarningListeners = new Set<BozzaStorageWarningListener>();
+const pendingBozzaWarnings: BozzaStorageWarning[] = [];
+
+export function onBozzaStorageWarning(listener: BozzaStorageWarningListener) {
+  bozzaWarningListeners.add(listener);
+  for (const warning of pendingBozzaWarnings.splice(0)) {
+    listener(warning);
+  }
+  return () => {
+    bozzaWarningListeners.delete(listener);
+  };
+}
+
+function emitBozzaStorageWarning(warning: BozzaStorageWarning) {
+  console.error(`[nuovoDraft] ${warning.type}:`, warning.message);
+  if (bozzaWarningListeners.size === 0) {
+    pendingBozzaWarnings.push(warning);
+    return;
+  }
+  bozzaWarningListeners.forEach((listener) => listener(warning));
+}
+
 function load<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw) as T;
-  } catch {
+  } catch (e) {
+    console.error(`[nuovoDraft] JSON corrotto per chiave ${key}:`, e);
+    localStorage.removeItem(key);
+    emitBozzaStorageWarning({
+      type: "load_corrupted",
+      message: "La bozza precedente era danneggiata e non può essere recuperata",
+    });
     return null;
   }
 }
 
-function save<T>(key: string, data: T) {
-  localStorage.setItem(key, JSON.stringify(data));
+function save<T>(key: string, data: T): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    console.error(`[nuovoDraft] Salvataggio fallito per chiave ${key}:`, e);
+    emitBozzaStorageWarning({
+      type: "save_failed",
+      message: "Impossibile salvare la bozza automaticamente",
+    });
+    return false;
+  }
 }
 
 function remove(key: string) {

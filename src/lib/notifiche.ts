@@ -76,9 +76,11 @@ export function notificaContaBadge(n: Notifica, now = Date.now()) {
   return !n.letta && !notificaInRimando(n, now);
 }
 
-export async function caricaNotificheCampanella(): Promise<Notifica[]> {
+export async function caricaNotificheCampanella(): Promise<
+  { ok: true; notifiche: Notifica[] } | { ok: false; error: string }
+> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { ok: true, notifiche: [] };
   const { data, error } = await supabase
     .from("notifiche")
     .select("*")
@@ -89,9 +91,9 @@ export async function caricaNotificheCampanella(): Promise<Notifica[]> {
     .limit(50);
   if (error) {
     console.error("caricaNotificheCampanella", error.message);
-    return [];
+    return { ok: false, error: error.message };
   }
-  return (data || []) as Notifica[];
+  return { ok: true, notifiche: (data || []) as Notifica[] };
 }
 
 export async function caricaNotificaById(id: string): Promise<Notifica | null> {

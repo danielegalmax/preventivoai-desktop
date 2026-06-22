@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import PageContainer from "../components/PageContainer";
 import { getModificaSession } from "../lib/modificaPreventivo/modificaSession";
+import { percorsoNuovoPreventivoHub } from "../lib/nuovoNav";
 import { trascriviAudio } from "../lib/listinoSmart";
 import {
   annullaRegistrazioneVocale,
@@ -15,6 +16,8 @@ export default function RegistraVoce() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inModifica = searchParams.get("modifica") === "1" || Boolean(getModificaSession());
+  const clienteId = searchParams.get("cliente_id") ?? undefined;
+  const clienteNome = searchParams.get("cliente_nome") ?? undefined;
 
   const [registrando, setRegistrando] = useState(false);
   const [trascrivendo, setTrascrivendo] = useState(false);
@@ -51,6 +54,8 @@ export default function RegistraVoce() {
       const params = new URLSearchParams();
       params.set("trascrizione", trascrizione);
       if (sessionModifica || inModifica) params.set("modifica", "1");
+      if (clienteId) params.set("cliente_id", clienteId);
+      if (clienteNome) params.set("cliente_nome", clienteNome);
       navigate(`/nuovo/chat?${params.toString()}`);
     } catch (err) {
       setErrore(err instanceof Error ? err.message : "Errore durante la trascrizione.");
@@ -59,7 +64,7 @@ export default function RegistraVoce() {
     }
   }
 
-  const indietro = inModifica ? "/storico" : "/nuovo";
+  const indietro = inModifica ? "/storico" : percorsoNuovoPreventivoHub(clienteId, clienteNome);
 
   return (
     <PageContainer>

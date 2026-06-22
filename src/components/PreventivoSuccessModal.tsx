@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apriPdfDaBase64, apriPdfLocale, apriPdfOnline, condividiPdf, isDesktopApp, mostraPdfInCartella, ottieniUrlPdfPreventivo } from "../lib/pdf";
 import { caricaContattiCliente } from "../lib/firma";
 import { caricaHeaderProfilo } from "../lib/greeting";
 import { buildMessaggioCondividiPdf } from "preventivoai-shared";
 import { caricaMessaggiCliente } from "../lib/messaggiCliente";
+import { aggiornaTitoloPreventivo } from "../lib/preventivo";
 import InviaFirmaModal from "./firma/InviaFirmaModal";
 import { useAppModalKeyboard } from "./ModalShell";
 
@@ -20,6 +21,7 @@ export type PdfSuccessInvio = {
   nomeCliente?: string;
   haStripe?: boolean;
   uploadOnlineOk: boolean;
+  titoloIniziale?: string;
 };
 
 type Props = {
@@ -36,6 +38,9 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
   const [nomeAzienda, setNomeAzienda] = useState("");
   const [emailCliente, setEmailCliente] = useState<string | null | undefined>();
   const [telefonoCliente, setTelefonoCliente] = useState<string | null | undefined>();
+  const [titolo, setTitolo] = useState("");
+  const titoloSalvatoRef = useRef("");
+  const salvaTitoloInCorsoRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
@@ -43,10 +48,38 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
       setFeedback("");
       return;
     }
+    const iniziale = invio?.titoloIniziale?.trim() || "";
+    setTitolo(iniziale);
+    titoloSalvatoRef.current = iniziale;
     void caricaHeaderProfilo().then((p) => setNomeAzienda(p?.nomeBreve || ""));
-  }, [open]);
+  }, [open, invio?.titoloIniziale]);
 
-  useAppModalKeyboard(onClose, { enabled: open });
+  async function salvaTitoloSeModificato(valore?: string): Promise<void> {
+    const nuovo = (valore ?? titolo).trim();
+    if (!invio?.preventivoId || nuovo === titoloSalvatoRef.current || salvaTitoloInCorsoRef.current) return;
+    salvaTitoloInCorsoRef.current = true;
+    try {
+      const { error } = await aggiornaTitoloPreventivo(invio.preventivoId, nuovo);
+      if (error) throw new Error(error);
+      titoloSalvatoRef.current = nuovo;
+      setTitolo(nuovo);
+    } finally {
+      salvaTitoloInCorsoRef.current = false;
+    }
+  }
+
+  async function chiudiModal() {
+    try {
+      await salvaTitoloSeModificato();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Impossibile salvare il nome.";
+      window.alert(msg);
+      return;
+    }
+    onClose();
+  }
+
+  useAppModalKeyboard(chiudiModal, { enabled: open });
 
   if (!open) return null;
 
@@ -137,7 +170,7 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
     <>
       <div
         className="fixed inset-0 z-[70] flex items-center justify-center bg-brand-navy/50 p-4 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => void chiudiModal()}
       >
         <div
           className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"
@@ -165,6 +198,30 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
 
           {dettaglio && (
             <p className="mt-3 text-center text-sm leading-relaxed text-brand-navy/60">{dettaglio}</p>
+          )}
+
+          {invio?.preventivoId && (
+            <div className="mt-5">
+              <label htmlFor="preventivo-success-titolo" className="block text-sm font-semibold text-brand-navy">
+                Nome preventivo
+              </label>
+              <p className="mt-0.5 text-xs text-brand-navy/50">Compare in storico e nella cartella cliente</p>
+              <input
+                id="preventivo-success-titolo"
+                value={titolo}
+                onChange={(e) => setTitolo(e.target.value)}
+                onBlur={() =>
+                  void conFeedback(async () => {
+                    const prima = titoloSalvatoRef.current;
+                    await salvaTitoloSeModificato();
+                    if (titoloSalvatoRef.current === prima) return;
+                    return "Nome aggiornato.";
+                  }, "")
+                }
+                placeholder="es. PRV-2026-0153"
+                className="mt-2 w-full rounded-xl border border-black/10 px-3 py-2.5 font-mono text-sm outline-none focus:border-brand-teal"
+              />
+            </div>
           )}
 
           {!uploadOk && (
@@ -276,7 +333,7 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => void chiudiModal()}
               className="w-full rounded-xl py-2.5 text-sm font-semibold text-brand-navy/60 hover:text-brand-navy"
             >
               Chiudi
@@ -295,7 +352,7 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
           nomeAzienda={nomeAzienda}
           haStripe={haStripe}
           onClose={() => setMostraFirmaModal(false)}
-          onInviato={onClose}
+          onInviato={() => void chiudiModal()}
         />
       ) : null}
     </>

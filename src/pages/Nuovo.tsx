@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "../lib/supabase";
 import { inviaMessaggio, convertiRecap, applicaRispostaChat, estraiNomeCliente, cercaCliente } from "../lib/chat";
-import { aggiornaPreventivoDaBuilder, caricaClientiPerSelezione, preventivoIdUtilizzabile, salvaPreventivoGenerato } from "../lib/nuovo";
+import { caricaClientiPerSelezione, salvaPreventivoGenerato } from "../lib/nuovo";
 import {
   cancellaBozzaChat,
   cancellaBozzaManuale,
@@ -12,6 +12,7 @@ import {
   salvaBozzaChat,
   salvaBozzaManuale,
   finalizzaBozzaNuovo,
+  onBozzaStorageWarning,
   pianoPagamentoTipoDaBozza,
   type NuovoManualeDraft,
   type PianoPagamentoTipo,
@@ -56,6 +57,7 @@ import { PLACEHOLDER } from "../lib/placeholders";
 import { risolviModifica, clearModificaSession } from "../lib/modificaPreventivo/modificaSession";
 import { buildNuovoManualeDraft } from "../lib/nuovoBozzaSnapshot";
 import { resetPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
+import { percorsoNuovoPreventivoHub } from "../lib/nuovoNav";
 import {
   collegaVociAlListino,
   parsePreventivoTesto,
@@ -73,6 +75,8 @@ export default function Nuovo({ mode }: Props) {
   const [searchParams] = useSearchParams();
   const percorsoBase = mode === "chat" ? "/nuovo/chat" : "/nuovo/manuale";
   const isAnteprima = location.pathname.endsWith("/anteprima");
+  const clienteIdDaUrl = searchParams.get("cliente_id") ?? undefined;
+  const clienteNomeDaUrl = searchParams.get("cliente_nome") ?? undefined;
 
   const modifica = risolviModifica({
     modifica: searchParams.get("modifica") ?? undefined,
@@ -193,7 +197,6 @@ export default function Nuovo({ mode }: Props) {
   const [nomeClienteSuggerito, setNomeClienteSuggerito] = useState("");
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [salvato, setSalvato] = useState(false);
-  const [preventivoSalvatoId, setPreventivoSalvatoId] = useState<string | null>(null);
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(() => {
     if (mode === "chat") return caricaBozzaChat()?.pdfUrl ?? "";
@@ -222,9 +225,17 @@ export default function Nuovo({ mode }: Props) {
   const modificaManualeCaricata = useRef(false);
   const trascrizioneModificaInviata = useRef(false);
   const pagamentoImportato = useRef("");
+  const [avvisoBozza, setAvvisoBozza] = useState<string | null>(null);
+  const [clientiCaricati, setClientiCaricati] = useState(false);
+  const [erroreServizi, setErroreServizi] = useState<string | null>(null);
+  const [erroreMetodiPagamento, setErroreMetodiPagamento] = useState<string | null>(null);
 
   function nomeClienteBozza() {
-    return clienti.find((c) => c.id === clienteSelezionatoId)?.nome ?? "";
+    return (
+      clienti.find((c) => c.id === clienteSelezionatoId)?.nome
+      ?? clienteNomeDaUrl
+      ?? ""
+    );
   }
 
   function snapshotBozzaManuale(override: Partial<NuovoManualeDraft> = {}): NuovoManualeDraft {
@@ -295,15 +306,28 @@ export default function Nuovo({ mode }: Props) {
   }, [isAnteprima, preventivo, percorsoBase, navigate]);
 
   useEffect(() => {
+    return onBozzaStorageWarning((warning) => {
+      setAvvisoBozza(warning.message);
+    });
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setToken(session?.access_token || "");
     });
-    caricaClientiPerSelezione().then(setClienti);
-    caricaServizi().then(setServizi);
+    caricaClientiPerSelezione().then((list) => {
+      setClienti(list);
+      setClientiCaricati(true);
+    });
+    caricaServizi().then(({ data, error }) => {
+      setServizi(data);
+      setErroreServizi(error);
+    });
     caricaProfiloFiscaleAttivo().then(setProfiloFiscale);
     if (mode === "manuale") {
-      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito }) => {
+      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito, error }) => {
         setMetodiPagamento(metodi);
+        setErroreMetodiPagamento(error);
         if (
           predefinito &&
           !caricaBozzaManuale()?.metodoPagamentoSelezionato &&
@@ -314,14 +338,15 @@ export default function Nuovo({ mode }: Props) {
       });
     }
     if (mode === "chat" && inModifica) {
-      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi }) => {
+      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, error }) => {
         setMetodiPagamento(metodi);
+        setErroreMetodiPagamento(error);
       });
     }
   }, [mode, inModifica]);
 
   useEffect(() => {
-    if (bloccoSalvataggioBozzaRef.current || inModifica) return;
+    if (!clientiCaricati || bloccoSalvataggioBozzaRef.current || inModifica) return;
     const timeout = setTimeout(() => {
       if (mode === "chat") {
         salvaBozzaChat({
@@ -330,7 +355,7 @@ export default function Nuovo({ mode }: Props) {
           recap,
           preventivo,
           clienteSelezionatoId,
-          clienteNome: clienti.find((c) => c.id === clienteSelezionatoId)?.nome ?? "",
+          clienteNome: nomeClienteBozza(),
           template,
           pdfUrl,
         });
@@ -347,6 +372,7 @@ export default function Nuovo({ mode }: Props) {
     preventivo,
     clienteSelezionatoId,
     clienti,
+    clientiCaricati,
     template,
     pdfUrl,
     nascondiPrezzi,
@@ -841,7 +867,7 @@ export default function Nuovo({ mode }: Props) {
     setMessaggioSuccesso("");
     const clienteNome = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
     const titolo = clienteNome ? `Preventivo ${clienteNome}` : `Preventivo ${oggiItItLabel()}`;
-    const { error, id } = await salvaPreventivoGenerato({
+    const { error } = await salvaPreventivoGenerato({
       testo: preventivo,
       clienteId: clienteSelezionatoId,
       clienteNome,
@@ -856,7 +882,6 @@ export default function Nuovo({ mode }: Props) {
       setErrore(error.message);
       return;
     }
-    if (id) setPreventivoSalvatoId(id);
     setSalvato(true);
     finalizzaBozzaWorkflow();
   }
@@ -973,46 +998,22 @@ export default function Nuovo({ mode }: Props) {
       }
 
       const clienteNome = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
-      const titolo = titoloPreventivo();
+      const titolo = data.numeroPreventivo.trim() || titoloPreventivo();
       const clienteIdSalvato = clienteSelezionatoId;
-      let idPerPiani: string | null = null;
 
-      const aggiornaEsistente =
-        !inModifica &&
-        !!preventivoSalvatoId &&
-        salvato &&
-        (await preventivoIdUtilizzabile(preventivoSalvatoId));
-
-      if (aggiornaEsistente && preventivoSalvatoId) {
-        const { error } = await aggiornaPreventivoDaBuilder(preventivoSalvatoId, {
-          testo: testoFinale,
-          clienteId: clienteSelezionatoId,
-          clienteNome,
-          titolo,
-          template,
-          versione: data.versione,
-          pdfUrl: storagePathCaricato || urlCaricato || undefined,
-        });
-        if (error) throw new Error(error.message);
-        idPerPiani = preventivoSalvatoId;
-      } else {
-        const { error, id } = await salvaPreventivoGenerato({
-          testo: testoFinale,
-          clienteId: clienteSelezionatoId,
-          clienteNome,
-          titolo,
-          template,
-          versione: data.versione,
-          pdfUrl: storagePathCaricato || urlCaricato || undefined,
-          preventivoPadreId: inModifica ? versionePadreId : undefined,
-        });
-        if (error) throw new Error(error.message);
-        if (id) {
-          idPerPiani = id;
-          setPreventivoSalvatoId(id);
-        }
-        setSalvato(true);
-      }
+      const { error, id } = await salvaPreventivoGenerato({
+        testo: testoFinale,
+        clienteId: clienteSelezionatoId,
+        clienteNome,
+        titolo,
+        template,
+        versione: data.versione,
+        pdfUrl: storagePathCaricato || urlCaricato || undefined,
+        preventivoPadreId: inModifica ? versionePadreId : undefined,
+      });
+      if (error) throw new Error(error.message);
+      const idPerPiani = id ?? null;
+      setSalvato(true);
 
       if (idPerPiani) {
         if (accontoAbbonamentoId) {
@@ -1052,6 +1053,7 @@ export default function Nuovo({ mode }: Props) {
           nomeCliente: clienteNome || undefined,
           haStripe,
           uploadOnlineOk: !!urlCaricato,
+          titoloIniziale: titolo,
         },
       });
       if (inModifica) clearModificaSession();
@@ -1087,7 +1089,6 @@ export default function Nuovo({ mode }: Props) {
     setNomeClienteSuggerito("");
     setMostraModalCliente(false);
     setSalvato(false);
-    setPreventivoSalvatoId(null);
     setGenerandoPdf(false);
     setSalvataggioInCorso(false);
     setPdfUrl("");
@@ -1122,8 +1123,9 @@ export default function Nuovo({ mode }: Props) {
 
     caricaProfiloFiscaleAttivo().then(setProfiloFiscale);
     if (mode === "manuale") {
-      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito }) => {
+      caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito, error }) => {
         setMetodiPagamento(metodi);
+        setErroreMetodiPagamento(error);
         if (predefinito) setMetodoPagamentoSelezionato(predefinito);
       });
     }
@@ -1156,6 +1158,19 @@ export default function Nuovo({ mode }: Props) {
         isAnteprima ? "flex h-full min-h-0 flex-col overflow-hidden py-4 lg:py-4" : undefined
       }
     >
+      {avvisoBozza ? (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          <p>{avvisoBozza}</p>
+          <button
+            type="button"
+            onClick={() => setAvvisoBozza(null)}
+            className="shrink-0 text-amber-700/70 hover:text-amber-900"
+            aria-label="Chiudi avviso"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div
         className={
           builderManualeAttivo
@@ -1182,7 +1197,7 @@ export default function Nuovo({ mode }: Props) {
               ← Torna allo storico
             </Link>
           ) : (
-            <Link to="/nuovo" className="text-sm text-brand-navy/60 hover:text-brand-navy">
+            <Link to={percorsoNuovoPreventivoHub(clienteIdDaUrl, clienteNomeDaUrl)} className="text-sm text-brand-navy/60 hover:text-brand-navy">
               ← Cambia metodo
             </Link>
           )}
@@ -1196,15 +1211,26 @@ export default function Nuovo({ mode }: Props) {
       </div>
 
       {!isAnteprima && mode === "chat" && (
-        <NuovoChatSection
-          messaggi={messaggi}
-          recap={recap}
-          errore={errore}
-          loading={loading}
-          inModifica={inModifica}
-          fineListaRef={fineListaRef}
-          onGeneraDaRecap={() => void generaDaRecap()}
-        />
+        <>
+          <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
+            <BuilderClienteCard
+              clienti={clienti}
+              clienteSelezionatoId={clienteSelezionatoId}
+              onSelect={setClienteSelezionatoId}
+              onClear={() => setClienteSelezionatoId("")}
+              onNuovoCliente={() => setMostraModalCliente(true)}
+            />
+          </div>
+          <NuovoChatSection
+            messaggi={messaggi}
+            recap={recap}
+            errore={errore}
+            loading={loading}
+            inModifica={inModifica}
+            fineListaRef={fineListaRef}
+            onGeneraDaRecap={() => void generaDaRecap()}
+          />
+        </>
       )}
 
       {!isAnteprima && mode === "manuale" && (
@@ -1220,6 +1246,7 @@ export default function Nuovo({ mode }: Props) {
           <ServiziListinoCard
             servizi={servizi}
             voci={voci}
+            erroreCaricamento={erroreServizi}
             onAggiungiVoce={aggiungiServizioListino}
             onRimuoviVoce={rimuoviVoce}
           />
@@ -1237,6 +1264,7 @@ export default function Nuovo({ mode }: Props) {
             metodiPagamento={metodiPagamento}
             metodoPagamentoSelezionato={metodoPagamentoSelezionato}
             metodoPagamentoNessuno={metodoPagamentoNessuno}
+            erroreCaricamento={erroreMetodiPagamento}
             onOpen={() => setMostraModalPagamento(true)}
           />
 
@@ -1302,7 +1330,6 @@ export default function Nuovo({ mode }: Props) {
                   onSelect={setClienteSelezionatoId}
                   onClear={() => setClienteSelezionatoId("")}
                   onNuovoCliente={() => setMostraModalCliente(true)}
-                  disabled={salvato}
                 />
               </div>
 

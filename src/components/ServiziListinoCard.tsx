@@ -7,11 +7,12 @@ import type { VoceBuilder } from "../lib/builder";
 interface Props {
   servizi: Servizio[];
   voci: VoceBuilder[];
+  erroreCaricamento?: string | null;
   onAggiungiVoce: (servizio: Servizio) => void;
   onRimuoviVoce: (servizioId: string) => void;
 }
 
-export default function ServiziListinoCard({ servizi, voci, onAggiungiVoce, onRimuoviVoce }: Props) {
+export default function ServiziListinoCard({ servizi, voci, erroreCaricamento, onAggiungiVoce, onRimuoviVoce }: Props) {
   const [ricerca, setRicerca] = useState("");
   const serviziFiltrati = useMemo(() => {
     const q = ricerca.trim().toLowerCase();
@@ -26,7 +27,11 @@ export default function ServiziListinoCard({ servizi, voci, onAggiungiVoce, onRi
         <p className="text-xs text-brand-navy/50">Cerca nel listino e aggiungi le voci al preventivo</p>
       </div>
 
-      {servizi.length === 0 ? (
+      {erroreCaricamento ? (
+        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700">
+          Impossibile caricare i servizi, riprova.
+        </p>
+      ) : servizi.length === 0 ? (
         <Link
           to="/impostazioni/servizi"
           className="mt-3 block rounded-xl border border-dashed border-brand-teal/40 bg-brand-teal/5 p-4 text-center text-sm text-brand-teal hover:bg-brand-teal/10"

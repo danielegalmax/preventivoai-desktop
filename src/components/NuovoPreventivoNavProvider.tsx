@@ -12,13 +12,14 @@ import type { BozzaNuovoInfo } from "../lib/nuovoDraft";
 import {
   bozzaNuovoDaIntercettare,
   messaggioBozzaInSospeso,
-  percorsoNuovoPreventivo,
+  percorsoNuovoPreventivoHub,
   percorsoNuovoPreventivoVuoto,
   percorsoRipresaBozza,
 } from "../lib/nuovoNav";
 
 type NavigaNuovoOpts = {
   clienteId?: string;
+  clienteNome?: string;
 };
 
 type PendingNav = NavigaNuovoOpts & {
@@ -40,10 +41,10 @@ export function NuovoPreventivoNavProvider({ children }: { children: ReactNode }
     (opts?: NavigaNuovoOpts) => {
       const bozza = bozzaNuovoDaIntercettare(location.pathname);
       if (bozza) {
-        setPending({ bozza, clienteId: opts?.clienteId });
+        setPending({ bozza, clienteId: opts?.clienteId, clienteNome: opts?.clienteNome });
         return;
       }
-      navigate(percorsoNuovoPreventivo());
+      navigate(percorsoNuovoPreventivoHub(opts?.clienteId, opts?.clienteNome));
     },
     [location.pathname, navigate],
   );
@@ -57,7 +58,7 @@ export function NuovoPreventivoNavProvider({ children }: { children: ReactNode }
 
   const handleIniziaNuovo = useCallback(() => {
     if (!pending) return;
-    const target = percorsoNuovoPreventivoVuoto(pending.clienteId);
+    const target = percorsoNuovoPreventivoVuoto(pending.clienteId, pending.clienteNome);
     setPending(null);
     navigate(target);
   }, [navigate, pending]);

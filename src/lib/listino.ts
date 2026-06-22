@@ -1,4 +1,4 @@
-﻿import { parseImportoEuro } from "preventivoai-shared";
+import { parseImportoEuro } from "preventivoai-shared";
 import { supabase } from "./supabase";
 import type { Servizio } from "./types";
 
@@ -10,17 +10,22 @@ function parseCostoOptional(costo: string): { value: number | null; error: strin
   return { value: val, error: null };
 }
 
-export async function caricaServizi(): Promise<Servizio[]> {
+export async function caricaServizi(): Promise<{ data: Servizio[]; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { data: [], error: null };
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("servizi")
     .select("*")
     .eq("user_id", user.id)
     .order("ordine", { ascending: true });
 
-  return (data || []) as Servizio[];
+  if (error) {
+    console.error("caricaServizi", error.message);
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data || []) as Servizio[], error: null };
 }
 
 export async function creaServizio(input: { nome: string; descrizione: string; costo: string; unita: string; ordine: number }) {

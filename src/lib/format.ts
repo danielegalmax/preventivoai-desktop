@@ -11,6 +11,12 @@ export function formatData(valore: string | null | undefined) {
   return new Date(valore).toLocaleDateString("it-IT");
 }
 
+/** Ora in formato italiano (es. 15:30). */
+export function formatOra(valore: string | null | undefined) {
+  if (!valore) return "-";
+  return new Date(valore).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+
 /** Data breve per notifiche e liste (es. 21 giu). */
 export function formatDataBreve(iso: string | null | undefined) {
   if (!iso) return "-";

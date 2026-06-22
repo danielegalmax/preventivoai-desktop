@@ -1,12 +1,17 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
-import { salvaPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
+import { resetPercorsoRipresaNuovo, salvaPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 
 export default function NuovoRipresaPathTracker() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    salvaPercorsoRipresaNuovo(pathname);
+    const inSezioneNuovo = pathname === "/nuovo" || pathname.startsWith("/nuovo/");
+    if (pathname.startsWith("/nuovo/")) {
+      salvaPercorsoRipresaNuovo(pathname);
+    } else if (!inSezioneNuovo) {
+      resetPercorsoRipresaNuovo();
+    }
   }, [pathname]);
 
   return null;

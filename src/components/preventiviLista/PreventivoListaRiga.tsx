@@ -1,7 +1,7 @@
 import { Fragment, type MouseEvent } from "react";
 import { Link } from "react-router";
 import type { Preventivo } from "../../lib/types";
-import { formatImporto, formatData } from "../../lib/format";
+import { formatImporto, formatData, formatOra } from "../../lib/format";
 import { etichettaPianoCollegato, normalizzaTipoPiano, type CollegamentiPianoMap } from "../../lib/collegamentiPiano";
 import { apriPdfPreventivo } from "../../lib/preventivo";
 import { MODIFICA_VERSIONE_ALTERNATIVA_LABEL } from "../../lib/modificaPreventivo/constants";
@@ -39,6 +39,16 @@ type Props = {
   onToggleCronologiaVersione: (versioneId: string) => void;
   onRipristinaVersione: (versione: Preventivo) => void;
 };
+
+function CellDataOra({ valore }: { valore: string | null | undefined }) {
+  if (!valore) return <span className="block text-center">-</span>;
+  return (
+    <div className="text-center leading-tight">
+      <span className="block">{formatData(valore)}</span>
+      <span className="mt-0.5 block text-xs text-brand-navy/45">{formatOra(valore)}</span>
+    </div>
+  );
+}
 
 export default function PreventivoListaRiga({
   preventivo: p,
@@ -97,7 +107,9 @@ export default function PreventivoListaRiga({
           />
         </td>
         {variant === "storico" && (
-          <td className="px-5 py-3 text-brand-navy/70">{formatData(p.created_at)}</td>
+          <td className="px-5 py-3 text-center text-brand-navy/70">
+            <CellDataOra valore={p.created_at} />
+          </td>
         )}
         {variant === "storico" && (
           <td className="px-5 py-3">
@@ -131,7 +143,9 @@ export default function PreventivoListaRiga({
           </div>
         </td>
         {variant === "cliente" && (
-          <td className="px-5 py-3 text-brand-navy/70">{formatData(p.created_at)}</td>
+          <td className="px-5 py-3 text-center text-brand-navy/70">
+            <CellDataOra valore={p.created_at} />
+          </td>
         )}
         <td className="px-5 py-3 align-top" data-no-expand>
           <PreventivoColonnaRiepilogo
@@ -199,7 +213,9 @@ export default function PreventivoListaRiga({
                         className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-brand-bg"
                       >
                         <span className="font-semibold text-brand-navy/50">v{v.versione || 1}</span>
-                        <span className="text-brand-navy/50">{formatData(v.created_at)}</span>
+                        <span className="text-brand-navy/50">
+                          <CellDataOra valore={v.created_at} />
+                        </span>
                         <span className="text-brand-navy/70">{formatImporto(v.importo_totale)}</span>
                       </button>
                       {cronologiaVersioneApertaId === v.id ? (

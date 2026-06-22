@@ -14,8 +14,9 @@ import NotificaToastStack from "./NotificaToastStack";
 
 export default function NotificheBell() {
   const navigate = useNavigate();
-  const { notifiche, count, segnaTutteLette, rimanda, archivia, clearToasts } = useNotifiche();
+  const { notifiche, count, erroreCaricamento, segnaTutteLette, rimanda, archivia, clearToasts } = useNotifiche();
   const [open, setOpen] = useState(false);
+  const [erroreSegnaLette, setErroreSegnaLette] = useState<string | null>(null);
   const [nonAncoraNotate, setNonAncoraNotate] = useState<Set<string>>(() => new Set());
   const [nonAncoraAperte, setNonAncoraAperte] = useState<Set<string>>(() => new Set());
   const ref = useRef<HTMLDivElement>(null);
@@ -48,7 +49,11 @@ export default function NotificheBell() {
 
   useEffect(() => {
     if (!open) return;
-    void segnaTutteLette();
+    setErroreSegnaLette(null);
+    void segnaTutteLette().catch((e) => {
+      console.error("segnaTutteLette", e);
+      setErroreSegnaLette("Impossibile segnare le notifiche come lette.");
+    });
   }, [open, segnaTutteLette]);
 
   useEffect(() => {
@@ -109,7 +114,15 @@ export default function NotificheBell() {
           <path strokeLinecap="round" d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path strokeLinecap="round" d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {count > 0 ? (
+        {erroreCaricamento ? (
+          <span
+            className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-white"
+            title="Errore nel caricamento delle notifiche"
+            aria-label="Errore nel caricamento delle notifiche"
+          >
+            !
+          </span>
+        ) : count > 0 ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-teal px-1 text-[10px] font-bold text-white">
             {count > 9 ? "9+" : count}
           </span>
@@ -120,10 +133,15 @@ export default function NotificheBell() {
         <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-edge bg-surface shadow-lg">
           <div className="border-b border-edge-faint px-4 py-3">
             <p className="text-sm font-semibold text-ink">Notifiche</p>
-            {count > 0 ? (
+            {erroreCaricamento ? (
+              <p className="mt-0.5 text-xs text-amber-700">Impossibile caricare le notifiche. Riprova più tardi.</p>
+            ) : count > 0 ? (
               <p className="mt-0.5 text-xs text-ink/45">{count} da fare</p>
             ) : notifiche.length > 0 ? (
               <p className="mt-0.5 text-xs text-ink/45">Tutte rimandate</p>
+            ) : null}
+            {erroreSegnaLette ? (
+              <p className="mt-1 text-xs text-red-600">{erroreSegnaLette}</p>
             ) : null}
           </div>
           {notifiche.length === 0 ? (

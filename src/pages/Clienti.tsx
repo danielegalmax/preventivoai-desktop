@@ -68,7 +68,13 @@ export default function Clienti() {
   }, []);
 
   async function eliminaSingolo(id: string) {
-    if (!window.confirm("Eliminare questo cliente? Verranno eliminati anche preventivi e dati collegati.")) return;
+    if (
+      !window.confirm(
+        "Eliminare questo cliente in modo permanente e immediato?\n\nI preventivi, i piani e le rate collegati verranno eliminati subito (non passano dal cestino).",
+      )
+    ) {
+      return;
+    }
     const { error } = await eliminaClienti([id]);
     if (error) {
       window.alert(error.message);
@@ -81,8 +87,8 @@ export default function Clienti() {
     if (selezionati.length === 0) return;
     const msg =
       selezionati.length === 1
-        ? "Eliminare questo cliente? Verranno eliminati anche preventivi e dati collegati."
-        : `Eliminare ${selezionati.length} clienti? Verranno eliminati anche preventivi, abbonamenti e rate collegati.`;
+        ? "Eliminare questo cliente in modo permanente e immediato?\n\nI preventivi, i piani e le rate collegati verranno eliminati subito (non passano dal cestino)."
+        : `Eliminare ${selezionati.length} clienti in modo permanente e immediato?\n\nPreventivi, piani e rate collegati verranno eliminati subito (non passano dal cestino).`;
     if (!window.confirm(msg)) return;
 
     const { error } = await eliminaClienti(selezionati);

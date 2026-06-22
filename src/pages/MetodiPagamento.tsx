@@ -38,6 +38,7 @@ export default function MetodiPagamento() {
   const [form, setForm] = useState<MetodoPagamentoForm>(FORM_VUOTO);
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState("");
+  const [erroreCaricamento, setErroreCaricamento] = useState<string | null>(null);
 
   useAppModalKeyboard(() => setModalAperto(false), {
     enabled: modalAperto,
@@ -47,8 +48,9 @@ export default function MetodiPagamento() {
   });
 
   async function carica() {
-    const data = await caricaMetodiPagamento();
+    const { data, error } = await caricaMetodiPagamento();
     setMetodi(data);
+    setErroreCaricamento(error);
     setLoading(false);
   }
 
@@ -138,8 +140,14 @@ export default function MetodiPagamento() {
         <StripeConnectCard />
       </div>
 
+      {erroreCaricamento ? (
+        <p className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Impossibile caricare i metodi di pagamento, riprova.
+        </p>
+      ) : null}
+
       <div className="mt-6 space-y-3">
-        {metodi.length === 0 ? (
+        {!erroreCaricamento && metodi.length === 0 ? (
           <button
             type="button"
             onClick={apriNuovo}

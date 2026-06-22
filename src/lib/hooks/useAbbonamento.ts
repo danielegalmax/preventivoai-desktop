@@ -5,6 +5,7 @@ import { supabase } from "../supabase";
 import { eventBus } from "../eventBus";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
 import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro } from "preventivoai-shared";
+import { inputDateToIso, oggiInputDate } from "../format";
 import {
   alertErroreAbbonamento as alertErrore,
   caricaPreventiviMadreMap,
@@ -256,7 +257,12 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     if (!found) return;
     if (pagata) {
       if (found.rata.stato === "incassato") return;
-      await registraPagamento(rataId, found.rata.importo - (found.rata.acconto || 0));
+      await registraPagamento(
+        rataId,
+        found.rata.importo - (found.rata.acconto || 0),
+        undefined,
+        inputDateToIso(oggiInputDate()),
+      );
     } else {
       await azzeraPagamento(rataId);
     }
@@ -432,7 +438,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       note: nota || rata.note || null,
     };
     if (nuovoStato === "incassato") {
-      aggiornamento.data_incasso = dataIncasso || new Date().toISOString();
+      aggiornamento.data_incasso = dataIncasso ?? inputDateToIso(oggiInputDate());
     }
 
     const { error } = await supabase

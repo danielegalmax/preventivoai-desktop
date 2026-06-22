@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router";
 import PageContainer from "../components/PageContainer";
+import { queryClienteNuovoPreventivo } from "../lib/nuovoNav";
 
 function IconEdit3() {
   return (
@@ -58,8 +59,9 @@ const opzioni = [
 
 export default function NuovoHub() {
   const [searchParams] = useSearchParams();
-  const clienteId = searchParams.get("cliente_id");
-  const queryCliente = clienteId ? `?cliente_id=${clienteId}` : "";
+  const clienteId = searchParams.get("cliente_id") ?? undefined;
+  const clienteNome = searchParams.get("cliente_nome") ?? undefined;
+  const queryCliente = queryClienteNuovoPreventivo(clienteId, clienteNome);
 
   return (
     <PageContainer>

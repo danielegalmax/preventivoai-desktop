@@ -60,8 +60,11 @@ export default function ListinoServizi() {
   useAnnullaSelezioneOnEscape(selezioneAttiva, annulla);
 
   function carica() {
-    caricaServizi().then((data) => {
+    caricaServizi().then(({ data, error }) => {
       setServizi(data);
+      if (error) {
+        window.alert("Impossibile caricare i servizi, riprova.");
+      }
       setLoading(false);
     });
   }

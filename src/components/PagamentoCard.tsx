@@ -5,6 +5,7 @@ type Props = {
   metodiPagamento: MetodoPagamento[];
   metodoPagamentoSelezionato: MetodoPagamento | null;
   metodoPagamentoNessuno: boolean;
+  erroreCaricamento?: string | null;
   onOpen: () => void;
 };
 
@@ -12,6 +13,7 @@ export default function PagamentoCard({
   metodiPagamento,
   metodoPagamentoSelezionato,
   metodoPagamentoNessuno,
+  erroreCaricamento,
   onOpen,
 }: Props) {
   const etichetta = metodoPagamentoNessuno
@@ -42,6 +44,11 @@ export default function PagamentoCard({
         </div>
       </div>
 
+      {erroreCaricamento ? (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+          Impossibile caricare i metodi di pagamento, riprova.
+        </p>
+      ) : (
       <button
         type="button"
         onClick={onOpen}
@@ -53,8 +60,9 @@ export default function PagamentoCard({
         </span>
         <span className="text-brand-navy/40">⌄</span>
       </button>
+      )}
 
-      {metodiPagamento.length <= 1 && (
+      {!erroreCaricamento && metodiPagamento.length <= 1 && (
         <Link
           to="/impostazioni/pagamenti"
           className="mt-3 block text-center text-sm text-brand-teal hover:underline"

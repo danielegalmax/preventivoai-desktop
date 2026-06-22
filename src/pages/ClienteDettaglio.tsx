@@ -145,8 +145,9 @@ export default function ClienteDettaglio() {
   }, [id]);
 
   useEffect(() => {
-    void caricaMetodiPagamento().then((metodi) => {
-      setMetodoPredefinito(metodi.find((m) => m.predefinito) ?? null);
+    void caricaMetodiPagamento().then(({ data, error }) => {
+      if (error) console.error("caricaMetodiPagamento", error);
+      setMetodoPredefinito(data.find((m) => m.predefinito) ?? null);
     });
   }, []);
 
@@ -626,7 +627,7 @@ export default function ClienteDettaglio() {
             ) : (
               <button
                 type="button"
-                onClick={() => navigaNuovoPreventivo({ clienteId: id })}
+                onClick={() => navigaNuovoPreventivo({ clienteId: id, clienteNome: cliente?.nome })}
                 className="rounded-xl bg-brand-teal px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
               >
                 + Nuovo preventivo

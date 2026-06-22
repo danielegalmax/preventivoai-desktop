@@ -43,25 +43,31 @@ export function iconaMetodoPagamento(tipo?: TipoPagamento): string {
   return "💳";
 }
 
-export async function caricaMetodiPagamento(): Promise<MetodoPagamento[]> {
+export async function caricaMetodiPagamento(): Promise<{ data: MetodoPagamento[]; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-  const { data } = await supabase
+  if (!user) return { data: [], error: null };
+  const { data, error } = await supabase
     .from("metodi_pagamento")
     .select("*")
     .eq("user_id", user.id)
     .order("predefinito", { ascending: false });
 
-  return (data || []) as MetodoPagamento[];
+  if (error) {
+    console.error("caricaMetodiPagamento", error.message);
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data || []) as MetodoPagamento[], error: null };
 }
 
 export async function caricaMetodiPagamentoBuilder() {
-  const data = await caricaMetodiPagamento();
+  const { data, error } = await caricaMetodiPagamento();
   const predefinito = data.find((m) => m.predefinito) || null;
   const haContantiDb = data.some((m) => m.tipo === "contanti");
   return {
     metodiPagamento: haContantiDb ? data : [metodoContantiDefault, ...data],
     predefinito,
+    error,
   };
 }
 

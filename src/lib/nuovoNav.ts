@@ -8,8 +8,10 @@ import { getPercorsoRipresaNuovo, resetPercorsoRipresaNuovo } from "./nuovoRipre
 import { getSectionRoot, pathToSection } from "./navMemory";
 
 export function messaggioBozzaInSospeso(info: BozzaNuovoInfo): string {
-  if (info.clienteNome) {
-    return `Hai un preventivo in corso per ${info.clienteNome}.\n\nVuoi riprenderlo o iniziare da zero?`;
+  const nome = info.clienteNome?.trim();
+  const clienteLabel = nome || (info.clienteId ? `il cliente selezionato (ID: ${info.clienteId})` : "");
+  if (clienteLabel) {
+    return `Hai un preventivo in corso per ${clienteLabel}.\n\nVuoi riprenderlo o iniziare da zero?`;
   }
   return "Hai un preventivo in corso non ancora generato.\n\nVuoi riprenderlo o iniziare da zero?";
 }
@@ -21,6 +23,18 @@ export function bozzaNuovoDaIntercettare(currentPathname: string): BozzaNuovoInf
 
 export function percorsoNuovoPreventivo(): string {
   return getSectionRoot("nuovo");
+}
+
+export function queryClienteNuovoPreventivo(clienteId?: string, clienteNome?: string): string {
+  if (!clienteId) return "";
+  const params = new URLSearchParams();
+  params.set("cliente_id", clienteId);
+  if (clienteNome?.trim()) params.set("cliente_nome", clienteNome.trim());
+  return `?${params.toString()}`;
+}
+
+export function percorsoNuovoPreventivoHub(clienteId?: string, clienteNome?: string): string {
+  return `/nuovo${queryClienteNuovoPreventivo(clienteId, clienteNome)}`;
 }
 
 export function percorsoRipresaBozza(info: BozzaNuovoInfo): string {
@@ -35,8 +49,8 @@ export function percorsoRipresaBozza(info: BozzaNuovoInfo): string {
   return percorsoRipresaBozzaNuovo(info.mode);
 }
 
-export function percorsoNuovoPreventivoVuoto(clienteId?: string): string {
+export function percorsoNuovoPreventivoVuoto(clienteId?: string, clienteNome?: string): string {
   cancellaTutteLeBozzeNuovo();
   resetPercorsoRipresaNuovo();
-  return clienteId ? `/nuovo?cliente_id=${encodeURIComponent(clienteId)}` : "/nuovo";
+  return percorsoNuovoPreventivoHub(clienteId, clienteNome);
 }

@@ -63,6 +63,7 @@ export type NotificaToast = {
 type NotificheContextValue = {
   notifiche: Notifica[];
   loading: boolean;
+  erroreCaricamento: boolean;
   count: number;
   ricarica: () => Promise<void>;
   segnaLetta: (id: string) => Promise<void>;
@@ -103,6 +104,7 @@ function contaBadgeCampanella(notifiche: Notifica[], visteLocalmente: Set<string
 export function NotificheProvider({ children }: { children: ReactNode }) {
   const [notifiche, setNotifiche] = useState<Notifica[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erroreCaricamento, setErroreCaricamento] = useState(false);
   const [toasts, setToasts] = useState<NotificaToast[]>([]);
   const [visteLocalmente, setVisteLocalmente] = useState<Set<string>>(() => new Set());
 
@@ -212,9 +214,14 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
 
   const ricarica = useCallback(async () => {
     const reqId = ++ricaricaReqRef.current;
-    const list = await caricaNotificheCampanella();
+    const result = await caricaNotificheCampanella();
     if (reqId !== ricaricaReqRef.current) return;
-    setNotifiche(list);
+    if (result.ok) {
+      setNotifiche(result.notifiche);
+      setErroreCaricamento(false);
+    } else {
+      setErroreCaricamento(true);
+    }
     setLoading(false);
   }, []);
 
@@ -304,6 +311,7 @@ export function NotificheProvider({ children }: { children: ReactNode }) {
   const value: NotificheContextValue = {
     notifiche,
     loading,
+    erroreCaricamento,
     count,
     ricarica,
     segnaLetta,
