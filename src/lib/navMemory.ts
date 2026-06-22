@@ -1,4 +1,4 @@
-export type NavSection =
+type NavSection =
   | "home"
   | "clienti"
   | "storico"

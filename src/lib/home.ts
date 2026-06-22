@@ -5,7 +5,7 @@ import { getNomeBreve } from "./greeting";
 import { queryConFiltroCestino } from "preventivoai-shared";
 import type { Preventivo } from "./types";
 
-export type HomeInsightKind = "alert" | "success" | "info" | "action";
+type HomeInsightKind = "alert" | "success" | "info" | "action";
 
 export type HomeInsight = {
   id: string;
@@ -52,7 +52,7 @@ function fineMese(offset = 0) {
   return d.toISOString();
 }
 
-export async function contaPreventiviMese(userId: string, offsetMese = 0): Promise<number> {
+async function contaPreventiviMese(userId: string, offsetMese = 0): Promise<number> {
   const inizio = inizioMese(offsetMese);
   const fine = fineMese(offsetMese);
 
@@ -73,7 +73,7 @@ export async function contaPreventiviMese(userId: string, offsetMese = 0): Promi
   return count || 0;
 }
 
-export async function contaClienti(userId: string): Promise<number> {
+async function contaClienti(userId: string): Promise<number> {
   const { count } = await supabase
     .from("clienti")
     .select("id", { count: "exact", head: true })
@@ -185,7 +185,7 @@ async function caricaRateInRitardo(userId: string) {
   return { count: rows.length, importo };
 }
 
-export function generaHomeInsights(input: {
+function generaHomeInsights(input: {
   preventiviMese: number;
   preventiviMeseScorso: number;
   preventiviTotali: number;

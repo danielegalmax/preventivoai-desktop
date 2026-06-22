@@ -1,4 +1,4 @@
-export type ThemeMode = "light" | "dark";
+type ThemeMode = "light" | "dark";
 
 const STORAGE_KEY = "preventivoai-theme";
 

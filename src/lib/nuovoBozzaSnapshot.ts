@@ -3,7 +3,7 @@ import type { MetodoPagamento } from "./pagamenti";
 import type { NuovoManualeDraft, PianoPagamentoTipo } from "./nuovoDraft";
 import type { RateAccontoTipo } from "preventivoai-shared";
 
-export type NuovoManualeDraftInput = {
+type NuovoManualeDraftInput = {
   voci: VoceBuilder[];
   trasferte: TrasfertaBuilder[];
   mostraTrasferte: boolean;

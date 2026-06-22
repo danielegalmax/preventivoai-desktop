@@ -6,7 +6,7 @@ type PreventivoPagatoRow = Pick<Tables<"preventivi">, "id" | "importo_totale" | 
 type AbbonamentoPreventivoRow = Pick<Tables<"abbonamenti">, "preventivo_id">;
 type RataIncassoRow = Pick<Tables<"rate_abbonamento">, "importo" | "acconto" | "stato">;
 
-export type RisultatoIncasso =
+type RisultatoIncasso =
   | { ok: true; value: number }
   | { ok: false; error: string };
 
@@ -24,7 +24,7 @@ export function invalidaFatturatoClienteCache() {
   fatturatoClienteCache.clear();
 }
 
-export function sommaImportoRate(rate: RataIncassoRow[]) {
+function sommaImportoRate(rate: RataIncassoRow[]) {
   return rate.reduce((totale, r) => {
     if (r.stato === "incassato") return totale + (r.importo || 0);
     if (r.stato === "parziale") return totale + (r.acconto || 0);

@@ -17,7 +17,7 @@ import {
   pianoAttivoSuPreventivo,
 } from "./abbonamentoDb";
 
-export type CreaPianoRateResult = {
+type CreaPianoRateResult = {
   abbonamentoId: string;
   rate: { id: string; mese: number; anno: number }[];
 };

@@ -5,8 +5,6 @@ import {
   type MessaggiClienteTemplates,
 } from "preventivoai-shared";
 
-export type { MessaggiClienteTemplates } from "preventivoai-shared";
-
 let cacheMessaggi: MessaggiClienteTemplates | null = null;
 let cacheUserId: string | null = null;
 

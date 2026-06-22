@@ -12,7 +12,7 @@ import {
 import { GiornoScadenzaSelect, MeseInizioSelect } from "../pickers/DatePartPickers";
 import ToggleSwitch from "../ToggleSwitch";
 
-export type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
+type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
 
 const TIPI_PIANO: { key: PianoPagamentoTipo; label: string }[] = [
   { key: "nessuno", label: "Nessuno" },

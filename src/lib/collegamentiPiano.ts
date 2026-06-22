@@ -1,7 +1,7 @@
 import { queryConFiltroCestino } from "preventivoai-shared";
 import { supabase } from "./supabase";
 
-export type CollegamentoPiano = {
+type CollegamentoPiano = {
   tipo: "canone" | "rate";
   nomePiano: string | null;
 };

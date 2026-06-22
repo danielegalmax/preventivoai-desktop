@@ -4,7 +4,7 @@ import { sessionToken } from "./settings";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export type CanaleFirma = "whatsapp" | "email" | "link" | "manuale";
-export type MetodoFirma = "online" | "manuale";
+type MetodoFirma = "online" | "manuale";
 
 export type PreventivoInvio = {
   id: string
@@ -25,7 +25,7 @@ const FIRMA_WEB_BASE_URL = (
   import.meta.env.VITE_FIRMA_WEB_BASE_URL || 'https://preventivoai-web.vercel.app'
 ).replace(/\/$/, '')
 
-export type InvioFirmaUrlResponse = {
+type InvioFirmaUrlResponse = {
   invio_id: string;
   pdf_firmato_url: string | null;
   firma_immagine_url: string | null;
@@ -61,7 +61,7 @@ export async function apriPdfFirmatoDaNotifica(preventivoId: string): Promise<vo
   window.open(res.pdf_firmato_url, "_blank");
 }
 
-export type InviaFirmaResult = {
+type InviaFirmaResult = {
   invio_id: string;
   url: string | null;
   riuso: boolean;
@@ -86,7 +86,7 @@ export async function inviaPreventivoPerFirma(
   return data as InviaFirmaResult;
 }
 
-export type FirmaManualeInput = {
+type FirmaManualeInput = {
   documentoBase64?: string;
   mimeType?: string;
 };
