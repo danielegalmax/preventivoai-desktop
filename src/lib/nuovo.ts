@@ -16,6 +16,24 @@ export async function caricaClientiPerSelezione() {
   return data || [];
 }
 
+/** Cliente ancora presente in anagrafica (eliminazione cliente = hard delete). */
+export async function clienteIdUtilizzabile(clienteId: string | null | undefined): Promise<boolean> {
+  if (!clienteId) return false;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("clienti")
+    .select("id")
+    .eq("id", clienteId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return false;
+  return !!data;
+}
+
 /** Preventivo esistente, visibile in storico/cliente (non nel cestino). */
 export async function preventivoIdUtilizzabile(preventivoId: string | null): Promise<boolean> {
   if (!preventivoId) return false;

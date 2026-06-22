@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "../lib/supabase";
-import { caricaClientiPerSelezione, salvaPreventivoGenerato } from "../lib/nuovo";
+import { caricaClientiPerSelezione, clienteIdUtilizzabile, salvaPreventivoGenerato } from "../lib/nuovo";
 import {
   cancellaBozzaChat,
   cancellaBozzaManuale,
@@ -205,6 +205,7 @@ export default function Nuovo({ mode }: Props) {
   const [caricandoPreview, setCaricandoPreview] = useState(false);
   const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bloccoSalvataggioBozzaRef = useRef(false);
+  const clienteBozzaVerificatoRef = useRef(false);
   const [avvisoBozza, setAvvisoBozza] = useState<string | null>(null);
   const [clientiCaricati, setClientiCaricati] = useState(false);
   const [erroreServizi, setErroreServizi] = useState<string | null>(null);
@@ -324,6 +325,30 @@ export default function Nuovo({ mode }: Props) {
       });
     }
   }, [mode, inModifica]);
+
+  useEffect(() => {
+    if (inModifica || clienteBozzaVerificatoRef.current || !clientiCaricati) return;
+
+    const idDaVerificare = clienteSelezionatoId;
+    clienteBozzaVerificatoRef.current = true;
+    if (!idDaVerificare) return;
+
+    void clienteIdUtilizzabile(idDaVerificare).then((ok) => {
+      if (ok) return;
+
+      setClienteSelezionatoId("");
+      setAvvisoBozza("Il cliente precedentemente selezionato non è più disponibile");
+
+      if (mode === "chat") {
+        const draft = caricaBozzaChat();
+        if (draft) {
+          salvaBozzaChat({ ...draft, clienteSelezionatoId: "", clienteNome: "" });
+        }
+      } else {
+        salvaBozzaManuale(snapshotBozzaManuale({ clienteSelezionatoId: "", clienteNome: "" }));
+      }
+    });
+  }, [clientiCaricati, inModifica, mode]);
 
   useEffect(() => {
     if (!clientiCaricati || bloccoSalvataggioBozzaRef.current || inModifica) return;
