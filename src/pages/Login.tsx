@@ -8,6 +8,9 @@ import { PLACEHOLDER } from "../lib/placeholders";
 const WEB_BASE_URL = "https://preventivoai-web.vercel.app";
 const WEB_TERMINI_URL = `${WEB_BASE_URL}/termini`;
 
+/** Imposta `true` per riattivare tab e form di registrazione. */
+const BETA_REGISTRAZIONE_APERTA = false;
+
 type AuthMode = "login" | "register";
 
 export default function Login() {
@@ -35,17 +38,17 @@ export default function Login() {
       setError("Inserisci email e password.");
       return;
     }
-    if (mode === "register" && !accettaTermini) {
+    if (mode === "register" && BETA_REGISTRAZIONE_APERTA && !accettaTermini) {
       setError("Accetta i termini e condizioni per continuare.");
       return;
     }
-    if (mode === "register" && password.length < 6) {
+    if (mode === "register" && BETA_REGISTRAZIONE_APERTA && password.length < 6) {
       setError("La password deve avere almeno 6 caratteri.");
       return;
     }
 
     setSubmitting(true);
-    if (mode === "register") {
+    if (mode === "register" && BETA_REGISTRAZIONE_APERTA) {
       const { error: signUpError } = await signUpWithEmail(email.trim(), password);
       setSubmitting(false);
       if (signUpError) {
@@ -127,48 +130,50 @@ export default function Login() {
               Preventivo<span className="text-brand-teal">AI</span>
             </p>
             <p className="mt-2 text-sm text-brand-navy/60">
-              {mode === "login" ? "Bentornato" : "Crea il tuo account"}
+              {mode === "register" && BETA_REGISTRAZIONE_APERTA ? "Crea il tuo account" : "Bentornato"}
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
             <p className="mb-6 hidden text-sm text-brand-navy/60 lg:block">
-              {mode === "login" ? "Bentornato" : "Crea il tuo account"}
+              {mode === "register" && BETA_REGISTRAZIONE_APERTA ? "Crea il tuo account" : "Bentornato"}
             </p>
 
-            <div className="mb-6 flex rounded-xl bg-brand-bg p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("login");
-                  setAccettaTermini(false);
-                  setError("");
-                  setInfo("");
-                }}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                  mode === "login"
-                    ? "bg-white text-brand-navy shadow-sm"
-                    : "text-brand-navy/45 hover:text-brand-navy/70"
-                }`}
-              >
-                Accedi
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("register");
-                  setError("");
-                  setInfo("");
-                }}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                  mode === "register"
-                    ? "bg-white text-brand-navy shadow-sm"
-                    : "text-brand-navy/45 hover:text-brand-navy/70"
-                }`}
-              >
-                Registrati
-              </button>
-            </div>
+            {BETA_REGISTRAZIONE_APERTA ? (
+              <div className="mb-6 flex rounded-xl bg-brand-bg p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setAccettaTermini(false);
+                    setError("");
+                    setInfo("");
+                  }}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                    mode === "login"
+                      ? "bg-white text-brand-navy shadow-sm"
+                      : "text-brand-navy/45 hover:text-brand-navy/70"
+                  }`}
+                >
+                  Accedi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("register");
+                    setError("");
+                    setInfo("");
+                  }}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                    mode === "register"
+                      ? "bg-white text-brand-navy shadow-sm"
+                      : "text-brand-navy/45 hover:text-brand-navy/70"
+                  }`}
+                >
+                  Registrati
+                </button>
+              </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
@@ -197,8 +202,8 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm outline-none"
-                    placeholder={mode === "register" ? "Minimo 6 caratteri" : "••••••••"}
-                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                    placeholder={mode === "register" && BETA_REGISTRAZIONE_APERTA ? "Minimo 6 caratteri" : "••••••••"}
+                    autoComplete={mode === "register" && BETA_REGISTRAZIONE_APERTA ? "new-password" : "current-password"}
                   />
                   <button
                     type="button"
@@ -220,7 +225,7 @@ export default function Login() {
                 ) : null}
               </div>
 
-              {mode === "register" ? (
+              {mode === "register" && BETA_REGISTRAZIONE_APERTA ? (
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
@@ -249,8 +254,21 @@ export default function Login() {
                 disabled={submitting}
                 className="w-full rounded-xl bg-brand-navy py-3 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {submitting ? "Attendere..." : mode === "login" ? "Accedi" : "Crea account"}
+                {submitting ? "Attendere..." : mode === "register" && BETA_REGISTRAZIONE_APERTA ? "Crea account" : "Accedi"}
               </button>
+
+              {!BETA_REGISTRAZIONE_APERTA ? (
+                <p className="text-center text-sm leading-relaxed text-brand-navy/60">
+                  Non hai un account? Richiedi l&apos;accesso alla beta su{" "}
+                  <button
+                    type="button"
+                    onClick={apriHomepageWeb}
+                    className="font-semibold text-brand-teal hover:underline"
+                  >
+                    preventivoai-web.vercel.app
+                  </button>
+                </p>
+              ) : null}
             </form>
 
             <div className="my-6 flex items-center gap-3">
