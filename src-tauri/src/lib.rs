@@ -39,6 +39,24 @@ struct NotificationRow {
     titolo: Option<String>,
     messaggio: Option<String>,
     created_at: String,
+    letta: Option<bool>,
+    snooze_until: Option<String>,
+}
+
+fn notifica_in_rimando(snooze_until: &Option<String>, now_ms: i64) -> bool {
+    let Some(until) = snooze_until else {
+        return false;
+    };
+    chrono::DateTime::parse_from_rfc3339(until)
+        .map(|dt| dt.timestamp_millis() > now_ms)
+        .unwrap_or(false)
+}
+
+fn notifica_idonea_os(row: &NotificationRow, now_ms: i64) -> bool {
+    if row.letta.unwrap_or(false) {
+        return false;
+    }
+    !notifica_in_rimando(&row.snooze_until, now_ms)
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
@@ -119,10 +137,16 @@ async fn fetch_new_notifications(
         "{}/rest/v1/notifiche",
         session.supabase_url.trim_end_matches('/')
     );
+    let now_iso = Utc::now().to_rfc3339();
     let query = vec![
-        ("select", "id,titolo,messaggio,created_at".to_string()),
+        ("select", "id,titolo,messaggio,created_at,letta,snooze_until".to_string()),
         ("user_id", format!("eq.{}", session.user_id)),
         ("archiviata", "eq.false".to_string()),
+        ("letta", "eq.false".to_string()),
+        (
+            "or",
+            format!("(snooze_until.is.null,snooze_until.lte.{now_iso})"),
+        ),
         ("created_at", format!("gt.{}", session.last_check)),
         ("order", "created_at.asc".to_string()),
         ("limit", "20".to_string()),
@@ -175,9 +199,13 @@ fn start_notification_poller(app: tauri::AppHandle, state: Arc<NotificationSessi
 
                     let should_skip_native = is_main_window_foreground(&app);
                     let mut newest_created_at = session.last_check.clone();
+                    let now_ms = Utc::now().timestamp_millis();
 
                     for row in rows {
                         newest_created_at = row.created_at.clone();
+                        if !notifica_idonea_os(&row, now_ms) {
+                            continue;
+                        }
                         let already_delivered = state
                             .delivered_notification_ids
                             .lock()
