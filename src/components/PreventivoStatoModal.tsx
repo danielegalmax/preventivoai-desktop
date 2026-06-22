@@ -37,6 +37,7 @@ export default function PreventivoStatoModal({
   async function handleTogglePagato(value: boolean) {
     if (value) {
       setDataPagamento(oggiInputDate());
+      setPagatoLocale(true);
       setMostraDataPagamento(true);
       return;
     }
@@ -120,7 +121,10 @@ export default function PreventivoStatoModal({
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setMostraDataPagamento(false)}
+                    onClick={() => {
+                      setMostraDataPagamento(false);
+                      setPagatoLocale(preventivo.pagato ?? false);
+                    }}
                     className="rounded-xl border border-black/10 px-3 py-2 text-sm font-medium text-brand-navy/60"
                   >
                     Annulla
