@@ -43,7 +43,7 @@ Refactor qualità interna, **zero cambi di comportamento/UX**. Nessun commit cre
 ### Verificato, lasciato intenzionalmente
 
 - `App.tsx` default export: entry point Vite, ts-prune falso positivo.
-- `rememberPath()` in `navMemory.ts`: ancora usata da `NavMemoryTracker`, anche se `resolveSidebarTarget()` oggi ignora la memoria (vedi § Saltati).
+- **Nav memory (2026-06):** `NavMemoryTracker` e `rememberPath()` sono stati rimossi; sostituiti da `NuovoRipresaPathTracker` e `navMemory.ts` semplificato (solo mapping sezione → path root, senza memoria persistente).
 - Nessun TODO/FIXME obsoleto nel sorgente `src/`.
 
 **Verifica post-area:** `npx tsc --noEmit` ✅
@@ -167,8 +167,8 @@ Nessuna vulnerabilità critica introdotta o lasciata aperta nei flussi recenti.
 | Sostituire `parseFloat` con `parseImportoEuro` in `listino.ts`, `TrasferteCard.tsx`, `ListinoSmartPanel.tsx`, `AnalisiFiscaleCard.tsx`, `onboarding.ts` | Parsing monetario legacy; `parseImportoEuro` gestisce edge case diversamente (stringhe vuote, formati IT) — rischio silenzioso su importi |
 | `parseInt` su giorni/mesi/numero rate | Non sono importi euro — uso corretto |
 | `parseFloat` in `fiscale.ts` | Percentuali fiscali profilo, non importi preventivo |
-| Collegare `resolveSidebarTarget()` a `getRememberedPath()` | Cambierebbe navigazione sidebar (oggi sempre root sezione) |
-| Rimuovere `rememberPath()` / memoria nav | Scrive localStorage ma non letta — rimuovere = cambio persistenza futura |
+| Collegare `getSectionRoot()` a memoria nav persistente | Cambierebbe navigazione sidebar (oggi sempre root sezione) |
+| Rimuovere chiave legacy `preventivoai-nav-memory` da `AppSettings.clearLocalData` | Solo cleanup localStorage; nessun write attivo |
 | Rimuovere/pulire `App.css` boilerplate Vite | Potrebbe alterare stili globali residui |
 | Spostare componenti notifiche sotto sottocartella `components/notifiche/` | Solo refactor path/import, alto rischio merge conflict, zero beneficio runtime |
 | `NotificheBell` → `segnaPreventivoPagato(id, true)` senza data | Comportamento pre-esistente voluto dalla campanella |

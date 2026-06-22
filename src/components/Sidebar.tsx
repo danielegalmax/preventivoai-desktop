@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
+  getSectionRoot,
   linkToSection,
   pathToSection,
-  resolveSidebarTarget,
 } from "../lib/navMemory";
 import { useNavigaNuovoPreventivo } from "./NuovoPreventivoNavProvider";
 
@@ -144,7 +144,7 @@ export default function Sidebar() {
       navigate(to);
       return;
     }
-    navigate(resolveSidebarTarget(section));
+    navigate(getSectionRoot(section));
   }
 
   return (

@@ -38,7 +38,3 @@ export function linkToSection(linkTo: string): NavSection | null {
 export function getSectionRoot(section: NavSection): string {
   return SECTION_ROOTS[section];
 }
-
-export function resolveSidebarTarget(section: NavSection): string {
-  return getSectionRoot(section);
-}
