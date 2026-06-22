@@ -22,6 +22,7 @@ import {
 } from "../lib/appSettings";
 
 import { cancellaTutteLeBozzeNuovo } from "../lib/nuovoDraft";
+import { resetPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 
 const WEB_BASE_URL = "https://preventivoai-web.vercel.app";
 const WEB_TERMINI_URL = `${WEB_BASE_URL}/termini`;
@@ -30,6 +31,7 @@ const WEB_PRIVACY_URL = `${WEB_BASE_URL}/privacy`;
 function clearLocalData() {
   localStorage.removeItem("preventivoai-nav-memory");
   cancellaTutteLeBozzeNuovo();
+  resetPercorsoRipresaNuovo();
   localStorage.removeItem("preventivoai-pdf-folder");
   localStorage.removeItem("preventivoai-pdf-cartelle-cliente");
   localStorage.removeItem("preventivoai-pdf-cartella-custom");
@@ -168,7 +170,7 @@ export default function AppSettings() {
   }
 
   function reset() {
-    if (!window.confirm("Vuoi cancellare memoria navigazione e bozze?")) return;
+    if (!window.confirm("Vuoi cancellare bozze e dati locali di Nuovo preventivo?")) return;
     clearLocalData();
     setCartelleCliente(true);
     setSalvataggioModalita("cartella");
@@ -366,7 +368,7 @@ export default function AppSettings() {
       <div className="mt-3 rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold text-brand-navy">Dati locali</p>
         <p className="mt-2 text-sm text-brand-navy/60">
-          Cancella la memoria delle tab (ultima pagina visitata) e le bozze di Nuovo preventivo.
+          Cancella le bozze di Nuovo preventivo e il percorso di ripresa salvato localmente.
         </p>
         <button
           type="button"

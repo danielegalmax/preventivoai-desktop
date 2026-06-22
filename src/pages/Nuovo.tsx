@@ -55,7 +55,7 @@ import { oggiItItLabel } from "../lib/format";
 import { PLACEHOLDER } from "../lib/placeholders";
 import { risolviModifica, clearModificaSession } from "../lib/modificaPreventivo/modificaSession";
 import { buildNuovoManualeDraft } from "../lib/nuovoBozzaSnapshot";
-import { resetRememberedPath } from "../lib/navMemory";
+import { resetPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 import {
   collegaVociAlListino,
   parsePreventivoTesto,
@@ -272,7 +272,7 @@ export default function Nuovo({ mode }: Props) {
     if (inModifica) return;
     bloccoSalvataggioBozzaRef.current = true;
     finalizzaBozzaNuovo(mode);
-    resetRememberedPath("nuovo");
+    resetPercorsoRipresaNuovo();
     window.setTimeout(() => {
       bloccoSalvataggioBozzaRef.current = false;
     }, 400);

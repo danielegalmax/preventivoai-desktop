@@ -43,7 +43,7 @@ export function NuovoPreventivoNavProvider({ children }: { children: ReactNode }
         setPending({ bozza, clienteId: opts?.clienteId });
         return;
       }
-      navigate(percorsoNuovoPreventivo(location.pathname));
+      navigate(percorsoNuovoPreventivo());
     },
     [location.pathname, navigate],
   );

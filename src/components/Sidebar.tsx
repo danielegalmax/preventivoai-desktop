@@ -144,7 +144,7 @@ export default function Sidebar() {
       navigate(to);
       return;
     }
-    navigate(resolveSidebarTarget(section, location.pathname));
+    navigate(resolveSidebarTarget(section));
   }
 
   return (

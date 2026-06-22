@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { NuovoPreventivoNavProvider } from "./NuovoPreventivoNavProvider";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import NavMemoryTracker from "./NavMemoryTracker";
+import NuovoRipresaPathTracker from "./NuovoRipresaPathTracker";
 import { NotificheProvider } from "./NotificheProvider";
 import { SegnalazioneProvider } from "./SegnalazioneProvider";
 import { applyThemeMode, getThemeMode } from "../lib/theme";
@@ -32,7 +32,7 @@ export default function Layout() {
       <SegnalazioneProvider>
         <NuovoPreventivoNavProvider>
         <div className="flex h-screen bg-brand-bg">
-          <NavMemoryTracker />
+          <NuovoRipresaPathTracker />
           <Sidebar />
           <div className="theme-surface flex flex-1 flex-col overflow-hidden">
             <Header />

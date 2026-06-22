@@ -2,7 +2,7 @@ import type { TrasfertaBuilder, VoceBuilder } from "./builder";
 import type { MetodoPagamento } from "./pagamenti";
 import type { Messaggio } from "./types";
 import type { RateAccontoTipo } from "preventivoai-shared";
-import { getRememberedPath } from "./navMemory";
+import { getPercorsoRipresaNuovo } from "./nuovoRipresaPath";
 
 export type PianoPagamentoTipo = "nessuno" | "acconto" | "rate" | "abbonamento";
 
@@ -171,8 +171,8 @@ export function infoBozzaNuovoInSospeso(): BozzaNuovoInfo | null {
   if (chatAttiva && !manualeAttiva) return infoDaBozzaChat(chat);
   if (manualeAttiva && !chatAttiva) return infoDaBozzaManuale(manuale);
 
-  const remembered = getRememberedPath("nuovo");
-  if (remembered.includes("/chat")) return infoDaBozzaChat(chat!);
+  const ripresa = getPercorsoRipresaNuovo();
+  if (ripresa?.includes("/chat")) return infoDaBozzaChat(chat!);
   return infoDaBozzaManuale(manuale!);
 }
 

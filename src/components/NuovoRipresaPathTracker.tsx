@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
-import { rememberPath } from "../lib/navMemory";
+import { salvaPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 
-export default function NavMemoryTracker() {
+export default function NuovoRipresaPathTracker() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    rememberPath(pathname);
+    salvaPercorsoRipresaNuovo(pathname);
   }, [pathname]);
 
   return null;

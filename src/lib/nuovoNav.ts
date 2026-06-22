@@ -4,12 +4,8 @@ import {
   percorsoRipresaBozzaNuovo,
   type BozzaNuovoInfo,
 } from "./nuovoDraft";
-import {
-  getRememberedPath,
-  pathToSection,
-  resetRememberedPath,
-  resolveSidebarTarget,
-} from "./navMemory";
+import { getPercorsoRipresaNuovo, resetPercorsoRipresaNuovo } from "./nuovoRipresaPath";
+import { getSectionRoot, pathToSection } from "./navMemory";
 
 export function messaggioBozzaInSospeso(info: BozzaNuovoInfo): string {
   if (info.clienteNome) {
@@ -23,25 +19,24 @@ export function bozzaNuovoDaIntercettare(currentPathname: string): BozzaNuovoInf
   return infoBozzaNuovoInSospeso();
 }
 
-export function percorsoNuovoPreventivo(currentPathname: string): string {
-  return resolveSidebarTarget("nuovo", currentPathname);
+export function percorsoNuovoPreventivo(): string {
+  return getSectionRoot("nuovo");
 }
 
 export function percorsoRipresaBozza(info: BozzaNuovoInfo): string {
-  const remembered = getRememberedPath("nuovo");
+  const ripresa = getPercorsoRipresaNuovo();
   if (
-    remembered !== "/nuovo" &&
-    pathToSection(remembered) === "nuovo" &&
-    ((info.mode === "chat" && remembered.includes("/chat")) ||
-      (info.mode === "manuale" && remembered.includes("/manuale")))
+    ripresa &&
+    ((info.mode === "chat" && ripresa.includes("/chat")) ||
+      (info.mode === "manuale" && ripresa.includes("/manuale")))
   ) {
-    return remembered;
+    return ripresa;
   }
   return percorsoRipresaBozzaNuovo(info.mode);
 }
 
 export function percorsoNuovoPreventivoVuoto(clienteId?: string): string {
   cancellaTutteLeBozzeNuovo();
-  resetRememberedPath("nuovo");
+  resetPercorsoRipresaNuovo();
   return clienteId ? `/nuovo?cliente_id=${encodeURIComponent(clienteId)}` : "/nuovo";
 }
