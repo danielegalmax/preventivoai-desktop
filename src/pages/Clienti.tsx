@@ -10,6 +10,7 @@ import MenuTrePuntini from "../components/MenuTrePuntini";
 import PageContainer from "../components/PageContainer";
 import CheckboxSelezione from "../components/CheckboxSelezione";
 import BarraSelezione from "../components/BarraSelezione";
+import { trackEvento } from "../lib/track";
 
 function inizialiCliente(nome: string) {
   const parts = nome.trim().split(/\s+/).filter(Boolean);
@@ -62,6 +63,10 @@ export default function Clienti() {
       setLoading(false);
     });
   }
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "clienti");
+  }, []);
 
   useEffect(() => {
     carica();

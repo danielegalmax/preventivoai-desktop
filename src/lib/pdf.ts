@@ -6,6 +6,7 @@ import {
   sanitizzaNomeCartellaWindows,
 } from "./appSettings";
 import { sessionToken } from "./settings";
+import { trackEvento } from "./track";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -49,6 +50,7 @@ export async function generaPDF(params: GeneraPDFParams): Promise<GeneraPDFResul
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
   if (data.error) throw new Error(data.error);
+  void trackEvento("pdf_generato", "preventivo_pdf", { template: params.template });
   return data;
 }
 

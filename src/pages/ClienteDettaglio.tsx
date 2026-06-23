@@ -30,6 +30,7 @@ import ClienteAbbonamentoTab from "../components/clienteDettaglio/ClienteAbbonam
 import ClienteAbbonamentoModals from "../components/clienteDettaglio/ClienteAbbonamentoModals";
 import ClienteStats from "../components/clienteDettaglio/ClienteStats";
 import { inputDateToIso, oggiInputDate } from "../lib/format";
+import { trackEvento } from "../lib/track";
 
 export default function ClienteDettaglio() {
   const { id } = useParams();
@@ -138,6 +139,10 @@ export default function ClienteDettaglio() {
     setFatturato(risultato.value);
     setFatturatoLoading(false);
   }, [id]);
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "cliente_dettaglio");
+  }, []);
 
   useEffect(() => {
     if (!id) return;

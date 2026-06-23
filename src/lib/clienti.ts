@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { queryConFiltroCestino } from "preventivoai-shared";
 import type { Cliente } from "./types";
+import { trackEvento } from "./track";
 
 export async function caricaClienti(): Promise<Cliente[]> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,11 +44,17 @@ export async function creaCliente(dati: { nome: string; telefono: string; email:
     return { data: null, error: { message: "Utente non autenticato" } };
   }
 
-  return supabase
+  const result = await supabase
     .from("clienti")
     .insert({ ...dati, user_id: user.id })
     .select()
     .single();
+
+  if (result.data && !result.error) {
+    void trackEvento("cliente_creato", "clienti");
+  }
+
+  return result;
 }
 
 /**

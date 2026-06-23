@@ -11,6 +11,7 @@ import ServizioModal from "../components/ServizioModal";
 import PageContainer from "../components/PageContainer";
 import CheckboxSelezione from "../components/CheckboxSelezione";
 import BarraSelezione from "../components/BarraSelezione";
+import { trackEvento } from "../lib/track";
 
 function IconEdit() {
   return (
@@ -77,6 +78,10 @@ export default function ListinoServizi() {
       setLoading(false);
     });
   }
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "listino");
+  }, []);
 
   useEffect(() => {
     carica();

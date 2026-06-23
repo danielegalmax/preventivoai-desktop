@@ -9,6 +9,7 @@ import { formatImporto, formatData, formatDataHomeHeader } from "../lib/format";
 import { etichettaPianoCollegato } from "../lib/collegamentiPiano";
 import PreventivoStatoBadge from "../components/PreventivoStatoBadge";
 import PageContainer from "../components/PageContainer";
+import { trackEvento } from "../lib/track";
 
 const INSIGHT_ACCENT: Record<HomeInsight["kind"], string> = {
   alert: "border-l-red-500",
@@ -57,6 +58,10 @@ export default function Home() {
   useEffect(() => {
     void carica();
   }, [carica]);
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "home");
+  }, []);
 
   useEffect(() => {
     const handler = () => { void carica(); };

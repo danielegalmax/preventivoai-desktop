@@ -8,6 +8,7 @@ import {
 } from "../lib/fiscale";
 import PageContainer from "../components/PageContainer";
 import ToggleSwitch from "../components/ToggleSwitch";
+import { trackEvento } from "../lib/track";
 
 type Regime = ProfiloFiscaleForm["regime"];
 
@@ -44,6 +45,10 @@ export default function Fiscale() {
   const [featureAttiva, setFeatureAttiva] = useState(false);
   const [modificheNonSalvate, setModificheNonSalvate] = useState(false);
   const [messaggio, setMessaggio] = useState("");
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "fiscale");
+  }, []);
 
   useEffect(() => {
     if (!modificheNonSalvate) return;

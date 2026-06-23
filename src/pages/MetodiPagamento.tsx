@@ -14,6 +14,7 @@ import {
   type MetodoPagamentoForm,
   type TipoPagamento,
 } from "../lib/pagamenti";
+import { trackEvento } from "../lib/track";
 
 const FORM_VUOTO: MetodoPagamentoForm = {
   tipo: "bonifico",
@@ -53,6 +54,10 @@ export default function MetodiPagamento() {
     setErroreCaricamento(error);
     setLoading(false);
   }
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "pagamenti");
+  }, []);
 
   useEffect(() => {
     carica();

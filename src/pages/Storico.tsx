@@ -9,6 +9,7 @@ import PreventiviLista from "../components/PreventiviLista";
 import { NotificaAzioneStorico } from "../components/NotificheBell";
 import { caricaNotificaById, type Notifica } from "../lib/notifiche";
 import { eventBus } from "../lib/eventBus";
+import { trackEvento } from "../lib/track";
 
 export default function Storico() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,6 +22,10 @@ export default function Storico() {
   const [vociCestino, setVociCestino] = useState(0);
   const [notificaAzione, setNotificaAzione] = useState<Notifica | null>(null);
   const [focusPronto, setFocusPronto] = useState(!focusId);
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "storico");
+  }, []);
 
   useEffect(() => {
     Promise.all([caricaStorico(), caricaCollegamentiPianoPreventivi(), conteggioCestino()]).then(

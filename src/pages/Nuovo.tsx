@@ -51,6 +51,7 @@ import { risolviModifica, clearModificaSession } from "../lib/modificaPreventivo
 import { buildNuovoManualeDraft } from "../lib/nuovoBozzaSnapshot";
 import { resetPercorsoRipresaNuovo } from "../lib/nuovoRipresaPath";
 import { percorsoNuovoPreventivoHub } from "../lib/nuovoNav";
+import { trackEvento } from "../lib/track";
 
 type Props = {
   mode: "chat" | "manuale";
@@ -283,6 +284,10 @@ export default function Nuovo({ mode }: Props) {
     if (mode === "manuale") persistiBozzaManuale();
     navigate(percorsoBase);
   }
+
+  useEffect(() => {
+    void trackEvento("schermata_aperta", "nuovo");
+  }, []);
 
   useEffect(() => {
     if (isAnteprima && !preventivo) {
