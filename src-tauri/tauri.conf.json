@@ -15,11 +15,10 @@
         "title": "PreventivoAI",
         "width": 1800,
         "height": 1020,
-        "minWidth": 1800,
-        "minHeight": 1020,
+        "center": true,
         "resizable": false,
         "maximizable": true,
-        "center": true
+        "zoomHotkeysEnabled": false
       }
     ],
     "security": {
