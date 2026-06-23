@@ -109,56 +109,56 @@ export default function Home() {
           </>
         ) : (
           <>
-            <article className="rounded-2xl border border-edge-faint bg-surface p-5 shadow-sm sm:col-span-3">
-              <div className="flex items-center justify-between">
+            <article className="relative rounded-2xl border border-edge-faint bg-surface p-5 shadow-sm sm:col-span-3">
+              <span className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal">
+                <IconFile className="h-4 w-4" />
+              </span>
+              <div className="flex flex-col items-center text-center">
                 <p className="text-xs font-medium text-brand-navy/45">Questo mese</p>
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal">
-                  <IconFile className="h-4 w-4" />
-                </span>
-              </div>
-              <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-brand-navy">
-                {data?.preventiviMese ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-brand-navy/45">preventivi creati</p>
-              {data && data.preventiviMeseScorso > 0 ? (
-                <p className={`mt-3 text-xs font-medium ${trendPositivo ? "text-brand-teal" : "text-brand-navy/40"}`}>
-                  {trendPositivo ? "↑" : "↓"} {data.preventiviMeseScorso} mese scorso
+                <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-brand-navy">
+                  {data?.preventiviMese ?? 0}
                 </p>
-              ) : null}
+                <p className="mt-1 text-xs text-brand-navy/45">preventivi creati</p>
+                {data && data.preventiviMeseScorso > 0 ? (
+                  <p className={`mt-3 text-xs font-medium ${trendPositivo ? "text-brand-teal" : "text-brand-navy/40"}`}>
+                    {trendPositivo ? "↑" : "↓"} {data.preventiviMeseScorso} mese scorso
+                  </p>
+                ) : null}
+              </div>
             </article>
 
             <article className="relative overflow-hidden rounded-2xl bg-brand-navy p-5 shadow-lg shadow-brand-navy/20 sm:col-span-6">
               <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand-teal/20 blur-2xl" />
-              <div className="relative flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-white/50">Incassato totale</p>
-                  <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white lg:text-4xl">
-                    {formatImporto(data?.incassatoTotale ?? 0)}
-                  </p>
-                  <p className="mt-1 text-xs text-white/45">Preventivi, rate e abbonamenti</p>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-brand-teal">
-                  <IconWallet className="h-5 w-5" />
-                </span>
+              <span className="absolute top-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-brand-teal">
+                <IconWallet className="h-5 w-5" />
+              </span>
+              <div className="relative flex flex-col items-center text-center">
+                <p className="text-xs font-medium text-white/50">Incassato totale</p>
+                <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white lg:text-4xl">
+                  {formatImporto(data?.incassatoTotale ?? 0)}
+                </p>
+                <p className="mt-1 text-xs text-white/45">Preventivi, rate e abbonamenti</p>
               </div>
               {data && data.pipelineValore > 0 ? (
-                <p className="relative mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
-                  {formatImporto(data.pipelineValore)} in attesa di risposta
+                <p className="relative mt-4 flex justify-center">
+                  <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
+                    {formatImporto(data.pipelineValore)} in attesa di risposta
+                  </span>
                 </p>
               ) : null}
             </article>
 
-            <article className="rounded-2xl border border-edge-faint bg-surface p-5 shadow-sm sm:col-span-3">
-              <div className="flex items-center justify-between">
+            <article className="relative rounded-2xl border border-edge-faint bg-surface p-5 shadow-sm sm:col-span-3">
+              <span className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-xl bg-brand-navy/5 text-brand-navy/60">
+                <IconSpark className="h-4 w-4" />
+              </span>
+              <div className="flex flex-col items-center text-center">
                 <p className="text-xs font-medium text-brand-navy/45">Tempo risparmiato</p>
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-navy/5 text-brand-navy/60">
-                  <IconSpark className="h-4 w-4" />
-                </span>
+                <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-brand-navy">
+                  {(data?.minutiRisparmiati ?? 0).toLocaleString("it-IT")}
+                </p>
+                <p className="mt-1 text-xs text-brand-navy/45">minuti stimati con l&apos;AI</p>
               </div>
-              <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-brand-navy">
-                {(data?.minutiRisparmiati ?? 0).toLocaleString("it-IT")}
-              </p>
-              <p className="mt-1 text-xs text-brand-navy/45">minuti stimati con l&apos;AI</p>
             </article>
           </>
         )}

@@ -42,7 +42,7 @@ export default function PreventivoColonnaRiepilogo({
 
   return (
     <div className="flex items-center justify-end gap-1.5" data-no-expand>
-      <div className="grid w-[7.5rem] grid-cols-1 justify-items-end gap-1.5">
+      <div className="grid min-w-[7.5rem] w-max grid-cols-1 justify-items-end gap-1.5">
         <span className="w-full text-right tabular-nums text-sm font-semibold leading-none text-brand-navy">
           {formatImporto(p.importo_totale)}
         </span>
@@ -54,7 +54,7 @@ export default function PreventivoColonnaRiepilogo({
           onClick={azioniDisabilitate ? undefined : onStatoPress}
         />
         {p.pagato && p.data_pagamento && !collegamentoPiano ? (
-          <span className="text-right text-[11px] leading-none text-brand-navy/45">
+          <span className="whitespace-nowrap text-right text-[11px] leading-none text-brand-navy/45">
             Pagato il {formatData(p.data_pagamento)}
           </span>
         ) : null}

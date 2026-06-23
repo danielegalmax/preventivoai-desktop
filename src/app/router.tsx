@@ -18,6 +18,7 @@ import MessaggiClientePage from "../pages/MessaggiCliente";
 import Login from "../pages/Login";
 import Profilo from "../pages/Profilo";
 import AppSettings from "../pages/AppSettings";
+import ProdottiDigitali from "../pages/ProdottiDigitali";
 import Onboarding from "../pages/Onboarding";
 
 export default function AppRouter() {
@@ -32,6 +33,7 @@ export default function AppRouter() {
               <Route path="/" element={<Home />} />
               <Route path="/clienti" element={<Clienti />} />
               <Route path="/clienti/:id" element={<ClienteDettaglio />} />
+              <Route path="/prodotti-digitali" element={<ProdottiDigitali />} />
               <Route path="/storico" element={<Storico />} />
               <Route path="/cestino" element={<Cestino />} />
               <Route path="/nuovo" element={<NuovoHub />} />

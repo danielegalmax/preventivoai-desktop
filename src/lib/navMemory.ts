@@ -1,6 +1,7 @@
 type NavSection =
   | "home"
   | "clienti"
+  | "prodotti-digitali"
   | "storico"
   | "cestino"
   | "nuovo"
@@ -11,6 +12,7 @@ type NavSection =
 const SECTION_ROOTS: Record<NavSection, string> = {
   home: "/",
   clienti: "/clienti",
+  "prodotti-digitali": "/prodotti-digitali",
   storico: "/storico",
   cestino: "/cestino",
   nuovo: "/nuovo",
@@ -22,6 +24,7 @@ const SECTION_ROOTS: Record<NavSection, string> = {
 export function pathToSection(pathname: string): NavSection | null {
   if (pathname === "/") return "home";
   if (pathname.startsWith("/clienti")) return "clienti";
+  if (pathname.startsWith("/prodotti-digitali")) return "prodotti-digitali";
   if (pathname.startsWith("/storico")) return "storico";
   if (pathname.startsWith("/cestino")) return "cestino";
   if (pathname.startsWith("/nuovo")) return "nuovo";

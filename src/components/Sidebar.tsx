@@ -17,6 +17,7 @@ type NavItem = {
 type NavGroup = {
   title: string;
   items: NavItem[];
+  separated?: boolean;
 };
 
 const mainGroups: NavGroup[] = [
@@ -31,6 +32,11 @@ const mainGroups: NavGroup[] = [
       { to: "/storico", label: "Storico preventivi", icon: <IconFile /> },
       { to: "/clienti", label: "Clienti", icon: <IconUsers /> },
     ],
+  },
+  {
+    title: "Digitale",
+    items: [{ to: "/prodotti-digitali", label: "Prodotti digitali", icon: <IconPackage /> }],
+    separated: true,
   },
 ];
 
@@ -113,7 +119,7 @@ function NavSection({ group, currentSection, onNavigate }: {
   onNavigate: (to: string) => void;
 }) {
   return (
-    <div className="space-y-1">
+    <div className={group.separated ? "space-y-1 border-t border-white/10 pt-4" : "space-y-1"}>
       <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold tracking-widest text-white/35 uppercase">
         {group.title}
       </p>
@@ -211,6 +217,16 @@ function IconUsers() {
       <circle cx="10" cy="8" r="3" />
       <path strokeLinecap="round" d="M20 19v-1a3 3 0 0 0-2-2.8" />
       <path strokeLinecap="round" d="M15 4.2a3 3 0 0 1 0 5.6" />
+    </svg>
+  );
+}
+
+function IconPackage() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
+      <path strokeLinejoin="round" d="M12 3 3 7.5 12 12l9-4.5L12 3Z" />
+      <path strokeLinejoin="round" d="M3 7.5V16.5L12 21l9-4.5V7.5" />
+      <path strokeLinecap="round" d="M12 12v9" />
     </svg>
   );
 }
