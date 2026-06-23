@@ -313,8 +313,8 @@ export default function Nuovo({ mode }: Props) {
       caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito, error }) => {
         setMetodiPagamento(metodi);
         setErroreMetodiPagamento(error);
+        if (!predefinito) return;
         if (
-          predefinito &&
           !caricaBozzaManuale()?.metodoPagamentoSelezionato &&
           !caricaBozzaManuale()?.metodoPagamentoNessuno
         ) {
@@ -886,7 +886,8 @@ export default function Nuovo({ mode }: Props) {
       caricaMetodiPagamentoBuilder().then(({ metodiPagamento: metodi, predefinito, error }) => {
         setMetodiPagamento(metodi);
         setErroreMetodiPagamento(error);
-        if (predefinito) setMetodoPagamentoSelezionato(predefinito);
+        if (!predefinito) return;
+        setMetodoPagamentoSelezionato(predefinito);
       });
     }
 

@@ -62,7 +62,24 @@ export async function caricaMetodiPagamento(): Promise<{ data: MetodoPagamento[]
 
 export async function caricaMetodiPagamentoBuilder() {
   const { data, error } = await caricaMetodiPagamento();
-  const predefinito = data.find((m) => m.predefinito) || null;
+  let predefinito = data.find((m) => m.predefinito) || null;
+
+  if (predefinito?.tipo === "stripe") {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      predefinito = null;
+    } else {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("stripe_account_id, stripe_charges_enabled")
+        .eq("id", user.id)
+        .single();
+      if (prof?.stripe_charges_enabled !== true || !prof?.stripe_account_id) {
+        predefinito = null;
+      }
+    }
+  }
+
   const haContantiDb = data.some((m) => m.tipo === "contanti");
   return {
     metodiPagamento: haContantiDb ? data : [metodoContantiDefault, ...data],
