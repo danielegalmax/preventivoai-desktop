@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 export type VoceMenuAzione = {
@@ -16,10 +16,30 @@ type Props = {
 };
 
 const MENU_MIN_W = 152;
-const DEFAULT_TRIGGER =
+const TRIGGER_LIGHT =
   "inline-flex shrink-0 rounded px-1.5 py-0.5 text-lg leading-none text-brand-navy/50 hover:bg-brand-bg hover:text-brand-navy";
 
+const DEFAULT_TRIGGER =
+  TRIGGER_LIGHT + " dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white";
+
+const TRIGGER_DARK =
+  "inline-flex shrink-0 rounded px-1.5 py-0.5 text-lg leading-none text-white/60 hover:bg-white/10 hover:text-white";
+
+function getIsDarkTheme(): boolean {
+  return typeof document !== "undefined" && document.documentElement.dataset.theme === "dark";
+}
+
+function subscribeTheme(onStoreChange: () => void) {
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+  return () => observer.disconnect();
+}
+
 export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", triggerClassName, disabled = false }: Props) {
+  const isDark = useSyncExternalStore(subscribeTheme, getIsDarkTheme, () => false);
   const [aperto, setAperto] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -76,7 +96,9 @@ export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", trigg
     <div
       ref={menuRef}
       style={{ position: "fixed", top: coords.top, left: coords.left, zIndex: 9999 }}
-      className="min-w-[9.5rem] rounded-lg border border-black/10 bg-white py-1 shadow-lg"
+      className={`min-w-[9.5rem] rounded-lg border py-1 shadow-lg ${
+        isDark ? "border-white/10 bg-[#1e2d3d] text-white" : "border-black/10 bg-white text-brand-navy"
+      }`}
       data-no-expand
     >
       {visibili.map((v) => (
@@ -89,7 +111,13 @@ export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", trigg
             v.onClick();
           }}
           className={`block w-full px-3 py-2 text-left text-sm ${
-            v.danger ? "text-red-600 hover:bg-red-50" : "text-brand-navy hover:bg-brand-bg"
+            v.danger
+              ? isDark
+                ? "text-red-400 hover:bg-white/5"
+                : "text-red-600 hover:bg-red-50"
+              : isDark
+                ? "text-white hover:bg-white/10"
+                : "text-brand-navy hover:bg-brand-bg"
           }`}
         >
           {v.label}
@@ -107,7 +135,7 @@ export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", trigg
           e.stopPropagation();
           setAperto((v) => !v);
         }}
-        className={triggerClassName ?? DEFAULT_TRIGGER}
+        className={triggerClassName ?? (isDark ? TRIGGER_DARK : DEFAULT_TRIGGER)}
         aria-label={ariaLabel}
         aria-expanded={aperto}
         data-no-expand
