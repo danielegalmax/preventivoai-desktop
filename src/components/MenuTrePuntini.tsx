@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export type VoceMenuAzione = {
@@ -16,30 +16,34 @@ type Props = {
 };
 
 const MENU_MIN_W = 152;
-const TRIGGER_LIGHT =
-  "inline-flex shrink-0 rounded px-1.5 py-0.5 text-lg leading-none text-brand-navy/50 hover:bg-brand-bg hover:text-brand-navy";
+const TRIGGER_BASE =
+  "inline-flex shrink-0 rounded px-1.5 py-0.5 text-lg leading-none";
 
-const DEFAULT_TRIGGER =
-  TRIGGER_LIGHT + " dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white";
+const TRIGGER_LIGHT =
+  TRIGGER_BASE + " text-brand-navy/50 hover:bg-brand-bg hover:text-brand-navy";
 
 const TRIGGER_DARK =
-  "inline-flex shrink-0 rounded px-1.5 py-0.5 text-lg leading-none text-white/60 hover:bg-white/10 hover:text-white";
+  TRIGGER_BASE + " text-white/60 hover:bg-white/10 hover:text-white";
 
 function getIsDarkTheme(): boolean {
-  return typeof document !== "undefined" && document.documentElement.dataset.theme === "dark";
-}
-
-function subscribeTheme(onStoreChange: () => void) {
-  const observer = new MutationObserver(onStoreChange);
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"],
-  });
-  return () => observer.disconnect();
+  return document.documentElement.dataset.theme === "dark";
 }
 
 export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", triggerClassName, disabled = false }: Props) {
-  const isDark = useSyncExternalStore(subscribeTheme, getIsDarkTheme, () => false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(getIsDarkTheme());
+
+    const observer = new MutationObserver(() => {
+      setIsDark(getIsDarkTheme());
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
   const [aperto, setAperto] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -135,7 +139,7 @@ export default function MenuTrePuntini({ voci, ariaLabel = "Altre azioni", trigg
           e.stopPropagation();
           setAperto((v) => !v);
         }}
-        className={triggerClassName ?? (isDark ? TRIGGER_DARK : DEFAULT_TRIGGER)}
+        className={triggerClassName ?? (isDark ? TRIGGER_DARK : TRIGGER_LIGHT)}
         aria-label={ariaLabel}
         aria-expanded={aperto}
         data-no-expand
