@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { sessionToken } from "./settings";
+import { trackEvento } from "./track";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -83,6 +84,7 @@ export async function inviaPreventivoPerFirma(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
   if (data.error) throw new Error(data.error);
+  void trackEvento("firma_inviata", "firma");
   return data as InviaFirmaResult;
 }
 

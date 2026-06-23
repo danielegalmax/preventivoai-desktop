@@ -2,6 +2,7 @@ import { supabase } from "../supabase";
 import type { RataAbbonamento } from "../types";
 import { calcolaImportiRate, formatImportoEuro } from "preventivoai-shared";
 import { inputDateToIso, oggiInputDate } from "../format";
+import { trackEvento } from "../track";
 
 export type AbbonamentoOpError = {
   ok: false;
@@ -155,6 +156,7 @@ export async function registraPagamentoDb(
     return { ok: false, error: error.message };
   }
 
+  void trackEvento("pagamento_registrato", "cliente_dettaglio");
   return { ok: true, aggiornamento, nuovoSaldo };
 }
 

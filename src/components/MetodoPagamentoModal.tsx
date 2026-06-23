@@ -1,4 +1,5 @@
 import { iconaMetodoPagamento, type MetodoPagamento } from "../lib/pagamenti";
+import { trackEvento } from "../lib/track";
 
 type Props = {
   open: boolean;
@@ -60,6 +61,7 @@ export default function MetodoPagamentoModal({
                 key={m.id}
                 type="button"
                 onClick={() => {
+                  void trackEvento("metodo_pagamento_selezionato", "builder", { tipo: m.tipo });
                   onSelect(m);
                   onClose();
                 }}

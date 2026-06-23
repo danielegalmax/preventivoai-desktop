@@ -1,5 +1,6 @@
 import { sessionToken } from "./settings";
 import { serviziDaTesto } from "./serviziDaTesto";
+import { trackEvento } from "./track";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -52,6 +53,7 @@ export async function elaboraServiziDaTesto(testo: string): Promise<ServizioDraf
     if (fallback.length > 0) return fallback;
     throw new Error(data.error);
   }
+  void trackEvento("listino_testo_ai", "listino");
   return (data.servizi || []).map(normalizzaServizioAI);
 }
 
@@ -64,6 +66,7 @@ export async function elaboraServiziDaImmagine(immagineBase64: string, mimeType:
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
   if (data.error) throw new Error(data.error);
+  void trackEvento("listino_foto", "listino");
   return (data.servizi || []).map(normalizzaServizioAI);
 }
 
@@ -77,6 +80,7 @@ export async function trascriviAudio(audioBase64: string): Promise<string> {
   if (!res.ok) throw new Error(data.error || `Errore server (${res.status})`);
   if (data.error) throw new Error(data.error);
   if (!data.trascrizione) throw new Error("Nessuna trascrizione disponibile.");
+  void trackEvento("listino_vocale", "listino");
   return data.trascrizione as string;
 }
 

@@ -1,5 +1,6 @@
 import { parseImportoEuro } from "preventivoai-shared";
 import { supabase } from "./supabase";
+import { trackEvento } from "./track";
 import type { Servizio } from "./types";
 
 function parseCostoOptional(costo: string): { value: number | null; error: string | null } {
@@ -35,7 +36,7 @@ export async function creaServizio(input: { nome: string; descrizione: string; c
   const parsed = parseCostoOptional(input.costo);
   if (parsed.error) return { data: null, error: { message: parsed.error } };
 
-  return supabase
+  const result = await supabase
     .from("servizi")
     .insert({
       user_id: user.id,
@@ -47,6 +48,8 @@ export async function creaServizio(input: { nome: string; descrizione: string; c
     })
     .select()
     .single();
+  if (!result.error) void trackEvento("servizio_manuale_aggiunto", "listino");
+  return result;
 }
 
 export async function aggiornaServizio(id: string, input: { nome: string; descrizione: string; costo: string; unita: string }) {

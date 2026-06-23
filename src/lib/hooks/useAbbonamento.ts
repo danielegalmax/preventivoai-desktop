@@ -6,6 +6,7 @@ import { eventBus } from "../eventBus";
 import type { Abbonamento, PreventivoMadre, RataAbbonamento } from "../types";
 import { calcolaImportiRate, calcolaScadenzeRate, formatImportoEuro, rateScaduteDaSegnalare } from "preventivoai-shared";
 import { inputDateToIso, oggiInputDate } from "../format";
+import { trackEvento } from "../track";
 import {
   alertErroreAbbonamento as alertErrore,
   caricaPreventiviMadreMap,
@@ -181,6 +182,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
       return;
     }
 
+    void trackEvento("abbonamento_creato", "cliente_dettaglio", { tipo: "canone" });
     await carica();
   }
 
@@ -258,6 +260,7 @@ export function useAbbonamento(clienteId: string, opts?: UseAbbonamentoOpts) {
     if (errRate) { alertErrore("Errore", errRate); return null; }
     if (rateInserite.length === 0) return null;
 
+    void trackEvento("abbonamento_creato", "cliente_dettaglio", { tipo: "rate" });
     await carica();
     return {
       abbonamentoId: data.id as string,
