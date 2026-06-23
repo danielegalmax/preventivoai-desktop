@@ -3,7 +3,7 @@ import type { Preventivo } from "../lib/types";
 import { STATI_PREVENTIVO } from "../lib/preventivo";
 import { formatData, inputDateToIso, oggiInputDate } from "../lib/format";
 import ToggleSwitch from "./ToggleSwitch";
-import { useAppModalKeyboard } from "./ModalShell";
+import { useAppModalKeyboard, useModalBackdropClose } from "./ModalShell";
 import StatoPreventivoIcon from "./StatoPreventivoIcon";
 
 type Props = {
@@ -21,6 +21,7 @@ export default function PreventivoStatoModal({
   onTogglePagato,
   mostraTogglePagato = true,
 }: Props) {
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(onClose);
   const [salvandoPagato, setSalvandoPagato] = useState(false);
   const [mostraDataPagamento, setMostraDataPagamento] = useState(false);
   const [dataPagamento, setDataPagamento] = useState(oggiInputDate);
@@ -79,7 +80,11 @@ export default function PreventivoStatoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={handleBackdropMouseDown}
+      onMouseUp={handleBackdropMouseUp}
+    >
       <div
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}

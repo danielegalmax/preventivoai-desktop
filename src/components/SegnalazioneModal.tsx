@@ -2,7 +2,7 @@ import {
   SEGNALAZIONE_TIPI,
   type SegnalazioneForm,
 } from "../lib/segnalazioni";
-import { useAppModalKeyboard } from "./ModalShell";
+import { useAppModalKeyboard, useModalBackdropClose } from "./ModalShell";
 
 type Props = {
   open: boolean;
@@ -22,13 +22,15 @@ export default function SegnalazioneModal({
   onInvia,
 }: Props) {
   useAppModalKeyboard(onClose, { enabled: open });
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(onClose);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      onMouseDown={handleBackdropMouseDown}
+      onMouseUp={handleBackdropMouseUp}
     >
       <div
         className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-lg"

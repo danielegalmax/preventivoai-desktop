@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import PageContainer from "../components/PageContainer";
 import ToggleSwitch from "../components/ToggleSwitch";
 import { useSegnalazioneFeedback } from "../components/SegnalazioneProvider";
-import { useAppModalKeyboard } from "../components/ModalShell";
+import { useAppModalKeyboard, useModalBackdropClose } from "../components/ModalShell";
 import { sonoNotificheAbilitate, setNotificheAbilitate } from "../lib/notifications";
 import {
   aggiornaPasswordAccount,
@@ -41,6 +41,9 @@ export default function Profilo() {
       if (!verificandoPasswordElimina) void confermaPasswordEliminazione();
     },
   });
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(
+    chiudiModalPasswordElimina,
+  );
 
   useEffect(() => {
     caricaProfiloUtente().then((p) => {
@@ -169,7 +172,8 @@ export default function Profilo() {
       {modalPasswordElimina && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
-          onClick={chiudiModalPasswordElimina}
+          onMouseDown={handleBackdropMouseDown}
+          onMouseUp={handleBackdropMouseUp}
         >
           <div
             className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg"

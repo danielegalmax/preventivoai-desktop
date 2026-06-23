@@ -1,4 +1,47 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
+
+const BACKDROP_CLICK_MAX_DELTA_PX = 5;
+
+export function hasActiveTextSelection(): boolean {
+  const selection = window.getSelection();
+  return Boolean(selection && selection.toString().length > 0);
+}
+
+/** Evita chiusura accidentale del modal durante selezione testo o drag dal contenuto. */
+export function useModalBackdropClose(onClose: () => void) {
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  function handleBackdropMouseDown(e: MouseEvent<HTMLDivElement>) {
+    if (hasActiveTextSelection()) {
+      e.preventDefault();
+      return;
+    }
+    mouseDownTargetRef.current = e.target;
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function handleBackdropMouseUp(e: MouseEvent<HTMLDivElement>) {
+    const backdrop = e.currentTarget;
+    const mouseDownTarget = mouseDownTargetRef.current;
+    const mouseDownPos = mouseDownPosRef.current;
+    mouseDownTargetRef.current = null;
+    mouseDownPosRef.current = null;
+
+    if (e.target !== backdrop || mouseDownTarget !== backdrop) return;
+    if (hasActiveTextSelection()) return;
+
+    if (mouseDownPos) {
+      const dx = e.clientX - mouseDownPos.x;
+      const dy = e.clientY - mouseDownPos.y;
+      if (Math.hypot(dx, dy) >= BACKDROP_CLICK_MAX_DELTA_PX) return;
+    }
+
+    onClose();
+  }
+
+  return { handleBackdropMouseDown, handleBackdropMouseUp };
+}
 
 type ModalStackEntry = {
   onClose: () => void;
@@ -103,22 +146,10 @@ export default function ModalShell({
 }: Props) {
   const generatedTitleId = useId();
   const titleId = titleIdProp ?? (title ? generatedTitleId : undefined);
-  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const backdropClose = onBackdropClick ?? onClose;
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(backdropClose);
 
   useAppModalKeyboard(onClose, { onConfirm });
-
-  function handleBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    mouseDownTargetRef.current = e.target;
-  }
-
-  function handleBackdropMouseUp(e: React.MouseEvent<HTMLDivElement>) {
-    const backdrop = e.currentTarget;
-    if (e.target === backdrop && mouseDownTargetRef.current === backdrop) {
-      backdropClose();
-    }
-    mouseDownTargetRef.current = null;
-  }
 
   return (
     <div

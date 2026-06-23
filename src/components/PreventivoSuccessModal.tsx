@@ -6,7 +6,7 @@ import { buildMessaggioCondividiPdf } from "preventivoai-shared";
 import { caricaMessaggiCliente } from "../lib/messaggiCliente";
 import { aggiornaTitoloPreventivo } from "../lib/preventivo";
 import InviaFirmaModal from "./firma/InviaFirmaModal";
-import { useAppModalKeyboard } from "./ModalShell";
+import { useAppModalKeyboard, useModalBackdropClose } from "./ModalShell";
 
 export type PdfSuccessAzioni = {
   percorsoLocale?: string;
@@ -80,6 +80,9 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
   }
 
   useAppModalKeyboard(chiudiModal, { enabled: open });
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(() => {
+    void chiudiModal();
+  });
 
   if (!open) return null;
 
@@ -170,7 +173,8 @@ export default function PreventivoSuccessModal({ open, dettaglio, azioni, invio,
     <>
       <div
         className="fixed inset-0 z-[70] flex items-center justify-center bg-brand-navy/50 p-4 backdrop-blur-sm"
-        onClick={() => void chiudiModal()}
+        onMouseDown={handleBackdropMouseDown}
+        onMouseUp={handleBackdropMouseUp}
       >
         <div
           className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"

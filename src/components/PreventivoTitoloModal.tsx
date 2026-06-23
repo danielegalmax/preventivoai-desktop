@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useAppModalKeyboard } from "./ModalShell";
+import { useAppModalKeyboard, useModalBackdropClose } from "./ModalShell";
 
 type Props = {
   titoloIniziale: string;
@@ -10,6 +10,7 @@ type Props = {
 
 export default function PreventivoTitoloModal({ titoloIniziale, onClose, onSalva }: Props) {
   useAppModalKeyboard(onClose);
+  const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(onClose);
 
   const [titolo, setTitolo] = useState(titoloIniziale);
   const [salvando, setSalvando] = useState(false);
@@ -26,7 +27,11 @@ export default function PreventivoTitoloModal({ titoloIniziale, onClose, onSalva
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={handleBackdropMouseDown}
+      onMouseUp={handleBackdropMouseUp}
+    >
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg"
