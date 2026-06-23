@@ -89,12 +89,6 @@ export default function Login() {
     window.open(WEB_BASE_URL, "_blank", "noopener,noreferrer");
   }
 
-  function handleGoogle() {
-    window.alert(
-      "Il login con Google sarà disponibile in una versione successiva. Per ora usa email e password.",
-    );
-  }
-
   return (
     <div className="theme-surface flex h-screen overflow-hidden bg-brand-bg">
       <aside className="hidden w-[42%] max-w-xl flex-col justify-between bg-brand-navy p-10 text-white lg:flex">
@@ -270,21 +264,6 @@ export default function Login() {
                 </p>
               ) : null}
             </form>
-
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-black/10" />
-              <span className="text-xs text-brand-navy/45">oppure</span>
-              <div className="h-px flex-1 bg-black/10" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-brand-bg py-3 text-sm font-medium text-brand-navy hover:bg-brand-bg/80"
-            >
-              <span className="text-base font-bold text-[#EA4335]">G</span>
-              Continua con Google
-            </button>
           </div>
         </div>
       </div>
