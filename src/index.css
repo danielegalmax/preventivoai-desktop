@@ -78,6 +78,18 @@ textarea::placeholder {
   background-color: #ffffff !important;
 }
 
+.chat-error-box {
+  border: 1px solid #fecaca;
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+:root[data-theme="dark"] .chat-error-box {
+  border-color: rgb(153 27 27 / 0.5);
+  background-color: rgb(69 10 10 / 0.55);
+  color: rgb(252 165 165);
+}
+
 @keyframes preventivo-focus-flicker {
   0%, 100% {
     background-color: rgb(236 253 245 / 0.95);
