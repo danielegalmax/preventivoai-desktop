@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   SEGNALAZIONE_TIPI,
   type SegnalazioneForm,
@@ -10,7 +11,7 @@ type Props = {
   inviando: boolean;
   onClose: () => void;
   onChange: (patch: Partial<SegnalazioneForm>) => void;
-  onInvia: () => void;
+  onInvia: (form: SegnalazioneForm) => void;
 };
 
 export default function SegnalazioneModal({
@@ -23,6 +24,22 @@ export default function SegnalazioneModal({
 }: Props) {
   useAppModalKeyboard(onClose, { enabled: open });
   const { handleBackdropMouseDown, handleBackdropMouseUp } = useModalBackdropClose(onClose);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+
+  function selezionaScreenshot() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) setScreenshotFile(file);
+    };
+    input.click();
+  }
+
+  function inviaSegnalazione() {
+    onInvia({ ...form, screenshotFile: screenshotFile ?? undefined });
+  }
 
   if (!open) return null;
 
@@ -97,6 +114,31 @@ export default function SegnalazioneModal({
           </div>
 
           <div className="space-y-1">
+            <button
+              type="button"
+              onClick={selezionaScreenshot}
+              className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm font-semibold text-brand-teal hover:bg-brand-bg"
+            >
+              Allega screenshot (opzionale)
+            </button>
+            {screenshotFile != null && (
+              <div className="flex items-center gap-2 rounded-lg border border-black/10 bg-brand-bg/50 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate text-xs text-brand-navy/70">
+                  {screenshotFile.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setScreenshotFile(null)}
+                  className="shrink-0 text-brand-navy/40 hover:text-brand-navy"
+                  aria-label="Rimuovi screenshot"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
             <label className="text-sm text-brand-navy/70">Schermata (opzionale)</label>
             <input
               value={form.schermata}
@@ -121,7 +163,7 @@ export default function SegnalazioneModal({
           </button>
           <button
             type="button"
-            onClick={onInvia}
+            onClick={inviaSegnalazione}
             disabled={inviando}
             className="flex-1 rounded-xl bg-brand-teal py-2.5 text-sm font-semibold text-white hover:bg-brand-teal/90 disabled:opacity-60"
           >

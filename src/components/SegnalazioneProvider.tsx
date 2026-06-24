@@ -32,13 +32,13 @@ export function SegnalazioneProvider({ children }: { children: ReactNode }) {
     setForm((prev) => ({ ...prev, ...patch }));
   }
 
-  async function invia() {
-    if (!form.titolo.trim() || !form.descrizione.trim()) {
+  async function invia(formInvio: SegnalazioneForm) {
+    if (!formInvio.titolo.trim() || !formInvio.descrizione.trim()) {
       window.alert("Inserisci titolo e descrizione.");
       return;
     }
     setInviando(true);
-    const { error, user } = await inviaSegnalazione(form);
+    const { error, user } = await inviaSegnalazione(formInvio);
     setInviando(false);
     if (!user) return;
     if (error) {
@@ -59,7 +59,7 @@ export function SegnalazioneProvider({ children }: { children: ReactNode }) {
         inviando={inviando}
         onClose={() => setOpen(false)}
         onChange={patchForm}
-        onInvia={() => void invia()}
+        onInvia={(formInvio) => void invia(formInvio)}
       />
     </SegnalazioneContext.Provider>
   );
