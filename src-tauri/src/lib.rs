@@ -17,58 +17,6 @@ use tauri_plugin_opener::OpenerExt;
 const MENU_OPEN: &str = "tray-open";
 const MENU_QUIT: &str = "tray-quit";
 const NOTIFICATION_POLL_INTERVAL_SECS: u64 = 35;
-const TARGET_WINDOW_WIDTH: f64 = 1800.0;
-const TARGET_WINDOW_HEIGHT: f64 = 1020.0;
-
-#[cfg(target_os = "windows")]
-fn enable_windows_dpi_awareness() {
-    use std::sync::Once;
-
-    static INIT: Once = Once::new();
-    INIT.call_once(|| {
-        #[link(name = "shcore")]
-        extern "system" {
-            fn SetProcessDpiAwareness(value: i32) -> i32;
-        }
-
-        #[link(name = "user32")]
-        extern "system" {
-            fn SetProcessDPIAware() -> i32;
-        }
-
-        unsafe {
-            // PROCESS_PER_MONITOR_DPI_AWARE = 2
-            if SetProcessDpiAwareness(2) == 0 {
-                return;
-            }
-            let _ = SetProcessDPIAware();
-        }
-    });
-}
-
-fn configure_window_display(window: &tauri::WebviewWindow) {
-    #[cfg(target_os = "windows")]
-    enable_windows_dpi_awareness();
-
-    let Ok(Some(monitor)) = window.current_monitor() else {
-        let _ = window.set_zoom(1.0);
-        return;
-    };
-
-    let monitor_size = monitor.size();
-    let scale_factor = monitor.scale_factor();
-    let logical_width = monitor_size.width as f64 / scale_factor;
-    let logical_height = monitor_size.height as f64 / scale_factor;
-
-    if logical_width <= 1920.0 && logical_height <= 1080.0 {
-        let width_ratio = (logical_width * 0.96) / TARGET_WINDOW_WIDTH;
-        let height_ratio = (logical_height * 0.92) / TARGET_WINDOW_HEIGHT;
-        let zoom = width_ratio.min(height_ratio).min(1.0).max(0.75);
-        let _ = window.set_zoom(zoom);
-    } else {
-        let _ = window.set_zoom(1.0);
-    }
-}
 
 #[derive(Clone)]
 struct SessionInfo {
@@ -366,9 +314,6 @@ fn reveal_pdf_in_folder(app: tauri::AppHandle, path: String) -> Result<(), Strin
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[cfg(target_os = "windows")]
-    enable_windows_dpi_awareness();
-
     let notification_state = Arc::new(NotificationSessionState::default());
     let poller_state = notification_state.clone();
 
@@ -420,10 +365,6 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
-
-            if let Some(window) = app.get_webview_window("main") {
-                configure_window_display(&window);
-            }
 
             Ok(())
         })

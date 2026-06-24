@@ -26,7 +26,7 @@ export default function PreventivoPdfPreview({ html, loading, className = "", fi
           <PreviewPaginata
             htmlContent={html}
             onEspandi={() => setEspansa(true)}
-            className={fillHeight ? "min-h-0" : "min-h-[420px] lg:min-h-[480px]"}
+            className={fillHeight ? "min-h-0" : "min-h-[420px] lg:min-h-[420px]"}
           />
         ) : (
           <div

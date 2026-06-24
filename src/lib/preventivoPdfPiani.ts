@@ -112,6 +112,7 @@ type TestoConPagamentoParams = {
   rateAccontoTipo?: RateAccontoTipo;
   rateAccontoValore?: string;
   accontoLinkPrecomputato?: string;
+  preventivoId: string;
   metodoPagamento: MetodoPagamento | null;
   token: string;
 };

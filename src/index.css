@@ -1,11 +1,5 @@
 @import "tailwindcss";
 
-@media screen and (max-height: 1080px) and (max-width: 1920px) {
-  html {
-    font-size: 14px;
-  }
-}
-
 @theme {
   --color-brand-navy: #0D1B2A;
   --color-brand-teal: #0E9F8E;

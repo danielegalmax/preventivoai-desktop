@@ -43,6 +43,7 @@ export async function eliminaAccount() {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     },
+    body: JSON.stringify({ confirm: "ELIMINA" }),
   });
 
   const data = await res.json().catch(() => ({}));

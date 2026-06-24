@@ -10,6 +10,7 @@ import {
 export type PreparaTestoPdfParams = {
   testo: string;
   token: string;
+  preventivoId: string;
   mode: "chat" | "manuale";
   totaleConIva: number;
   abbonamentoAttivo: boolean;
@@ -33,6 +34,7 @@ export async function preparaTestoPerPdfNuovo(params: PreparaTestoPdfParams): Pr
   const {
     testo,
     token,
+    preventivoId,
     mode,
     totaleConIva,
     abbonamentoAttivo,
@@ -75,6 +77,7 @@ export async function preparaTestoPerPdfNuovo(params: PreparaTestoPdfParams): Pr
     rateAccontoTipo,
     rateAccontoValore,
     accontoLinkPrecomputato,
+    preventivoId,
     metodoPagamento,
     token,
   });

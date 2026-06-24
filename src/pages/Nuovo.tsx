@@ -19,7 +19,7 @@ import { calcolaTotaleVoci, calcolaTotaleTrasferte } from "../lib/builder";
 import type { TrasfertaBuilder, VoceBuilder } from "../lib/builder";
 import { caricaMetodiPagamentoBuilder } from "../lib/pagamenti";
 import type { MetodoPagamento } from "../lib/pagamenti";
-import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale, creaLinkPagamentoRata } from "../lib/pdf";
+import { generaPDF, generaPDFFile, aggiornaLogoCacheInHtml, formatNomeFilePdf, salvaPDF, scaricaPdfLocale, creaLinkPagamento, creaLinkPagamentoRata } from "../lib/pdf";
 import { calcolaAccontoSaldoPiano, generaLinkPaypalMe, importoDaTesto, meseCorrenteString, validaPianiPagamento, type RateAccontoTipo, type RateModalitaPiano } from "preventivoai-shared";
 import {
   creaPianoRateDaPreventivo,
@@ -561,10 +561,15 @@ export default function Nuovo({ mode }: Props) {
     }
   }
 
-  async function preparaTestoPerPdf(testo: string, accontoLinkPrecomputato?: string): Promise<string> {
+  async function preparaTestoPerPdf(
+    testo: string,
+    preventivoId: string,
+    accontoLinkPrecomputato?: string,
+  ): Promise<string> {
     return preparaTestoPerPdfNuovo({
       testo,
       token,
+      preventivoId,
       mode,
       totaleConIva,
       abbonamentoAttivo,
@@ -609,7 +614,7 @@ export default function Nuovo({ mode }: Props) {
     if (!preventivo || !token) return;
     setCaricandoPreview(true);
     try {
-      const testoFinale = await preparaTestoPerPdf(preventivo);
+      const testoFinale = await preparaTestoPerPdf(preventivo, '');
       const data = await generaPDF({
         testo: testoFinale,
         template,
@@ -742,8 +747,8 @@ export default function Nuovo({ mode }: Props) {
         }
       }
 
-      const testoFinale = await preparaTestoPerPdf(preventivo, accontoLinkPrecomputato);
-      const data = await generaPDFFile({
+      let testoFinale = await preparaTestoPerPdf(preventivo, "", accontoLinkPrecomputato);
+      let data = await generaPDFFile({
         testo: testoFinale,
         template,
         token,
@@ -779,6 +784,34 @@ export default function Nuovo({ mode }: Props) {
       if (error) throw new Error(error.message);
       const idPerPiani = id ?? null;
       setSalvato(true);
+
+      const metodo = metodoPagamentoSelezionato;
+      if (idPerPiani && metodo?.tipo === "stripe" && !accontoLinkPrecomputato) {
+        const { payment_url } = await creaLinkPagamento(idPerPiani, "Preventivo", token);
+        testoFinale = testoFinale.replace("[PAGAMENTO_ONLINE]", payment_url);
+        data = await generaPDFFile({
+          testo: testoFinale,
+          template,
+          token,
+          cliente_id: clienteSelezionatoId,
+          versione_padre_id: versionePadreId,
+          nascondi_prezzi: nascondiPrezzi,
+        });
+        try {
+          const upload = await salvaPDF(data.pdf_base64, token);
+          urlCaricato = upload.pdfUrl;
+          storagePathCaricato = upload.storagePath || "";
+        } catch (err) {
+          console.warn("Upload PDF finale fallito:", err);
+        }
+        await supabase
+          .from("preventivi")
+          .update({
+            testo_preventivo: testoFinale,
+            pdf_url: storagePathCaricato || urlCaricato || null,
+          })
+          .eq("id", idPerPiani);
+      }
 
       if (idPerPiani) {
         if (accontoAbbonamentoId) {

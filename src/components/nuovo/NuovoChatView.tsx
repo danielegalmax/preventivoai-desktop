@@ -202,7 +202,7 @@ export default function NuovoChatView({
 
   return (
 
-    <div className="mt-4 flex min-h-[calc(100vh-16rem)] flex-col overflow-hidden rounded-2xl border border-edge-faint bg-surface shadow-sm">
+    <div className="mt-4 flex min-h-[calc(100vh-14rem)] flex-col overflow-hidden rounded-2xl border border-edge-faint bg-surface shadow-sm">
 
       <div className="shrink-0 border-b border-edge-faint px-4 py-3">
 
