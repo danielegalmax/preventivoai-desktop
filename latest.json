@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "notes": "Release v1.0.0-beta — fix sconto, logo, modal post-PDF, indirizzo cliente",
+  "pub_date": "2026-06-25T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSdkRBQzJNNzhyV0dDdGVLeHg4SW5tMWxLb1htZDB4MXplLzIrN2NaQlYwR0E4Rlp4blNDTG1INjcvanloT2FOdTJ4UDM1SGJoN2tlU3FMMEExcUNYSGdGQ1N0U3UzWEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDEzNTkzCWZpbGU6cHJldmVudGl2b2FpLWRlc2t0b3BfMS4wLjBfeDY0LXNldHVwLmV4ZQpkWEp4R2xDeitRSTZLREdOWXZxaEF5ZkFoaDkwV1FqRGNZZUFHMnV5akZoLzRESXdkUzNNK0NoSDJjd2h3SkpBTnBSUHdCQTl6RERFeHNCV1hYQmtCdz09Cg==",
+      "url": "https://github.com/danielegalmax/preventivoai-desktop/releases/latest/download/preventivoai-desktop_1.0.0_x64-setup.exe"
+    }
+  }
+}
