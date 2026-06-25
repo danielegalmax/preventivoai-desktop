@@ -34,7 +34,7 @@ export async function caricaClienti(): Promise<Cliente[]> {
   return clientiConConteggio;
 }
 
-export async function creaCliente(dati: { nome: string; telefono: string; email: string; note: string }) {
+export async function creaCliente(dati: { nome: string; telefono: string; email: string; note: string; indirizzo?: string }) {
   if (!dati.nome.trim()) {
     return { data: null, error: { message: "Inserisci almeno il nome del cliente" } };
   }
@@ -46,7 +46,14 @@ export async function creaCliente(dati: { nome: string; telefono: string; email:
 
   const result = await supabase
     .from("clienti")
-    .insert({ ...dati, user_id: user.id })
+    .insert({
+      nome: dati.nome,
+      telefono: dati.telefono,
+      email: dati.email,
+      note: dati.note,
+      indirizzo: dati.indirizzo || null,
+      user_id: user.id,
+    })
     .select()
     .single();
 
@@ -107,13 +114,18 @@ async function eliminaDatiCollegatiClienti(clienteIds: string[]) {
 
 export async function aggiornaCliente(
   id: string,
-  dati: { nome?: string; telefono?: string; email?: string; note?: string },
+  dati: { nome?: string; telefono?: string; email?: string; note?: string; indirizzo?: string },
 ) {
   if (dati.nome !== undefined && !dati.nome.trim()) {
     return { data: null, error: { message: "Inserisci almeno il nome del cliente" } };
   }
 
-  return supabase.from("clienti").update(dati).eq("id", id).select().single();
+  const payload = {
+    ...dati,
+    ...(dati.indirizzo !== undefined ? { indirizzo: dati.indirizzo || null } : {}),
+  };
+
+  return supabase.from("clienti").update(payload).eq("id", id).select().single();
 }
 
 export async function eliminaClienti(ids: string[]) {

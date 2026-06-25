@@ -438,6 +438,15 @@ export default function Nuovo({ mode }: Props) {
 
   const totaleBase = calcolaTotaleVoci(voci) + calcolaTotaleTrasferte(trasferte);
   const totaleConIva = includiIva ? totaleBase * 1.22 : totaleBase;
+  const importoSconto = (() => {
+    if (!scontoAttivo || !scontoValore) return 0;
+    const val = parseFloat(scontoValore.replace(",", "."));
+    if (isNaN(val) || val <= 0) return 0;
+    return scontoTipo === "percentuale"
+      ? totaleConIva * (val / 100)
+      : Math.min(val, totaleConIva);
+  })();
+  const totaleConSconto = Math.max(0, totaleConIva - importoSconto);
   const importoAnteprima = mode === "manuale" ? totaleConIva : (importoDaTesto(preventivo) || 0);
 
   function clienteCollegato() {
@@ -524,7 +533,7 @@ export default function Nuovo({ mode }: Props) {
     rateModalita,
     rateAccontoTipo,
     rateAccontoValore,
-    totaleConIva,
+    totaleConIva: totaleConSconto,
     scontoAttivo,
     scontoTipo,
     scontoValore,
@@ -1218,7 +1227,7 @@ export default function Nuovo({ mode }: Props) {
 
       {builderManualeAttivo && (
         <BuilderFooterBar
-          totale={totaleConIva}
+          totale={totaleConSconto}
           buttonLabel="Genera preventivo"
           disabled={vociValide.length === 0}
           onPress={generaDaBuilder}

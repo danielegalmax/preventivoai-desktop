@@ -17,6 +17,7 @@ export default function ClienteModificaModal({ cliente, onClose, onSaved }: Prop
   const [nome, setNome] = useState(cliente.nome);
   const [telefono, setTelefono] = useState(cliente.telefono || "");
   const [email, setEmail] = useState(cliente.email || "");
+  const [indirizzo, setIndirizzo] = useState(cliente.indirizzo || "");
   const [note, setNote] = useState(cliente.note || "");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +26,7 @@ export default function ClienteModificaModal({ cliente, onClose, onSaved }: Prop
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const { data, error: err } = await aggiornaCliente(cliente.id, { nome, telefono, email, note });
+    const { data, error: err } = await aggiornaCliente(cliente.id, { nome, telefono, email, indirizzo, note });
     setSubmitting(false);
     if (err) {
       setError(err.message);
@@ -68,6 +69,16 @@ export default function ClienteModificaModal({ cliente, onClose, onSaved }: Prop
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={PLACEHOLDER.email}
+            className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-brand-navy/70">Indirizzo</label>
+          <input
+            value={indirizzo}
+            onChange={(e) => setIndirizzo(e.target.value)}
+            placeholder={PLACEHOLDER.indirizzo}
             className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-teal"
           />
         </div>
