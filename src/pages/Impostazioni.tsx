@@ -9,9 +9,11 @@ import type { SettingsForm } from "../lib/settings";
 import PageContainer from "../components/PageContainer";
 import SettingsNavLink, { SETTINGS_NAV_ICONS } from "../components/settings/SettingsNavLink";
 import SettingsIdentitaSection from "../components/settings/SettingsIdentitaSection";
+import LogoCropModal from "../components/settings/LogoCropModal";
 import BrandColorPicker from "../components/settings/BrandColorPicker";
 import { TONI } from "../lib/settingsConstants";
 import { MESSAGGI_CLIENTE_DEFAULT } from "preventivoai-shared";
+import { emitAggiornaProfilo } from "../lib/eventBus";
 
 const FORM_VUOTO: SettingsForm = {
   nome_azienda: "",
@@ -55,6 +57,7 @@ export default function Impostazioni() {
   const [errore, setErrore] = useState("");
   const [coloreExpanded, setColoreExpanded] = useState(false);
   const [noteExpanded, setNoteExpanded] = useState(false);
+  const [cropPreview, setCropPreview] = useState<{ src: string; file: File } | null>(null);
 
   useEffect(() => {
     Promise.all([caricaSettingsData(), sessionToken()]).then(([data, accessToken]) => {
@@ -72,8 +75,42 @@ export default function Impostazioni() {
     setForm((f) => ({ ...f, [campo]: valore }));
   }
 
+  function chiudiCropPreview() {
+    if (cropPreview?.src) URL.revokeObjectURL(cropPreview.src);
+    setCropPreview(null);
+  }
+
+  async function proseguiUploadLogo(logoBase64: string, mimeType: string) {
+    if (!token) {
+      setErrore("Sessione scaduta. Rieffettua il login.");
+      return;
+    }
+
+    setUploadingLogo(true);
+    setErrore("");
+    setMessaggio("");
+    try {
+      const nuovoLogoUrl = await uploadLogoSettings({
+        logoBase64,
+        mimeType,
+        token,
+      });
+      setLogoUrl(nuovoLogoUrl);
+      setLogoCacheKey(Date.now());
+      setMessaggio("Logo caricato. Apparirà sui preventivi PDF.");
+      emitAggiornaProfilo();
+    } catch (err) {
+      setErrore(err instanceof Error ? err.message : "Errore caricamento logo");
+    }
+    setUploadingLogo(false);
+  }
+
   async function handleLogoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    if (!token) {
+      setErrore("Sessione scaduta. Rieffettua il login.");
+      return;
+    }
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -89,24 +126,26 @@ export default function Impostazioni() {
       return;
     }
 
-    setUploadingLogo(true);
     setErrore("");
     setMessaggio("");
-    try {
-      const logoBase64 = await fileToBase64(file);
-      const nuovoLogoUrl = await uploadLogoSettings({
-        logoBase64,
-        mimeType: file.type || "image/png",
-        token,
-      });
-      setLogoUrl(nuovoLogoUrl);
-      setLogoCacheKey(Date.now());
-      setMessaggio("Logo caricato. Apparirà sui preventivi PDF.");
-    } catch (err) {
-      setErrore(err instanceof Error ? err.message : "Errore caricamento logo");
-    }
-    setUploadingLogo(false);
+    chiudiCropPreview();
+    setCropPreview({ src: URL.createObjectURL(file), file });
     e.target.value = "";
+  }
+
+  async function usaLogoIntero() {
+    if (!cropPreview) return;
+    const { file } = cropPreview;
+    const logoBase64 = await fileToBase64(file);
+    chiudiCropPreview();
+    await proseguiUploadLogo(logoBase64, file.type || "image/png");
+  }
+
+  async function confermaLogoRitagliato(base64: string) {
+    if (!cropPreview) return;
+    const mimeType = cropPreview.file.type || "image/png";
+    chiudiCropPreview();
+    await proseguiUploadLogo(base64, mimeType);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -133,6 +172,15 @@ export default function Impostazioni() {
 
   return (
     <PageContainer>
+      {cropPreview ? (
+        <LogoCropModal
+          imageSrc={cropPreview.src}
+          mimeType={cropPreview.file.type || "image/png"}
+          onClose={chiudiCropPreview}
+          onUseFull={() => void usaLogoIntero()}
+          onConfirmCrop={(base64) => void confermaLogoRitagliato(base64)}
+        />
+      ) : null}
       <h1 className="text-2xl font-semibold text-brand-navy">Impostazioni</h1>
       <p className="mt-1 text-brand-navy/60">Dati azienda usati nei preventivi.</p>
 
@@ -145,6 +193,8 @@ export default function Impostazioni() {
           fileInputRef={fileInputRef}
           onLogoChange={handleLogoChange}
           onFieldChange={aggiorna}
+          errore={errore}
+          messaggio={messaggio}
         />
 
         <BrandColorPicker
@@ -223,9 +273,6 @@ export default function Impostazioni() {
           subtitle="Messaggi, link firma digitale e reminder"
           icon={SETTINGS_NAV_ICONS.messaggi}
         />
-
-        {errore && <p className="text-sm text-red-600">{errore}</p>}
-        {messaggio && <p className="text-sm text-brand-teal">{messaggio}</p>}
 
         <button
           type="submit"

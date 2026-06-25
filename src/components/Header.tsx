@@ -4,7 +4,9 @@ import { signOut } from "../lib/auth";
 import { caricaHeaderProfilo, type HeaderProfilo } from "../lib/greeting";
 import { isDarkMode, setDarkMode } from "../lib/theme";
 import { isDesktopApp } from "../lib/appSettings";
+import { onAggiornaProfilo } from "../lib/eventBus";
 import { onNativeNotificationSyncStatus } from "../lib/nativeNotificationSession";
+import { supabase } from "../lib/supabase";
 import ToggleSwitch from "./ToggleSwitch";
 import NotificheBell from "./NotificheBell";
 import { useSegnalazioneFeedback } from "./SegnalazioneProvider";
@@ -24,6 +26,43 @@ export default function Header() {
 
   useEffect(() => {
     void caricaHeaderProfilo().then(setProfilo);
+  }, []);
+
+  useEffect(() => {
+    return onAggiornaProfilo(() => {
+      void caricaHeaderProfilo().then(setProfilo);
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      channel = supabase
+        .channel("header-profilo")
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          () => {
+            void caricaHeaderProfilo().then(setProfilo);
+          },
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -74,11 +113,7 @@ export default function Header() {
           aria-haspopup="menu"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-teal text-sm font-bold text-white shadow-sm">
-            {profilo?.logoUrl ? (
-              <img src={profilo.logoUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              profilo?.iniziale || "P"
-            )}
+            {profilo?.iniziale || "P"}
           </div>
           <div className="hidden min-w-0 text-left sm:block">
             <p className="truncate text-sm font-semibold text-ink">

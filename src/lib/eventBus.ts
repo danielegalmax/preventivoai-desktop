@@ -10,6 +10,8 @@ type NotificaApriPayload = { notifica: Notifica }
 
 const homeListeners = new Set<() => void>()
 
+const profiloListeners = new Set<() => void>()
+
 const notificaListeners = new Set<(payload: NotificaApriPayload) => void>()
 
 
@@ -64,5 +66,16 @@ export const eventBus = {
 
   },
 
+}
+
+export function emitAggiornaProfilo(): void {
+  profiloListeners.forEach((handler) => handler())
+}
+
+export function onAggiornaProfilo(cb: () => void): () => void {
+  profiloListeners.add(cb)
+  return () => {
+    profiloListeners.delete(cb)
+  }
 }
 

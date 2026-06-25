@@ -90,6 +90,7 @@ export async function uploadLogoSettings({
   mimeType: string;
   token: string;
 }) {
+  if (!token) throw new Error("Token mancante");
   const res = await fetch(`${BACKEND_URL}/api/upload-logo`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

@@ -20,6 +20,8 @@ type Props = {
   fileInputRef: RefObject<HTMLInputElement | null>;
   onLogoChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onFieldChange: <K extends keyof SettingsForm>(campo: K, valore: SettingsForm[K]) => void;
+  errore: string;
+  messaggio: string;
 };
 
 export default function SettingsIdentitaSection({
@@ -30,6 +32,8 @@ export default function SettingsIdentitaSection({
   fileInputRef,
   onLogoChange,
   onFieldChange,
+  errore,
+  messaggio,
 }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [subTab, setSubTab] = useState<SubTab>("logo");
@@ -68,6 +72,7 @@ export default function SettingsIdentitaSection({
             {subTab === "logo" && (
               <>
                 <p className="text-xs text-brand-navy/50">Apparirà sui preventivi PDF. Max 500KB.</p>
+                <p className="text-xs text-brand-navy/50">Risoluzione consigliata: 400×100px, sfondo trasparente o bianco.</p>
                 {logoUrl ? (
                   <img
                     src={`${logoUrl}?v=${logoCacheKey}`}
@@ -88,6 +93,8 @@ export default function SettingsIdentitaSection({
                 >
                   {uploadingLogo ? "Caricamento..." : logoUrl ? "Cambia logo" : "Carica logo"}
                 </button>
+                {errore && <p className="text-sm text-red-600">{errore}</p>}
+                {messaggio && <p className="text-sm text-brand-teal">{messaggio}</p>}
               </>
             )}
 
