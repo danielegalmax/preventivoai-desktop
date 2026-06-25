@@ -9,6 +9,7 @@ import PagamentoCard from "../PagamentoCard";
 import IvaCard from "../IvaCard";
 import ServiziListinoCard from "../ServiziListinoCard";
 import TrasferteCard from "../TrasferteCard";
+import ScontoCard from "../ScontoCard";
 import VociPreventivoSection from "../VociPreventivoSection";
 
 type Props = {
@@ -37,6 +38,13 @@ type Props = {
   setTrasferte: Dispatch<SetStateAction<TrasfertaBuilder[]>>;
   mostraTrasferte: boolean;
   setMostraTrasferte: Dispatch<SetStateAction<boolean>>;
+  scontoAttivo: boolean;
+  scontoTipo: "percentuale" | "fisso";
+  scontoValore: string;
+  onToggleScontoAttivo: () => void;
+  onChangeScontoTipo: (tipo: "percentuale" | "fisso") => void;
+  onChangeScontoValore: (value: string) => void;
+  totaleBase: number;
   noteExtra: string;
   onNoteExtraChange: (value: string) => void;
   profiloFiscale: ProfiloFiscale | null;
@@ -80,6 +88,13 @@ export default function NuovoBuilderView({
   setTrasferte,
   mostraTrasferte,
   setMostraTrasferte,
+  scontoAttivo,
+  scontoTipo,
+  scontoValore,
+  onToggleScontoAttivo,
+  onChangeScontoTipo,
+  onChangeScontoValore,
+  totaleBase,
   noteExtra,
   onNoteExtraChange,
   profiloFiscale,
@@ -138,6 +153,16 @@ export default function NuovoBuilderView({
         setTrasferte={setTrasferte}
         mostraTrasferte={mostraTrasferte}
         setMostraTrasferte={setMostraTrasferte}
+      />
+
+      <ScontoCard
+        scontoAttivo={scontoAttivo}
+        scontoTipo={scontoTipo}
+        scontoValore={scontoValore}
+        onToggle={onToggleScontoAttivo}
+        onChangeTipo={onChangeScontoTipo}
+        onChangeValore={onChangeScontoValore}
+        totaleBase={totaleBase}
       />
 
       <div className="mt-8 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">

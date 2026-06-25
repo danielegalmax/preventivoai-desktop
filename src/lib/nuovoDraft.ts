@@ -58,8 +58,28 @@ export type NuovoManualeDraft = {
   rateVisibileNelPDF: boolean;
   rateAccontoTipo: RateAccontoTipo;
   rateAccontoValore: string;
+  scontoAttivo: boolean;
+  scontoTipo: "percentuale" | "fisso";
+  scontoValore: string;
   aggiornatoAt?: string;
 };
+
+export function scontoDraftDefault(): Pick<NuovoManualeDraft, "scontoAttivo" | "scontoTipo" | "scontoValore"> {
+  return {
+    scontoAttivo: false,
+    scontoTipo: "percentuale",
+    scontoValore: "",
+  };
+}
+
+function normalizzaBozzaManuale(parsed: NuovoManualeDraft): NuovoManualeDraft {
+  return {
+    ...parsed,
+    scontoAttivo: parsed.scontoAttivo ?? false,
+    scontoTipo: parsed.scontoTipo ?? "percentuale",
+    scontoValore: parsed.scontoValore ?? "",
+  };
+}
 
 /** Bozze salvate prima di pianoPagamentoTipo unificato. */
 type NuovoManualeDraftLegacy = NuovoManualeDraft & {
@@ -188,7 +208,9 @@ export function cancellaBozzaChat() {
 }
 
 export function caricaBozzaManuale(): NuovoManualeDraft | null {
-  return load<NuovoManualeDraft>(MANUALE_KEY);
+  const draft = load<NuovoManualeDraft>(MANUALE_KEY);
+  if (!draft) return null;
+  return normalizzaBozzaManuale(draft);
 }
 
 export function salvaBozzaManuale(draft: NuovoManualeDraft) {

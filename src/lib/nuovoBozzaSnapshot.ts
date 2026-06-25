@@ -33,6 +33,9 @@ type NuovoManualeDraftInput = {
   rateVisibileNelPDF: boolean;
   rateAccontoTipo: RateAccontoTipo;
   rateAccontoValore: string;
+  scontoAttivo: boolean;
+  scontoTipo: "percentuale" | "fisso";
+  scontoValore: string;
 };
 
 export function buildNuovoManualeDraft(
@@ -69,6 +72,9 @@ export function buildNuovoManualeDraft(
     rateVisibileNelPDF: state.rateVisibileNelPDF,
     rateAccontoTipo: state.rateAccontoTipo,
     rateAccontoValore: state.rateAccontoValore,
+    scontoAttivo: state.scontoAttivo,
+    scontoTipo: state.scontoTipo,
+    scontoValore: state.scontoValore,
     ...override,
   };
 }

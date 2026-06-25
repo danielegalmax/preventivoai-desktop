@@ -122,6 +122,15 @@ export default function Nuovo({ mode }: Props) {
   const [mostraTrasferte, setMostraTrasferte] = useState(
     () => (mode === "manuale" ? caricaBozzaManuale()?.mostraTrasferte : undefined) ?? false,
   );
+  const [scontoAttivo, setScontoAttivo] = useState(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.scontoAttivo : undefined) ?? false,
+  );
+  const [scontoTipo, setScontoTipo] = useState<"percentuale" | "fisso">(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.scontoTipo : undefined) ?? "percentuale",
+  );
+  const [scontoValore, setScontoValore] = useState(
+    () => (mode === "manuale" ? caricaBozzaManuale()?.scontoValore : undefined) ?? "",
+  );
   const [metodiPagamento, setMetodiPagamento] = useState<MetodoPagamento[]>([]);
   const [metodoPagamentoSelezionato, setMetodoPagamentoSelezionato] = useState<MetodoPagamento | null>(
     () => (mode === "manuale" ? caricaBozzaManuale()?.metodoPagamentoSelezionato : undefined) ?? null,
@@ -256,6 +265,9 @@ export default function Nuovo({ mode }: Props) {
         rateVisibileNelPDF,
         rateAccontoTipo,
         rateAccontoValore,
+        scontoAttivo,
+        scontoTipo,
+        scontoValore,
       },
       override,
     );
@@ -413,6 +425,9 @@ export default function Nuovo({ mode }: Props) {
     rateVisibileNelPDF,
     rateAccontoTipo,
     rateAccontoValore,
+    scontoAttivo,
+    scontoTipo,
+    scontoValore,
     inModifica,
   ]);
 
@@ -484,6 +499,7 @@ export default function Nuovo({ mode }: Props) {
     rimuoviVoce,
     aggiungiServizioListino,
     generaDaBuilder,
+    totaleBase: totaleBaseBuilder,
   } = useNuovoBuilderVoci({
     voci,
     servizi,
@@ -509,6 +525,9 @@ export default function Nuovo({ mode }: Props) {
     rateAccontoTipo,
     rateAccontoValore,
     totaleConIva,
+    scontoAttivo,
+    scontoTipo,
+    scontoValore,
     vaiAllAnteprima,
   });
 
@@ -901,6 +920,9 @@ export default function Nuovo({ mode }: Props) {
     setStoricoVoci([]);
     setTrasferte([]);
     setMostraTrasferte(false);
+    setScontoAttivo(false);
+    setScontoTipo("percentuale");
+    setScontoValore("");
     setMetodoPagamentoSelezionato(null);
     setMetodoPagamentoNessuno(false);
     setMetodiPagamento([]);
@@ -1056,6 +1078,13 @@ export default function Nuovo({ mode }: Props) {
           setTrasferte={setTrasferte}
           mostraTrasferte={mostraTrasferte}
           setMostraTrasferte={setMostraTrasferte}
+          scontoAttivo={scontoAttivo}
+          scontoTipo={scontoTipo}
+          scontoValore={scontoValore}
+          onToggleScontoAttivo={() => setScontoAttivo((v) => !v)}
+          onChangeScontoTipo={setScontoTipo}
+          onChangeScontoValore={setScontoValore}
+          totaleBase={totaleBaseBuilder}
           noteExtra={noteExtra}
           onNoteExtraChange={setNoteExtra}
           profiloFiscale={profiloFiscale}

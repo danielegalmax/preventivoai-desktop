@@ -12,6 +12,8 @@ import type { NuovoManualeDraft } from "../../nuovoDraft";
 import type { Servizio } from "../../types";
 import {
   validaPianiPagamento,
+  calcolaTotaleVoci,
+  calcolaTotaleTrasferte,
   type RateAccontoTipo,
   type RateModalitaPiano,
 } from "preventivoai-shared";
@@ -41,6 +43,9 @@ type Params = {
   rateAccontoTipo: RateAccontoTipo;
   rateAccontoValore: string;
   totaleConIva: number;
+  scontoAttivo: boolean;
+  scontoTipo: "percentuale" | "fisso";
+  scontoValore: string;
   vaiAllAnteprima: (override?: Partial<NuovoManualeDraft>) => void;
 };
 
@@ -69,8 +74,12 @@ export function useNuovoBuilderVoci({
   rateAccontoTipo,
   rateAccontoValore,
   totaleConIva,
+  scontoAttivo,
+  scontoTipo,
+  scontoValore,
   vaiAllAnteprima,
 }: Params) {
+  const totaleBase = calcolaTotaleVoci(voci) + calcolaTotaleTrasferte(trasferte);
   const salvataggioListinoRef = useRef<Set<string>>(new Set());
 
   const salvaVoceNelListino = useCallback(
@@ -234,6 +243,7 @@ export function useNuovoBuilderVoci({
     }
     setErrore("");
     const nomeCliente = clienti.find((c) => c.id === clienteSelezionatoId)?.nome || "";
+    const valoreSconto = parseFloat(scontoValore.replace(",", "."));
     const testo = generaTestoPreventivoBuilder({
       nomeCliente,
       voci: vociValide,
@@ -241,6 +251,10 @@ export function useNuovoBuilderVoci({
       includiIva,
       noteExtra,
       metodoPagamentoSelezionato,
+      sconto:
+        scontoAttivo && scontoValore && valoreSconto > 0
+          ? { tipo: scontoTipo, valore: valoreSconto }
+          : null,
     });
     setPreventivo(testo);
     vaiAllAnteprima({ preventivo: testo });
@@ -265,6 +279,9 @@ export function useNuovoBuilderVoci({
     includiIva,
     noteExtra,
     metodoPagamentoSelezionato,
+    scontoAttivo,
+    scontoTipo,
+    scontoValore,
     setPreventivo,
     vaiAllAnteprima,
   ]);
@@ -277,5 +294,6 @@ export function useNuovoBuilderVoci({
     rimuoviVoce,
     aggiungiServizioListino,
     generaDaBuilder,
+    totaleBase,
   };
 }
